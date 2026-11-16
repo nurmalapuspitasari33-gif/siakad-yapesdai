@@ -207,7 +207,4 @@ Route::middleware('auth')->group(function () {
 });
 
 require __DIR__.'/auth.php';
-
-Route::get('/fix-storage', function () { \Illuminate\Support\Facades\Artisan::call('storage:link'); return 'Storage link berhasil!'; });
-
-Route::get('/storage/{path}', function (\) { \ = storage_path('app/public/' . \); if (!file_exists(\)) abort(404); return response()->file(\); })->where('path', '.*');
+`nRoute::get("/storage/{path}", function ($path) { $f = storage_path("app/public/" . $path); return file_exists($f) ? response()->file($f) : abort(404); })->where("path", ".*");
