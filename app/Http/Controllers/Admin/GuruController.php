@@ -1,0 +1,273 @@
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Models\Guru;
+use App\Models\Kelas;
+use App\Models\TahunAjaran;
+use App\Models\User;
+use App\Support\SpreadsheetFile;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
+use Inertia\Inertia;
+use Inertia\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
+
+class GuruController extends Controller
+{
+    private const IMPORT_HEADERS = [
+        'niky',
+        'nama_lengkap',
+        'email',
+        'no_wa',
+        'is_wali_kelas',
+        'nama_kelas_wali',
+    ];
+
+    private const IMPORT_HEADER_ALIASES = [
+        'nip' => 'niky',
+    ];
+
+    public function index(): Response
+    {
+        return Inertia::render('Admin/Guru/Index', [
+            'gurus' => Guru::query()
+                ->with('user:id,name,email,no_wa')
+                ->orderBy('nama_lengkap')
+                ->paginate(10)
+                ->withQueryString(),
+        ]);
+    }
+
+    public function template(): StreamedResponse
+    {
+        return SpreadsheetFile::downloadTemplate('template-guru.xlsx', self::IMPORT_HEADERS);
+    }
+
+    public function import(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'file' => ['required', 'file', 'mimes:xlsx', 'extensions:xlsx', 'max:5120'],
+        ]);
+        $rows = SpreadsheetFile::readRows(
+            $validated['file'],
+            self::IMPORT_HEADERS,
+            self::IMPORT_HEADER_ALIASES,
+        );
+        $activeYearId = TahunAjaran::query()->where('is_aktif', true)->value('id');
+        $classes = $activeYearId
+            ? Kelas::query()->where('tahun_ajaran_id', $activeYearId)->get(['id', 'nama_kelas', 'wali_kelas_id'])
+            : collect();
+        $classesByName = $classes->groupBy(fn (Kelas $kelas): string => mb_strtolower($kelas->nama_kelas));
+        $errors = [];
+        $seenNiky = [];
+        $seenEmails = [];
+        $seenClassIds = [];
+        $teachers = [];
+
+        foreach ($rows as $item) {
+            $rowNumber = $item['row'];
+            $data = $item['data'];
+            $data['is_wali_kelas'] = mb_strtolower((string) ($data['is_wali_kelas'] ?? ''));
+            $validator = Validator::make($data, [
+                'niky' => ['required', 'string', 'max:255', Rule::unique('gurus', 'nip')],
+                'nama_lengkap' => ['required', 'string', 'max:255'],
+                'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')],
+                'no_wa' => ['nullable', 'string', 'max:30'],
+                'is_wali_kelas' => ['required', Rule::in(['ya', 'tidak'])],
+                'nama_kelas_wali' => ['nullable', 'string', 'max:255', 'required_if:is_wali_kelas,ya'],
+            ], [], ['niky' => 'NIKY']);
+
+            if ($validator->fails()) {
+                $errors[] = "Baris {$rowNumber}: ".implode(' ', $validator->errors()->all());
+
+                continue;
+            }
+
+            $data = $validator->validated();
+            $nikyKey = mb_strtolower($data['niky']);
+            $emailKey = mb_strtolower($data['email']);
+
+            if (isset($seenNiky[$nikyKey])) {
+                $errors[] = "Baris {$rowNumber}: NIKY duplikat di dalam file.";
+            }
+
+            if (isset($seenEmails[$emailKey])) {
+                $errors[] = "Baris {$rowNumber}: Email duplikat di dalam file.";
+            }
+
+            $seenNiky[$nikyKey] = true;
+            $seenEmails[$emailKey] = true;
+            $classId = null;
+
+            if ($data['is_wali_kelas'] === 'ya') {
+                $classKey = mb_strtolower($data['nama_kelas_wali']);
+                $matchingClasses = $classesByName->get($classKey, collect());
+
+                if (! $activeYearId || $matchingClasses->count() !== 1) {
+                    $errors[] = "Baris {$rowNumber}: Kelas wali tidak ditemukan secara unik pada tahun ajaran aktif.";
+                } else {
+                    $class = $matchingClasses->first();
+                    $classId = $class->id;
+
+                    if ($class->wali_kelas_id !== null) {
+                        $errors[] = "Baris {$rowNumber}: Kelas {$class->nama_kelas} sudah memiliki wali kelas.";
+                    }
+
+                    if (isset($seenClassIds[$classId])) {
+                        $errors[] = "Baris {$rowNumber}: Kelas wali yang sama dicantumkan lebih dari sekali.";
+                    }
+
+                    $seenClassIds[$classId] = true;
+                }
+            }
+
+            $teachers[] = [
+                'data' => $data,
+                'class_id' => $classId,
+            ];
+        }
+
+        if ($errors !== []) {
+            throw ValidationException::withMessages(['file' => implode("\n", $errors)]);
+        }
+
+        DB::transaction(function () use ($teachers): void {
+            foreach ($teachers as $teacher) {
+                $data = $teacher['data'];
+                $user = User::create([
+                    'name' => $data['nama_lengkap'],
+                    'email' => $data['email'],
+                    'no_wa' => $data['no_wa'] ?? null,
+                    'password' => 'password',
+                    'role' => 'guru',
+                ]);
+                $user->forceFill(['email_verified_at' => now()])->save();
+
+                $guru = Guru::create([
+                    'user_id' => $user->id,
+                    'nip' => $data['niky'],
+                    'nama_lengkap' => $data['nama_lengkap'],
+                    'is_wali_kelas' => $data['is_wali_kelas'] === 'ya',
+                ]);
+
+                if ($teacher['class_id'] !== null) {
+                    Kelas::query()->whereKey($teacher['class_id'])->update(['wali_kelas_id' => $guru->id]);
+                }
+            }
+        });
+
+        return to_route('admin.guru.index')->with(
+            'success',
+            count($teachers).' guru berhasil diimpor. Kata sandi awal akun adalah password.',
+        );
+    }
+
+    public function store(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'nip' => ['required', 'string', 'max:255', Rule::unique('gurus', 'nip')],
+            'nama_lengkap' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')],
+            'no_wa' => ['nullable', 'string', 'max:30'],
+            'password' => ['required', 'string', 'min:8'],
+            'is_wali_kelas' => ['required', 'boolean'],
+        ], [
+            'nip.required' => 'NIKY wajib diisi.',
+            'nip.unique' => 'NIKY sudah digunakan.',
+            'email.unique' => 'Email sudah digunakan.',
+            'password.min' => 'Kata sandi minimal 8 karakter.',
+        ], ['nip' => 'NIKY']);
+
+        DB::transaction(function () use ($validated): void {
+            $user = User::create([
+                'name' => $validated['nama_lengkap'],
+                'email' => $validated['email'],
+                'no_wa' => $validated['no_wa'] ?? null,
+                'password' => $validated['password'],
+                'role' => 'guru',
+            ]);
+            $user->forceFill(['email_verified_at' => now()])->save();
+
+            Guru::create([
+                'user_id' => $user->id,
+                'nip' => $validated['nip'],
+                'nama_lengkap' => $validated['nama_lengkap'],
+                'is_wali_kelas' => $validated['is_wali_kelas'],
+            ]);
+        });
+
+        return to_route('admin.guru.index')->with('success', 'Data guru berhasil ditambahkan.');
+    }
+
+    public function update(Request $request, Guru $guru): RedirectResponse
+    {
+        $guru->load('user');
+
+        $validated = $request->validate([
+            'nip' => ['required', 'string', 'max:255', Rule::unique('gurus', 'nip')->ignore($guru)],
+            'nama_lengkap' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($guru->user)],
+            'no_wa' => ['nullable', 'string', 'max:30'],
+            'password' => ['nullable', 'string', 'min:8'],
+            'is_wali_kelas' => ['required', 'boolean'],
+        ], [
+            'nip.required' => 'NIKY wajib diisi.',
+            'nip.unique' => 'NIKY sudah digunakan.',
+            'email.unique' => 'Email sudah digunakan.',
+            'password.min' => 'Kata sandi minimal 8 karakter.',
+        ], ['nip' => 'NIKY']);
+
+        DB::transaction(function () use ($guru, $validated): void {
+            $userData = [
+                'name' => $validated['nama_lengkap'],
+                'email' => $validated['email'],
+                'no_wa' => $validated['no_wa'] ?? null,
+            ];
+
+            if ($guru->user->email !== $validated['email']) {
+                $userData['email_verified_at'] = null;
+            }
+
+            if (! empty($validated['password'])) {
+                $userData['password'] = $validated['password'];
+            }
+
+            $guru->user->forceFill($userData)->save();
+            $guru->update([
+                'nip' => $validated['nip'],
+                'nama_lengkap' => $validated['nama_lengkap'],
+                'is_wali_kelas' => $validated['is_wali_kelas'],
+            ]);
+        });
+
+        return to_route('admin.guru.index')->with('success', 'Data guru berhasil diperbarui.');
+    }
+
+    public function destroy(Guru $guru): RedirectResponse
+    {
+        if ($guru->jadwals()->exists() || $guru->ujians()->exists() || $guru->kelasWalian()->exists()) {
+            return back()->with('error', 'Guru tidak dapat dihapus karena masih memiliki jadwal, ujian, atau kelas wali.');
+        }
+
+        $guru->user()->delete();
+
+        return to_route('admin.guru.index')->with('success', 'Data guru berhasil dihapus.');
+    }
+
+    public function resetPassword(Guru $guru): RedirectResponse
+    {
+        $guru->user->forceFill([
+            'password' => Hash::make('password'),
+        ])->save();
+
+        return to_route('admin.guru.index')
+            ->with('success', 'Kata sandi akun guru berhasil direset menjadi password.');
+    }
+}

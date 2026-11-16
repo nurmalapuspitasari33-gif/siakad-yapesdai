@@ -1,0 +1,19 @@
+export default function GoogleAuthButton({
+    label = 'Masuk dengan Google',
+    className = '',
+}) {
+    return (
+        <a
+            href={route('google.redirect')}
+            className={`inline-flex w-full items-center justify-center gap-3 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-slate-400 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${className}`}
+        >
+            <svg viewBox="0 0 48 48" className="h-5 w-5 shrink-0" aria-hidden="true">
+                <path
+                    fill="#4285F4"
+                    d="M43.6 20.5H42V20H24v8h11.3C33.6 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.1 5.9 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20c11 0 19.8-8 19.8-20 0-1.3-.1-2.3-.2-3.5z"
+                />
+            </svg>
+            <span>{label}</span>
+        </a>
+    );
+}

@@ -1,0 +1,137 @@
+<?php
+
+namespace Tests\Feature\Admin;
+
+use App\Models\Guru;
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
+use Inertia\Testing\AssertableInertia as Assert;
+use Tests\TestCase;
+
+class GuruControllerTest extends TestCase
+{
+    use RefreshDatabase;
+
+    public function test_admin_can_create_update_and_delete_a_teacher_account(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $this->actingAs($admin)
+            ->get(route('admin.guru.index'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->component('Admin/Guru/Index'));
+
+        $this->actingAs($admin)
+            ->post(route('admin.guru.store'), [
+                'nip' => '19870001',
+                'nama_lengkap' => 'Dewi Puspita',
+                'email' => 'dewi@sekolah.sch.id',
+                'no_wa' => '081234567890',
+                'password' => 'password123',
+                'is_wali_kelas' => true,
+            ])
+            ->assertRedirect(route('admin.guru.index', absolute: false));
+
+        $guru = Guru::query()->where('nip', '19870001')->firstOrFail();
+        $user = $guru->user;
+
+        $this->assertSame('guru', $user->role);
+        $this->assertTrue($guru->is_wali_kelas);
+        $this->assertTrue(Hash::check('password123', $user->password));
+        $this->assertNotNull($user->email_verified_at);
+
+        $this->actingAs($admin)
+            ->put(route('admin.guru.update', $guru), [
+                'nip' => '19870002',
+                'nama_lengkap' => 'Dewi Puspita Baru',
+                'email' => 'dewi.baru@sekolah.sch.id',
+                'no_wa' => '081234567891',
+                'password' => '',
+                'is_wali_kelas' => false,
+            ])
+            ->assertRedirect(route('admin.guru.index', absolute: false));
+
+        $guru->refresh();
+        $user->refresh();
+        $this->assertSame('19870002', $guru->nip);
+        $this->assertFalse($guru->is_wali_kelas);
+        $this->assertSame('dewi.baru@sekolah.sch.id', $user->email);
+        $this->assertNull($user->email_verified_at);
+        $this->assertTrue(Hash::check('password123', $user->password));
+
+        $this->actingAs($admin)
+            ->delete(route('admin.guru.destroy', $guru))
+            ->assertRedirect(route('admin.guru.index', absolute: false));
+
+        $this->assertDatabaseMissing('gurus', ['id' => $guru->id]);
+        $this->assertDatabaseMissing('users', ['id' => $user->id]);
+    }
+
+    public function test_non_admin_cannot_manage_teacher_accounts(): void
+    {
+        $guru = User::factory()->create([
+            'role' => 'guru',
+            'password' => 'old-password',
+        ]);
+        $guruProfile = Guru::create([
+            'user_id' => $guru->id,
+            'nip' => '19870003',
+            'nama_lengkap' => 'Guru Penguji',
+            'is_wali_kelas' => false,
+        ]);
+
+        $this->actingAs($guru)
+            ->get(route('admin.guru.index'))
+            ->assertForbidden();
+
+        $this->actingAs($guru)
+            ->patch(route('admin.guru.reset-password', $guruProfile))
+            ->assertForbidden();
+
+        $this->assertFalse(Hash::check('password', $guru->refresh()->password));
+    }
+
+    public function test_admin_can_reset_teacher_password(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $teacher = User::factory()->create([
+            'role' => 'guru',
+            'password' => 'old-password',
+        ]);
+        $guru = Guru::create([
+            'user_id' => $teacher->id,
+            'nip' => '19870004',
+            'nama_lengkap' => 'Guru Uji',
+            'is_wali_kelas' => false,
+        ]);
+
+        $this->actingAs($admin)
+            ->patch(route('admin.guru.reset-password', $guru))
+            ->assertRedirect(route('admin.guru.index', absolute: false))
+            ->assertSessionHas('success', 'Kata sandi akun guru berhasil direset menjadi password.');
+
+        $teacher->refresh();
+        $this->assertTrue(Hash::check('password', $teacher->password));
+        $this->assertFalse(Hash::check('old-password', $teacher->password));
+    }
+
+    public function test_guest_is_redirected_from_teacher_password_reset(): void
+    {
+        $teacher = User::factory()->create([
+            'role' => 'guru',
+            'password' => 'old-password',
+        ]);
+        $guru = Guru::create([
+            'user_id' => $teacher->id,
+            'nip' => '19870005',
+            'nama_lengkap' => 'Guru Uji',
+            'is_wali_kelas' => false,
+        ]);
+
+        $this->patch(route('admin.guru.reset-password', $guru))
+            ->assertRedirect(route('login'));
+
+        $this->assertFalse(Hash::check('password', $teacher->refresh()->password));
+    }
+}

@@ -1,0 +1,854 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    table:not(.report-table) {
+        @apply min-w-full text-left text-sm;
+    }
+
+    table:not(.report-table) thead {
+        @apply bg-slate-50;
+    }
+
+    table:not(.report-table) th {
+        @apply whitespace-nowrap px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600;
+    }
+
+    table:not(.report-table) tbody {
+        @apply bg-white;
+    }
+
+    table:not(.report-table) tbody tr {
+        @apply transition-colors duration-150;
+    }
+
+    table:not(.report-table) tbody tr:hover {
+        @apply bg-slate-50;
+    }
+
+    table:not(.report-table) td {
+        @apply px-4 py-4 text-slate-700;
+    }
+
+    button[class*="px-"] {
+        @apply rounded-xl px-4 py-2.5 transition duration-150 ease-in-out;
+    }
+
+    button[class*="bg-indigo-600"],
+    button[class*="bg-indigo-700"] {
+        @apply bg-indigo-600 text-white;
+    }
+
+    button[class*="bg-indigo-600"]:hover,
+    button[class*="bg-indigo-700"]:hover {
+        @apply bg-indigo-700;
+    }
+
+    button[class*="bg-indigo-50"] {
+        @apply border border-slate-200 bg-white text-slate-700;
+    }
+
+    button[class*="bg-indigo-50"]:hover {
+        @apply bg-slate-50;
+    }
+
+    button[class*="text-indigo-"]:not([class*="bg-indigo-600"]):not([class*="bg-indigo-700"]) {
+        @apply text-slate-700;
+    }
+
+    button[class*="hover:bg-indigo-"]:not([class*="bg-indigo-600"]):not([class*="bg-indigo-700"]):hover {
+        @apply bg-slate-100;
+    }
+
+    button[class*="bg-slate-900"],
+    button[class*="bg-slate-700"] {
+        @apply bg-slate-700 text-white;
+    }
+
+    button[class*="bg-slate-900"]:hover,
+    button[class*="bg-slate-700"]:hover {
+        @apply bg-slate-800;
+    }
+
+    button[class*="bg-emerald-600"],
+    button[class*="bg-emerald-700"] {
+        @apply bg-emerald-600 text-white;
+    }
+
+    button[class*="bg-emerald-600"]:hover,
+    button[class*="bg-emerald-700"]:hover {
+        @apply bg-emerald-700;
+    }
+
+    button[class*="bg-rose-600"],
+    button[class*="bg-rose-700"] {
+        @apply bg-rose-600 text-white;
+    }
+
+    button[class*="bg-rose-600"]:hover,
+    button[class*="bg-rose-700"]:hover {
+        @apply bg-rose-700;
+    }
+}
+
+@page {
+    size: A4 portrait;
+    margin: 8mm;
+}
+
+@page spmb-report {
+    size: A4 landscape;
+    margin: 12mm;
+}
+
+@page ledger-print-landscape {
+    size: A4 landscape;
+    margin: 10mm;
+}
+
+@page ledger-print-portrait {
+    size: A4 portrait;
+    margin: 8mm;
+}
+
+@page executive-report {
+    size: A4 landscape;
+    margin: 12mm;
+}
+
+@media print {
+    html,
+    body,
+    #app {
+        min-height: 0 !important;
+        background: #fff !important;
+    }
+
+    .report-table tr {
+        break-inside: avoid;
+    }
+
+    body * {
+        visibility: hidden !important;
+    }
+
+    .print-document,
+    .print-document * {
+        visibility: visible !important;
+    }
+
+    .print-document {
+        display: block !important;
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+    }
+
+    .identity-print-document {
+        min-height: 281mm;
+    }
+
+    .report-print-page {
+        min-height: 281mm;
+        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+        break-after: page;
+        page-break-after: always;
+    }
+
+    .report-print-page:last-child {
+        break-after: auto;
+        page-break-after: auto;
+    }
+
+    .print-document {
+        color: #000 !important;
+        font-family: Cambria, "Times New Roman", serif !important;
+        font-size: 12pt !important;
+        line-height: 1.15 !important;
+    }
+
+    .print-document * {
+        color: #000 !important;
+        font-family: inherit !important;
+        font-size: 12pt !important;
+        line-height: inherit;
+    }
+
+    .identity-print-document {
+        box-sizing: border-box;
+        display: flex !important;
+        flex-direction: column;
+    }
+
+    .identity-title {
+        margin: 5mm 0 7mm;
+        text-align: center;
+        font-weight: 700;
+    }
+
+    .identity-fields {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        row-gap: 1.5mm;
+    }
+
+    .identity-line {
+        display: grid;
+        grid-template-columns: 8mm 68mm 4mm minmax(0, 1fr);
+        min-height: 6mm;
+        line-height: 1.12;
+    }
+
+    .identity-number {
+        text-align: center;
+    }
+
+    .identity-line-subentry .identity-label {
+        padding-left: 10mm;
+    }
+
+    .identity-footer {
+        display: flex;
+        align-items: flex-end;
+        justify-content: flex-end;
+        gap: 14mm;
+        margin-top: auto;
+        padding-top: 10mm;
+    }
+
+    .identity-photo {
+        display: flex;
+        width: 30mm;
+        height: 40mm;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        border: 0.3mm solid #000;
+        text-align: center;
+    }
+
+    .identity-photo img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .identity-signature {
+        width: 86mm;
+        line-height: 1.2;
+    }
+
+    .identity-signature-space {
+        height: 27mm;
+    }
+
+    .identity-signature-name {
+        font-weight: 700;
+        text-decoration: underline;
+    }
+
+    .report-student-header {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 64mm;
+        gap: 8mm;
+        justify-content: space-between;
+        margin: 11mm 1mm 13mm;
+    }
+
+    .report-print-page-continuation .report-student-header {
+        margin: 3mm 1mm 4mm;
+    }
+
+    .report-student-column {
+        display: flex;
+        min-width: 0;
+        flex-direction: column;
+        gap: 1mm;
+        text-align: left;
+    }
+
+    .report-header-line {
+        display: grid;
+        grid-template-columns: 30.5mm 4mm minmax(0, 1fr);
+        margin: 0;
+        text-align: left;
+    }
+
+    .report-header-line > span:last-child {
+        overflow-wrap: anywhere;
+        white-space: pre-line;
+    }
+
+    .report-table {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+    }
+
+    .report-subject-table .report-col-number,
+    .extracurricular-table .report-col-number {
+        width: 7%;
+    }
+
+    .report-subject-table .report-col-name {
+        width: 34%;
+    }
+
+    .report-subject-table .report-col-score {
+        width: 15%;
+    }
+
+    .report-subject-table .report-col-outcome {
+        width: 44%;
+    }
+
+    .extracurricular-table .report-col-name,
+    .extracurricular-table .report-col-outcome {
+        width: 46.5%;
+    }
+
+    .report-subject-table th,
+    .report-subject-table td,
+    .report-data-table th,
+    .report-data-table td {
+        border: 0.3mm solid #000 !important;
+        padding: 3px 6px !important;
+        vertical-align: top;
+        font-size: 11pt !important;
+        line-height: 1.12 !important;
+    }
+
+    .report-subject-table tr,
+    .report-data-table tr {
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+
+    .report-subject-table thead th,
+    .report-data-table thead th {
+        background-color: #e5e5e5 !important;
+        font-weight: 700;
+        text-align: center;
+        vertical-align: middle;
+    }
+
+    .report-subject-table thead tr {
+        height: auto;
+    }
+
+    .report-subject-table tbody tr:not(.report-group-row) {
+        height: auto;
+    }
+
+    .report-group-row td {
+        height: auto;
+        background-color: #e5e5e5 !important;
+        font-weight: 700;
+        vertical-align: top !important;
+        padding: 2px 6px !important;
+    }
+
+    .report-empty-row td {
+        height: auto;
+        text-align: center;
+        vertical-align: top;
+    }
+
+    .report-group-prefix,
+    .report-subject-number,
+    .report-subject-score {
+        text-align: center;
+    }
+
+    .report-subject-number,
+    .report-subject-score {
+        vertical-align: top !important;
+    }
+
+    .report-subject-table .competency-normal,
+    .report-data-table .competency-normal {
+        font-size: 11pt !important;
+        line-height: 1.375 !important;
+    }
+
+    .report-subject-table .competency-medium,
+    .report-data-table .competency-medium {
+        font-size: 9.5pt !important;
+        line-height: 1.25 !important;
+    }
+
+    .report-subject-table .competency-long,
+    .report-data-table .competency-long {
+        font-size: 8.5pt !important;
+        line-height: 1.25 !important;
+    }
+
+    .kokurikuler-table {
+        margin-top: 2mm;
+    }
+
+    .kokurikuler-table tbody td {
+        min-height: 12mm;
+        padding: 2mm !important;
+        text-align: center;
+        vertical-align: middle;
+        white-space: pre-line;
+    }
+
+    .extracurricular-table {
+        margin-top: 2mm;
+    }
+
+    .extracurricular-table thead tr {
+        height: auto;
+    }
+
+    .extracurricular-table tbody tr {
+        height: auto;
+    }
+
+    .report-attendance-notes {
+        display: grid;
+        grid-template-columns: 0.8fr 1.2fr;
+        gap: 6mm;
+        align-items: stretch;
+        margin-top: 2mm;
+    }
+
+    .attendance-table thead tr,
+    .teacher-notes-table thead tr {
+        height: auto;
+    }
+
+    .attendance-table td {
+        height: auto;
+    }
+
+    .teacher-notes-table tbody td {
+        min-height: 12mm;
+        padding: 1.5mm !important;
+        vertical-align: top;
+        white-space: pre-line;
+    }
+
+    .promotion-table,
+    .parent-response-table {
+        margin-top: 2mm;
+    }
+
+    .promotion-table thead tr,
+    .parent-response-table thead tr {
+        height: auto;
+    }
+
+    .promotion-table tbody td {
+        height: auto;
+        text-align: center;
+        vertical-align: middle;
+    }
+
+    .promotion-choice-struck {
+        text-decoration: line-through;
+    }
+
+    .parent-response-table tbody td {
+        height: 56px;
+    }
+
+    .report-signatures {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        gap: 0 8mm;
+        margin-top: auto;
+        padding-top: 3mm;
+        text-align: center;
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+
+    .report-signature-space {
+        height: 76px;
+    }
+
+    .report-signature-rule {
+        width: 50mm;
+        margin: 0 auto;
+        border-top: 0.3mm solid #000;
+    }
+
+    .report-signature-name {
+        font-weight: 700;
+    }
+
+    .report-signature-principal {
+        grid-column: 1 / -1;
+        width: 50%;
+        justify-self: center;
+        margin-top: 2mm;
+    }
+
+    .spmb-print-document {
+        page: spmb-report;
+        width: 100%;
+    }
+
+    .spmb-report-school-heading {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8mm;
+        border-bottom: 0.6mm solid #000;
+        padding-bottom: 3mm;
+        text-align: center;
+    }
+
+    .spmb-report-school-heading h1 {
+        margin: 0 0 1mm;
+        font-size: 16pt !important;
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+
+    .spmb-report-school-heading p {
+        margin: 0.5mm 0;
+        font-size: 9pt !important;
+    }
+
+    .spmb-report-logo {
+        width: 22mm;
+        height: 22mm;
+        object-fit: contain;
+    }
+
+    .spmb-report-title {
+        margin: 5mm 0 1mm;
+        font-size: 13pt !important;
+        font-weight: 700;
+        text-align: center;
+        text-transform: uppercase;
+    }
+
+    .spmb-report-total {
+        margin: 0 0 3mm;
+        font-size: 9pt !important;
+    }
+
+    .spmb-report-table {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+    }
+
+    .spmb-col-number {
+        width: 4%;
+    }
+
+    .spmb-col-registration {
+        width: 13%;
+    }
+
+    .spmb-col-name {
+        width: 18%;
+    }
+
+    .spmb-col-nisn {
+        width: 11%;
+    }
+
+    .spmb-col-school {
+        width: 16%;
+    }
+
+    .spmb-col-program {
+        width: 18%;
+    }
+
+    .spmb-col-type {
+        width: 10%;
+    }
+
+    .spmb-col-status {
+        width: 10%;
+    }
+
+    .spmb-report-table th,
+    .spmb-report-table td {
+        border: 0.3mm solid #000;
+        padding: 1.5mm 2mm !important;
+        font-size: 9pt !important;
+        line-height: 1.25 !important;
+        white-space: normal !important;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+        vertical-align: top;
+    }
+
+    .spmb-report-table th {
+        background: #e5e5e5 !important;
+        font-weight: 700;
+        text-align: center;
+        vertical-align: middle;
+    }
+
+    .spmb-report-table tr {
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+
+    .spmb-report-empty {
+        height: 20mm;
+        text-align: center;
+        vertical-align: middle !important;
+    }
+
+    .spmb-report-signatures {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10mm;
+        margin-top: 8mm;
+        text-align: center;
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+
+    .spmb-report-signatures p {
+        margin: 0;
+        font-size: 10pt !important;
+    }
+
+    .spmb-report-signature-space {
+        height: 20mm;
+    }
+
+    .spmb-report-signature-name {
+        font-weight: 700;
+        text-decoration: underline;
+    }
+
+    .ledger-print-document {
+        display: flex !important;
+        flex-direction: column;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .ledger-print-landscape {
+        page: ledger-print-landscape;
+        min-height: 190mm;
+    }
+
+    .ledger-print-portrait {
+        page: ledger-print-portrait;
+        min-height: 281mm;
+    }
+
+    .ledger-school-heading {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5mm;
+        border-bottom: 0.6mm solid #000;
+        padding-bottom: 2mm;
+        text-align: center;
+    }
+
+    .ledger-school-heading img {
+        width: 18mm;
+        height: 18mm;
+        object-fit: contain;
+    }
+
+    .ledger-school-heading h1 {
+        margin: 0 0 1mm;
+        font-size: 12pt !important;
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+
+    .ledger-school-heading p {
+        margin: 0.5mm 0;
+        font-size: 8pt !important;
+    }
+
+    .ledger-title {
+        margin: 2mm 0 1mm;
+        font-size: 10pt !important;
+        font-weight: 700;
+        text-align: center;
+    }
+
+    .ledger-class-identity {
+        margin: 0 0 2mm;
+        font-size: 8pt !important;
+        text-align: center;
+    }
+
+    .ledger-print-table {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+    }
+
+    .ledger-print-table th,
+    .ledger-print-table td {
+        border: 0.25mm solid #000 !important;
+        font-size: 7pt !important;
+        line-height: 1.05 !important;
+        overflow-wrap: anywhere;
+        vertical-align: top;
+    }
+
+    .ledger-print-table th:not(.ledger-group-heading),
+    .ledger-print-table td {
+        padding: 1mm 1.2mm !important;
+    }
+
+    .ledger-print-table th {
+        background: #e5e5e5 !important;
+        font-weight: 700;
+        text-align: center;
+        vertical-align: middle;
+    }
+
+    .ledger-group-umum {
+        background: #eff6ff !important;
+    }
+
+    .ledger-group-kejuruan {
+        background: #ecfdf5 !important;
+    }
+
+    .ledger-group-muatan_lokal {
+        background: #f5f3ff !important;
+    }
+
+    .ledger-print-table tr {
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+
+    .ledger-center,
+    .ledger-empty {
+        text-align: center;
+    }
+
+    .ledger-signatures {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8mm;
+        margin-top: auto;
+        padding-top: 3mm;
+        text-align: center;
+        break-inside: avoid;
+        page-break-inside: avoid;
+        font-size: 8pt !important;
+    }
+
+    .ledger-signatures p {
+        margin: 0;
+        font-size: 8pt !important;
+    }
+
+    .ledger-signature-space {
+        height: 12mm;
+    }
+
+    .ledger-signature-name {
+        font-weight: 700;
+        text-decoration: underline;
+    }
+}
+
+@media print {
+    body[data-admin-report-print] * {
+        visibility: hidden !important;
+    }
+
+    body[data-admin-report-print] [data-report-print] {
+        display: none !important;
+    }
+
+    body[data-admin-report-print="keuangan"] [data-report-print="keuangan"],
+    body[data-admin-report-print="demografi"] [data-report-print="demografi"],
+    body[data-admin-report-print="ketuntasan"] [data-report-print="ketuntasan"] {
+        display: block !important;
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        overflow: visible !important;
+        page: executive-report;
+        break-inside: auto;
+    }
+
+    body[data-admin-report-print="keuangan"] [data-report-print="keuangan"] *,
+    body[data-admin-report-print="demografi"] [data-report-print="demografi"] *,
+    body[data-admin-report-print="ketuntasan"] [data-report-print="ketuntasan"] * {
+        visibility: visible !important;
+    }
+
+    body[data-admin-report-print="keuangan"] [data-report-print="keuangan"] .executive-report-content,
+    body[data-admin-report-print="demografi"] [data-report-print="demografi"] .executive-report-content,
+    body[data-admin-report-print="ketuntasan"] [data-report-print="ketuntasan"] .executive-report-content {
+        display: block !important;
+    }
+
+    .executive-report-print-heading {
+        display: block !important;
+        margin-bottom: 5mm;
+        text-align: center;
+    }
+
+    .executive-report-print-heading h1 {
+        margin: 0 0 1.5mm;
+        font-size: 15pt;
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+
+    .executive-report-print-heading h2 {
+        margin: 3mm 0 1mm;
+        font-size: 12pt;
+        font-weight: 700;
+    }
+
+    .executive-report-print-heading p {
+        margin: 0.5mm 0;
+        font-size: 9pt;
+    }
+
+    .executive-report-table-wrapper {
+        overflow: visible !important;
+    }
+
+    .executive-report-table {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: auto;
+    }
+
+    .executive-report-table th,
+    .executive-report-table td {
+        border: 0.25mm solid #475569 !important;
+        padding: 1.5mm 1.2mm !important;
+        font-size: 8pt !important;
+        line-height: 1.15 !important;
+        overflow-wrap: anywhere;
+        vertical-align: top;
+    }
+
+    .executive-report-table th {
+        background: #e2e8f0 !important;
+        font-weight: 700;
+        text-align: center;
+    }
+
+    .executive-report-table tr {
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+}
