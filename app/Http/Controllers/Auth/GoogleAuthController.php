@@ -25,12 +25,12 @@ class GoogleAuthController extends Controller
                 ->withErrors(['email' => 'Login Google belum dikonfigurasi oleh administrator.']);
         }
 
-        return Socialite::driver('google')->redirect();
+        return Socialite::driver('google')->stateless()->redirect();
     }
 
     public function callback(Request $request): RedirectResponse
     {
-        $googleUser = Socialite::driver('google')->user();
+        $googleUser = Socialite::driver('google')->stateless()->user();
         $email = Str::lower(trim((string) $googleUser->getEmail()));
         $googleId = (string) $googleUser->getId();
         $emailIsVerified = filter_var(
