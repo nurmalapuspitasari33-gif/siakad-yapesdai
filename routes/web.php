@@ -207,4 +207,5 @@ Route::middleware('auth')->group(function () {
 });
 
 require __DIR__.'/auth.php';
-`nRoute::get("/storage/{path}", function ($path) { $f = storage_path("app/public/" . $path); return file_exists($f) ? response()->file($f) : abort(404); })->where("path", ".*");
+
+Route::get("/storage/{path}", function ($path) { $f = storage_path("app/public/" . $path); return file_exists($f) ? response()->file($f) : abort(404); })->where("path", ".*");
