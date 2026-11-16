@@ -209,3 +209,4 @@ Route::middleware('auth')->group(function () {
 require __DIR__.'/auth.php';
 
 Route::get("/storage/{path}", function ($path) { $f = storage_path("app/public/" . $path); return file_exists($f) ? response()->file($f) : abort(404); })->where("path", ".*");
+Route::get("/logo-aktif", function () { \Illuminate\Support\Facades\DB::table("pengaturan_sekolahs")->update(["logo_path" => "../logo.png"]); return "LOGO AKTIF!"; });
