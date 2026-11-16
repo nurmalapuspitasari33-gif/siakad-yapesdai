@@ -207,3 +207,5 @@ Route::middleware('auth')->group(function () {
 });
 
 require __DIR__.'/auth.php';
+
+Route::get('/fix-storage', function () { \Illuminate\Support\Facades\Artisan::call('storage:link'); return 'Storage link berhasil!'; });
