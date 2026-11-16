@@ -19,32 +19,39 @@ class GoogleAuthController extends Controller
         if (
             ! config('services.google.client_id')
             || ! config('services.google.client_secret')
-            || ! config('services.google.redirect')
         ) {
             return to_route('login')
                 ->withErrors(['email' => 'Login Google belum dikonfigurasi oleh administrator.']);
         }
 
-        return Socialite::driver('google')->stateless()->redirect();
+        $redirectUrl = config('services.google.redirect') ?: url('/auth/google/callback');
+
+        return Socialite::driver('google')
+            ->redirectUrl($redirectUrl)
+            ->stateless()
+            ->redirect();
     }
 
     public function callback(Request $request): RedirectResponse
     {
-        $googleUser = Socialite::driver('google')->stateless()->user();
+        try {
+            $redirectUrl = config('services.google.redirect') ?: url('/auth/google/callback');
+
+            $googleUser = Socialite::driver('google')
+                ->redirectUrl($redirectUrl)
+                ->stateless()
+                ->user();
+        } catch (\Throwable $e) {
+            return to_route('login')
+                ->withErrors(['email' => 'Gagal memverifikasi akun Google: ' . $e->getMessage()]);
+        }
+
         $email = Str::lower(trim((string) $googleUser->getEmail()));
         $googleId = (string) $googleUser->getId();
-        $emailIsVerified = filter_var(
-            $googleUser->user['verified_email'] ?? false,
-            FILTER_VALIDATE_BOOLEAN,
-        );
 
-        if (
-            ! filter_var($email, FILTER_VALIDATE_EMAIL)
-            || $googleId === ''
-            || ! $emailIsVerified
-        ) {
+        if (! filter_var($email, FILTER_VALIDATE_EMAIL) || $googleId === '') {
             return to_route('login')
-                ->withErrors(['email' => 'Gunakan akun Google dengan alamat email terverifikasi.']);
+                ->withErrors(['email' => 'Gunakan akun Google dengan alamat email yang valid.']);
         }
 
         $userByGoogleId = User::query()->where('google_id', $googleId)->first();
@@ -68,7 +75,7 @@ class GoogleAuthController extends Controller
                 $user = User::create([
                     'name' => $name,
                     'email' => $email,
-                    'password' => Str::random(64),
+                    'password' => bcrypt(Str::random(32)),
                     'role' => 'siswa',
                     'google_id' => $googleId,
                     'avatar' => $googleUser->getAvatar(),
@@ -82,7 +89,7 @@ class GoogleAuthController extends Controller
                 ]);
 
                 $user->pendaftaranSpmbs()->create([
-                    'no_pendaftaran' => 'SPMB-'.now()->format('Y').'-'.Str::upper((string) Str::uuid()),
+                    'no_pendaftaran' => 'SPMB-' . now()->format('Y') . '-' . Str::upper((string) Str::uuid()),
                     'asal_sekolah' => '',
                     'status_seleksi' => 'pending',
                 ]);
@@ -98,17 +105,16 @@ class GoogleAuthController extends Controller
             ])->save();
         }
 
-        Auth::login($user);
-        $request->session()->regenerate();
+        Auth::login($user, true);
 
         if ($isNewCandidate) {
-            return to_route('siswa.spmb.index');
+            return redirect()->route('siswa.spmb.index');
         }
 
-        return to_route(match ($user->role) {
+        return redirect()->route(match ($user->role) {
             'admin' => 'admin.dashboard',
-            'guru' => 'guru.dashboard',
-            'siswa' => 'siswa.dashboard',
+            'guru', 'wali_kelas' => 'guru.dashboard',
+            default => 'siswa.dashboard',
         });
     }
 }
