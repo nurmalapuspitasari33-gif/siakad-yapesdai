@@ -209,3 +209,5 @@ Route::middleware('auth')->group(function () {
 require __DIR__.'/auth.php';
 
 Route::get('/fix-storage', function () { \Illuminate\Support\Facades\Artisan::call('storage:link'); return 'Storage link berhasil!'; });
+
+Route::get('/storage/{path}', function (\) { \ = storage_path('app/public/' . \); if (!file_exists(\)) abort(404); return response()->file(\); })->where('path', '.*');
