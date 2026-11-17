@@ -8,23 +8,26 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('catatan_rapors', function (Blueprint $table): void {
-            $table->string('ekstra_3_nama')->nullable();
-            $table->string('ekstra_3_ket')->nullable();
-            $table->string('ekstra_4_nama')->nullable();
-            $table->string('ekstra_4_ket')->nullable();
-        });
+        if (Schema::hasTable('catatan_rapors')) {
+            Schema::table('catatan_rapors', function (Blueprint $table) {
+                if (!Schema::hasColumn('catatan_rapors', 'ekstra_3_nama')) {
+                    $table->string('ekstra_3_nama')->nullable();
+                }
+                if (!Schema::hasColumn('catatan_rapors', 'ekstra_3_keterangan')) {
+                    $table->text('ekstra_3_keterangan')->nullable();
+                }
+                if (!Schema::hasColumn('catatan_rapors', 'ekstra_4_nama')) {
+                    $table->string('ekstra_4_nama')->nullable();
+                }
+                if (!Schema::hasColumn('catatan_rapors', 'ekstra_4_keterangan')) {
+                    $table->text('ekstra_4_keterangan')->nullable();
+                }
+            });
+        }
     }
 
     public function down(): void
     {
-        Schema::table('catatan_rapors', function (Blueprint $table): void {
-            $table->dropColumn([
-                'ekstra_3_nama',
-                'ekstra_3_ket',
-                'ekstra_4_nama',
-                'ekstra_4_ket',
-            ]);
-        });
+        //
     }
 };
