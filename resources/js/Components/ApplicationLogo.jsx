@@ -9,7 +9,7 @@ function schoolLogoUrl(settings) {
         return logo;
     }
 
-    return `/storage/${logo.replace(/^storage\//, '')}`;
+    return `/public-files/${logo.replace(/^(?:storage|public-files)\//, '')}`;
 }
 
 export default function ApplicationLogo({ schoolSettings, ...props }) {

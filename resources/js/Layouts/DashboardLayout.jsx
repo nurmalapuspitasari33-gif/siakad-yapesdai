@@ -1,4 +1,5 @@
 import { Link, usePage } from '@inertiajs/react';
+import Dropdown from '@/Components/Dropdown';
 import { useState } from 'react';
 
 const mobileNavigationIcons = {
@@ -42,10 +43,10 @@ const mobileNavigationIcons = {
 };
 
 const mobileNavigationTones = [
-    'bg-indigo-50 text-indigo-600',
-    'bg-sky-50 text-sky-600',
+    'bg-emerald-50 text-emerald-700',
+    'bg-teal-50 text-teal-700',
     'bg-amber-50 text-amber-600',
-    'bg-emerald-50 text-emerald-600',
+    'bg-sky-50 text-sky-600',
 ];
 
 function mobileQuickLinksFor(role, navigation, isAccountPage) {
@@ -128,15 +129,15 @@ export default function DashboardLayout({
             href={route('profile.edit')}
             onClick={() => setIsNavigationOpen(false)}
             aria-current={isAccountPage ? 'page' : undefined}
-            className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${
+            className={`flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-medium transition-all ${
                 isAccountPage
-                    ? 'bg-indigo-50 text-indigo-700'
-                    : 'text-slate-600 hover:bg-slate-100 hover:text-slate-950'
+                    ? 'bg-emerald-800 font-semibold text-white shadow-sm shadow-emerald-900/15'
+                    : 'text-slate-600 hover:bg-emerald-50/80 hover:text-emerald-900'
             }`}
         >
             <span
                 className={`h-2 w-2 rounded-full ${
-                    isAccountPage ? 'bg-indigo-600' : 'bg-slate-300'
+                    isAccountPage ? 'bg-white' : 'bg-slate-300'
                 }`}
                 aria-hidden="true"
             />
@@ -158,10 +159,10 @@ export default function DashboardLayout({
     const mobileQuickLinks = mobileQuickLinksFor(user?.role, navigation, isAccountPage);
 
     return (
-        <div className="min-h-screen bg-slate-50 text-slate-900 print:min-h-0 print:bg-white">
-            <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur print:hidden">
+        <div className="dashboard-theme min-h-screen bg-gradient-to-br from-emerald-50/40 via-slate-50 to-teal-50/30 font-sans antialiased tracking-tight text-slate-900 print:min-h-0 print:bg-white">
+            <header className="sticky top-0 z-40 border-b border-slate-200/60 bg-white/75 backdrop-blur-xl print:hidden">
                 <div className="mx-auto flex h-16 max-w-[1600px] items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
-                    <div className="flex items-center gap-3">
+                    <div className="flex min-w-0 items-center gap-3">
                         {navigation.length > 0 && (
                             <button
                                 type="button"
@@ -175,44 +176,52 @@ export default function DashboardLayout({
                                 </span>
                             </button>
                         )}
-                        <Link
-                            href="/"
-                            className="flex items-center gap-3"
-                            aria-label={`${pengaturanSekolah?.nama_sekolah ?? 'SIAKAD Sekolah'}, beranda`}
-                        >
-                            {pengaturanSekolah?.logo_url ? (
-                                <img
-                                    src={pengaturanSekolah.logo_url}
-                                    alt=""
-                                    className="h-10 w-10 rounded-xl border border-slate-200 bg-white object-contain p-1"
-                                />
-                            ) : (
-                                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-600 text-sm font-bold text-white shadow-sm shadow-indigo-200">
-                                    SA
-                                </span>
-                            )}
-                            <span className="hidden sm:block">
-                                <span className="block text-sm font-bold tracking-tight text-slate-900">
-                                    {pengaturanSekolah?.nama_sekolah ?? 'SIAKAD Sekolah'}
-                                </span>
-                                <span className="block text-xs text-slate-500">
-                                    Portal akademik terpadu
-                                </span>
-                            </span>
-                        </Link>
+                        <div className="min-w-0">
+                            <p className="truncate text-sm font-bold text-slate-900 sm:text-base">
+                                {title}
+                            </p>
+                            <p className="truncate text-xs text-slate-500">
+                                {subtitle}
+                            </p>
+                        </div>
                     </div>
 
                     <div className="flex items-center gap-3">
-                        <div className="hidden text-right sm:block">
-                            <p className="text-sm font-semibold text-slate-800">
-                                {userName}
-                            </p>
-                            <p className="text-xs text-slate-500">{roleLabel}</p>
-                        </div>
-                        <span className="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-50 font-semibold text-indigo-700">
-                            {userName.charAt(0).toUpperCase()}
+                        <span className="hidden rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-800 sm:inline-flex">
+                            {roleLabel}
                         </span>
-                        {navigation.length === 0 && logoutLink}
+                        <Dropdown>
+                            <Dropdown.Trigger>
+                                <button
+                                    type="button"
+                                    aria-label={`Menu akun ${userName}`}
+                                    className="inline-flex items-center gap-2 rounded-full border border-slate-200/80 bg-white/80 p-1.5 pr-3 text-left transition hover:bg-white focus:outline-none focus:ring-4 focus:ring-emerald-600/10"
+                                >
+                                    <span className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-50 font-semibold text-emerald-800">
+                                        {userName.charAt(0).toUpperCase()}
+                                    </span>
+                                    <span className="hidden max-w-36 sm:block">
+                                        <span className="block truncate text-xs font-semibold text-slate-800">
+                                            {userName}
+                                        </span>
+                                        <span className="block truncate text-[11px] text-slate-500">
+                                            {roleLabel}
+                                        </span>
+                                    </span>
+                                    <svg className="h-4 w-4 text-slate-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                        <path fillRule="evenodd" d="M5.293 7.293a1 1 0 0 1 1.414 0L10 10.586l3.293-3.293a1 1 0 1 1 1.414 1.414l-4 4a1 1 0 0 1-1.414 0l-4-4a1 1 0 0 1 0-1.414Z" clipRule="evenodd" />
+                                    </svg>
+                                </button>
+                            </Dropdown.Trigger>
+                            <Dropdown.Content contentClasses="py-1 bg-white/95 backdrop-blur-xl">
+                                <Dropdown.Link href={route('profile.edit')}>
+                                    Pengaturan Akun
+                                </Dropdown.Link>
+                                <Dropdown.Link href={route('logout')} method="post" as="button">
+                                    Keluar
+                                </Dropdown.Link>
+                            </Dropdown.Content>
+                        </Dropdown>
                     </div>
                 </div>
             </header>
@@ -225,14 +234,39 @@ export default function DashboardLayout({
                                 type="button"
                                 aria-label="Tutup navigasi"
                                 onClick={() => setIsNavigationOpen(false)}
-                                className="fixed inset-16 z-10 bg-slate-950/20 print:hidden lg:hidden"
+                                className="fixed inset-16 z-10 bg-slate-950/20 backdrop-blur-sm print:hidden lg:hidden"
                             />
                         )}
                         <aside
                             className={`print:hidden ${
                                 isNavigationOpen ? 'block' : 'hidden'
-                            } fixed inset-y-16 left-0 z-20 w-72 overflow-y-auto border-r border-slate-200 bg-white p-5 lg:sticky lg:top-16 lg:block lg:h-[calc(100vh-4rem)] lg:shrink-0`}
+                            } fixed inset-y-16 left-0 z-20 w-72 overflow-y-auto border-r border-slate-200/70 bg-white/85 p-5 backdrop-blur-xl lg:sticky lg:top-16 lg:block lg:h-[calc(100vh-4rem)] lg:shrink-0`}
                         >
+                            <Link
+                                href="/"
+                                className="mb-7 flex items-center gap-3 rounded-2xl px-2 py-1"
+                                aria-label={`${pengaturanSekolah?.nama_sekolah ?? 'SIAKAD Sekolah'}, beranda`}
+                            >
+                                {pengaturanSekolah?.logo_url ? (
+                                    <img
+                                        src={pengaturanSekolah.logo_url}
+                                        alt=""
+                                        className="h-10 w-10 shrink-0 rounded-xl border border-slate-200/70 bg-white object-contain p-1"
+                                    />
+                                ) : (
+                                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-800 text-sm font-bold text-white">
+                                        SA
+                                    </span>
+                                )}
+                                <span className="min-w-0">
+                                    <span className="block break-words text-[13px] font-bold leading-4 text-slate-900">
+                                        {pengaturanSekolah?.nama_sekolah ?? 'SIAKAD Sekolah'}
+                                    </span>
+                                    <span className="block text-xs text-slate-500">
+                                        Portal akademik terpadu
+                                    </span>
+                                </span>
+                            </Link>
                             <div className="mb-5 px-3">
                                 <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">
                                     Navigasi utama
@@ -241,18 +275,18 @@ export default function DashboardLayout({
                             <nav className="flex flex-col gap-1" aria-label="Navigasi dasbor">
                                 {navigation.map((item) => {
                                     const isActive = Boolean(item.active);
-                                    const className = `group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${
+                                    const className = `group flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm transition-all ${
                                         isActive
-                                            ? 'bg-indigo-50 text-indigo-700'
-                                            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-950'
+                                            ? 'bg-emerald-800 font-semibold text-white shadow-sm shadow-emerald-900/15'
+                                            : 'font-medium text-slate-600 hover:bg-emerald-50/80 hover:text-emerald-900'
                                     }`;
                                     const content = (
                                         <>
                                             <span
                                                 className={`h-2 w-2 rounded-full transition ${
                                                     isActive
-                                                        ? 'bg-indigo-600'
-                                                        : 'bg-slate-300 group-hover:bg-indigo-400'
+                                                        ? 'bg-white'
+                                                        : 'bg-slate-300 group-hover:bg-emerald-400'
                                                 }`}
                                                 aria-hidden="true"
                                             />
@@ -305,9 +339,9 @@ export default function DashboardLayout({
                                 {logoutLink}
                             </nav>
 
-                            <div className="mt-8 rounded-2xl bg-slate-900 p-4 text-white">
-                                <p className="text-sm font-semibold">Butuh bantuan?</p>
-                                <p className="mt-1 text-xs leading-5 text-slate-300">
+                            <div className="mt-8 rounded-3xl border border-emerald-100 bg-emerald-50/70 p-4 text-slate-700 shadow-sm backdrop-blur-md">
+                                <p className="text-sm font-semibold text-emerald-950">Butuh bantuan?</p>
+                                <p className="mt-1 text-xs leading-5 text-slate-600">
                                     Hubungi administrator sekolah untuk bantuan akses.
                                 </p>
                             </div>
@@ -315,10 +349,10 @@ export default function DashboardLayout({
                     </>
                 )}
 
-                <main className="min-w-0 flex-1 px-4 pt-8 pb-20 print:p-0 sm:px-6 sm:pt-10 md:pb-8 lg:px-10">
+                <main className="min-w-0 flex-1 px-4 pt-6 pb-20 print:p-0 sm:px-6 sm:pt-8 md:pb-8 lg:px-10">
                     <div className="mx-auto max-w-6xl print:max-w-none">
                         <div className="mb-8 print:hidden">
-                            <p className="mb-2 text-sm font-semibold text-indigo-600">
+                            <p className="mb-2 text-sm font-semibold text-emerald-700">
                                 {roleLabel}
                             </p>
                             <h1 className="text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">
@@ -351,7 +385,7 @@ export default function DashboardLayout({
 
             {mobileQuickLinks.length > 0 && (
                 <nav
-                    className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white md:hidden print:hidden"
+                    className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200/70 bg-white/90 shadow-[0_-8px_24px_rgb(15,23,42,0.04)] backdrop-blur-xl md:hidden print:hidden"
                     aria-label="Navigasi cepat"
                 >
                     <div className="mx-auto grid max-w-xl grid-cols-4">
@@ -363,11 +397,11 @@ export default function DashboardLayout({
                                 aria-label={item.label}
                                 aria-current={item.active ? 'page' : undefined}
                                 className={`flex min-w-0 flex-col items-center justify-center gap-1 px-1 py-2 text-[10px] font-semibold transition ${
-                                    item.active ? 'text-indigo-700' : 'text-slate-500 hover:text-indigo-700'
+                                    item.active ? 'text-emerald-800' : 'text-slate-500 hover:text-emerald-800'
                                 }`}
                             >
                                 <span className={`flex h-8 w-8 items-center justify-center rounded-xl ${
-                                    item.active ? 'bg-indigo-50 text-indigo-600' : mobileNavigationTones[index]
+                                    item.active ? 'bg-emerald-50 text-emerald-700' : mobileNavigationTones[index]
                                 }`}>
                                     <svg
                                         viewBox="0 0 24 24"

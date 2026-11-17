@@ -28,6 +28,7 @@ class GoogleAuthController extends Controller
 
         return Socialite::driver('google')
             ->redirectUrl($redirectUrl)
+            ->with(['prompt' => 'select_account'])
             ->stateless()
             ->redirect();
     }
@@ -43,7 +44,7 @@ class GoogleAuthController extends Controller
                 ->user();
         } catch (\Throwable $e) {
             return to_route('login')
-                ->withErrors(['email' => 'Gagal memverifikasi akun Google: ' . $e->getMessage()]);
+                ->withErrors(['email' => 'Gagal memverifikasi akun Google: '.$e->getMessage()]);
         }
 
         $email = Str::lower(trim((string) $googleUser->getEmail()));
@@ -52,6 +53,11 @@ class GoogleAuthController extends Controller
         if (! filter_var($email, FILTER_VALIDATE_EMAIL) || $googleId === '') {
             return to_route('login')
                 ->withErrors(['email' => 'Gunakan akun Google dengan alamat email yang valid.']);
+        }
+
+        if (! (bool) ($googleUser->user['verified_email'] ?? false)) {
+            return to_route('login')
+                ->withErrors(['email' => 'Gunakan akun Google dengan alamat email terverifikasi.']);
         }
 
         $userByGoogleId = User::query()->where('google_id', $googleId)->first();
@@ -89,7 +95,7 @@ class GoogleAuthController extends Controller
                 ]);
 
                 $user->pendaftaranSpmbs()->create([
-                    'no_pendaftaran' => 'SPMB-' . now()->format('Y') . '-' . Str::upper((string) Str::uuid()),
+                    'no_pendaftaran' => 'SPMB-'.now()->format('Y').'-'.Str::upper((string) Str::uuid()),
                     'asal_sekolah' => '',
                     'status_seleksi' => 'pending',
                 ]);

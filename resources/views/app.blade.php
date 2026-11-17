@@ -6,15 +6,15 @@
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
         @php
-            $logoPath = data_get($page, 'props.pengaturanSekolah.logo_path');
+            $logoUrl = data_get($page, 'props.pengaturanSekolah.logo_url');
         @endphp
-        <link rel="icon" href="{{ $logoPath ? asset('storage/' . $logoPath) : asset('favicon.ico') }}">
+        <link rel="icon" href="{{ $logoUrl ?: asset('favicon.ico') }}">
 
         <title inertia>{{ config('app.name', 'Laravel') }}</title>
 
-        <!-- Fonts -->
-        <link rel="preconnect" href="https://fonts.bunny.net">
-        <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
         <!-- Scripts -->
         @routes
@@ -22,7 +22,7 @@
         @vite(['resources/js/app.jsx', "resources/js/Pages/{$page['component']}.jsx"])
         @inertiaHead
     </head>
-    <body class="font-sans antialiased">
+    <body class="font-sans antialiased tracking-tight">
         @inertia
     </body>
 </html>

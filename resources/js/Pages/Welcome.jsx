@@ -1,465 +1,209 @@
-import { Head, Link } from '@inertiajs/react';
-import { useEffect, useState } from 'react';
 import GoogleAuthButton from '@/Components/GoogleAuthButton';
-import StatisticCard from '@/Components/StatisticCard';
-
-const numberFormatter = new Intl.NumberFormat('id-ID');
-const dashboardRoutes = {
-    admin: 'admin.dashboard',
-    guru: 'guru.dashboard',
-    siswa: 'siswa.dashboard',
-};
-
-const navigationLinks = [
-    { href: '#beranda', label: 'Beranda' },
-    { href: '#fitur-akademik', label: 'Fitur Akademik' },
-    { href: '#alur-spmb', label: 'Alur SPMB' },
-    { href: '#kontak', label: 'Kontak' },
-];
-
-const academicFeatures = [
-    {
-        number: '01',
-        title: 'Data akademik terpusat',
-        description: 'Informasi siswa, guru, kelas, dan tahun ajaran tersusun dalam satu portal.',
-        color: 'bg-indigo-100 text-indigo-700',
-    },
-    {
-        number: '02',
-        title: 'Jadwal lebih terarah',
-        description: 'Jadwal pelajaran dapat diakses siswa dan guru dengan mudah.',
-        color: 'bg-sky-100 text-sky-700',
-    },
-    {
-        number: '03',
-        title: 'Ujian dan hasil belajar',
-        description: 'Dukung pembelajaran digital melalui ujian online dan informasi nilai.',
-        color: 'bg-violet-100 text-violet-700',
-    },
-];
+import PublicSiteHeader from '@/Components/PublicSiteHeader';
+import { Head, Link } from '@inertiajs/react';
 
 const registrationSteps = [
     {
-        number: '1',
-        title: 'Buat akun',
-        description: 'Daftar melalui portal untuk memulai proses penerimaan siswa baru.',
+        number: '01',
+        label: 'Pendaftaran',
+        title: 'Buat Akun',
+        description: 'Daftar melalui email atau akun Google.',
     },
     {
-        number: '2',
-        title: 'Lengkapi berkas',
-        description: 'Isi biodata dan unggah dokumen pendaftaran yang diperlukan.',
+        number: '02',
+        label: 'Seleksi',
+        title: 'Lengkapi Berkas',
+        description: 'Isi data dan unggah dokumen persyaratan.',
     },
     {
-        number: '3',
-        title: 'Pantau pengumuman',
-        description: 'Periksa status seleksi secara online melalui akun Anda.',
+        number: '03',
+        label: 'Pengumuman',
+        title: 'Pantau Hasil',
+        description: 'Periksa status seleksi melalui akun Anda.',
     },
 ];
 
-function SchoolMark({ small = false, logoUrl = null, schoolName = 'SIAKAD Sekolah' }) {
-    const size = small ? 'h-10 w-10' : 'h-12 w-12';
+const requiredDocuments = [
+    'Kartu Keluarga',
+    'Akta Kelahiran',
+    'Ijazah atau SKL',
+    'Pas Foto',
+];
 
-    if (logoUrl) {
-        return (
-            <img
-                src={logoUrl}
-                alt={schoolName}
-                className={`${size} shrink-0 rounded-2xl border border-slate-200 bg-white object-contain p-1 shadow-sm`}
-            />
-        );
-    }
+const helpdeskAddress = 'Jl. Kemerdekaan Timur No. 06, Kesugihan Kidul, Kec. Kesugihan, Kab. Cilacap, Jawa Tengah 53274';
+const helpdeskPhone = '0282695626';
+
+function StepIcon({ number }) {
+    const icons = {
+        '01': (
+            <>
+                <rect x="4" y="5" width="16" height="15" rx="3" />
+                <path d="M8 3v4m8-4v4M7.5 11h9M8 15h3" />
+            </>
+        ),
+        '02': (
+            <>
+                <path d="M8 4h8l4 4v11a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h3Z" />
+                <path d="M14 4v5h5m-10 5 2 2 4-4" />
+            </>
+        ),
+        '03': (
+            <>
+                <path d="M3 11v2a2 2 0 0 0 2 2h2l3 5h3l-2-5 9 3V6l-9 3H5a2 2 0 0 0-2 2Z" />
+                <path d="M20 9a3 3 0 0 1 0 6" />
+            </>
+        ),
+    };
 
     return (
-        <span
-            className={`flex shrink-0 items-center justify-center rounded-2xl bg-indigo-600 font-bold text-white shadow-lg shadow-indigo-200 ${size} ${
-                small ? 'text-sm' : 'text-base'
-            }`}
-            aria-hidden="true"
-        >
-            SA
-        </span>
+        <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            {icons[number]}
+        </svg>
     );
 }
 
 export default function Welcome({
     auth = {},
-    canLogin,
-    canRegister,
-    statistics = {},
+    canLogin = true,
+    canRegister = true,
     pengaturanSekolah = {},
 }) {
-    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-
-    useEffect(() => {
-        const root = document.documentElement;
-        const alreadySmooth = root.classList.contains('scroll-smooth');
-
-        root.classList.add('scroll-smooth');
-
-        return () => {
-            if (!alreadySmooth) {
-                root.classList.remove('scroll-smooth');
-            }
-        };
-    }, []);
-
-    const user = auth?.user;
-    const dashboardRoute = dashboardRoutes[user?.role] ?? 'dashboard';
-    const schoolStatistics = statistics ?? {};
-    const schoolName = pengaturanSekolah?.nama_sekolah ?? 'SIAKAD Sekolah';
-    const schoolLogo = pengaturanSekolah?.logo_url ?? null;
-    const pendaftarMenunggu = schoolStatistics.menungguSeleksi ?? 0;
-    const pendaftarStatus = pendaftarMenunggu > 0
-        ? `${numberFormatter.format(pendaftarMenunggu)} menunggu seleksi`
-        : 'Tidak ada yang menunggu seleksi';
-
-    const closeMobileMenu = () => setIsMobileMenuOpen(false);
+    const schoolName = pengaturanSekolah?.nama_sekolah ?? "SMK Al Mu'allim Kesugihan";
+    const contactEmail = pengaturanSekolah?.email;
+    const contactPhone = pengaturanSekolah?.telepon || helpdeskPhone;
 
     return (
         <>
-            <Head title={`Beranda | ${schoolName}`} />
+            <Head title={`SPMB | ${schoolName}`} />
 
-            <div className="min-h-screen scroll-smooth bg-white text-slate-900">
-                <header className="sticky top-0 z-30 border-b border-slate-200/80 bg-white/95 backdrop-blur">
-                    <div className="mx-auto flex min-h-16 max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
-                        <Link href="/" className="flex items-center gap-3" aria-label={`${schoolName}, beranda`}>
-                            <SchoolMark logoUrl={schoolLogo} schoolName={schoolName} />
-                            <span>
-                                <span className="block text-sm font-bold tracking-tight text-slate-950 sm:text-base">
-                                    {schoolName}
-                                </span>
-                                <span className="hidden text-xs text-slate-500 sm:block">
-                                    Portal akademik terpadu
-                                </span>
+            <div className="relative min-h-screen bg-[#F8FAFC] font-public tracking-tight text-slate-900 antialiased">
+                <PublicSiteHeader activePage="spmb" />
+
+                <main className="relative isolate overflow-hidden bg-gradient-to-br from-emerald-50/80 via-white to-teal-50/50">
+                    <div className="pointer-events-none absolute -right-36 top-16 -z-10 h-96 w-96 rounded-full bg-emerald-200/30 opacity-40 blur-3xl" />
+                    <div className="pointer-events-none absolute -bottom-28 left-1/4 -z-10 h-72 w-[60%] rounded-[50%] bg-teal-100/70 opacity-40 blur-2xl" />
+
+                    <section className="relative mx-auto max-w-7xl px-4 pb-14 pt-12 sm:px-6 sm:pb-16 sm:pt-16 lg:px-8">
+                        <div className="max-w-3xl">
+                            <span className="inline-flex items-center rounded-full border border-emerald-200/70 bg-emerald-50 px-4 py-1.5 text-xs font-semibold text-emerald-800">
+                                Penerimaan Peserta Didik Baru
                             </span>
-                        </Link>
+                            <h1 className="mt-5 text-4xl font-extrabold leading-tight tracking-tight text-slate-900 sm:text-5xl">
+                                Selamat Datang Calon Santri dan Murid Baru
+                            </h1>
+                            <p className="mt-5 max-w-2xl text-base leading-7 text-slate-600 sm:text-lg sm:leading-8">
+                                Mari bergabung bersama kami di lingkungan pendidikan yang Islami, berkualitas, dan berkarakter.
+                            </p>
 
-                        <nav className="hidden items-center gap-7 lg:flex" aria-label="Navigasi utama">
-                            {navigationLinks.map((item) => (
-                                <a
-                                    key={item.href}
-                                    href={item.href}
-                                    className="text-sm font-medium text-slate-600 transition hover:text-indigo-700"
-                                >
-                                    {item.label}
-                                </a>
-                            ))}
-                        </nav>
+                            {!auth?.user && canRegister && (
+                                <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:items-center">
+                                    <Link
+                                        href={route('register')}
+                                        className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-emerald-800 px-7 py-3.5 text-sm font-semibold text-white shadow-md shadow-emerald-900/15 transition hover:-translate-y-0.5 hover:bg-emerald-900 focus:outline-none focus:ring-4 focus:ring-emerald-700/15"
+                                    >
+                                        Daftar Sekarang <span aria-hidden="true">→</span>
+                                    </Link>
+                                    <GoogleAuthButton
+                                        label="Daftar dengan Google"
+                                        className="min-h-12 border-slate-200/80 bg-white/90 px-6 py-3.5 font-medium text-slate-800 backdrop-blur-md hover:bg-white sm:w-auto"
+                                    />
+                                </div>
+                            )}
 
-                        <div className="hidden items-center gap-3 lg:flex">
-                            {!user && canRegister && (
+                            {auth?.user && (
                                 <Link
-                                    href={route('register')}
-                                    className="inline-flex items-center justify-center rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:bg-indigo-700 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                                    href={route('dashboard')}
+                                    className="mt-7 inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-emerald-800 px-7 py-3.5 text-sm font-semibold text-white shadow-md shadow-emerald-900/15 transition hover:bg-emerald-900"
                                 >
-                                    Daftar SPMB
+                                    Lanjutkan ke Portal <span aria-hidden="true">→</span>
                                 </Link>
                             )}
-                            {user ? (
-                                <Link
-                                    href={route(dashboardRoute)}
-                                    className="inline-flex items-center justify-center rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 transition-all duration-300 hover:-translate-y-1 hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 hover:shadow-lg"
-                                >
-                                    Masuk ke Dasbor
-                                </Link>
-                            ) : canLogin ? (
-                                <Link
-                                    href={route('login')}
-                                    className="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 transition-all duration-300 hover:-translate-y-1 hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-800 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-                                >
-                                    Login Portal
-                                </Link>
-                            ) : null}
                         </div>
 
-                        <button
-                            type="button"
-                            onClick={() => setIsMobileMenuOpen((isOpen) => !isOpen)}
-                            aria-label={isMobileMenuOpen ? 'Tutup menu' : 'Buka menu'}
-                            aria-expanded={isMobileMenuOpen}
-                            className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 text-slate-700 transition hover:bg-slate-50 lg:hidden"
-                        >
-                            <span className="text-lg" aria-hidden="true">
-                                {isMobileMenuOpen ? '×' : '☰'}
-                            </span>
-                        </button>
-                    </div>
-
-                    {isMobileMenuOpen && (
-                        <div className="border-t border-slate-100 bg-white px-4 py-4 lg:hidden">
-                            <nav className="flex flex-col gap-1" aria-label="Navigasi seluler">
-                                {navigationLinks.map((item) => (
-                                    <a
-                                        key={item.href}
-                                        href={item.href}
-                                        onClick={closeMobileMenu}
-                                        className="rounded-lg px-3 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-indigo-50 hover:text-indigo-700"
-                                    >
-                                        {item.label}
-                                    </a>
-                                ))}
-                                <div className="mt-2 flex flex-col gap-2 border-t border-slate-100 pt-3">
-                                    {!user && canRegister && (
-                                        <Link
-                                            href={route('register')}
-                                            onClick={closeMobileMenu}
-                                            className="rounded-xl bg-indigo-600 px-4 py-2.5 text-center text-sm font-semibold text-white transition-all duration-300 hover:-translate-y-1 hover:bg-indigo-700 hover:shadow-lg"
-                                        >
-                                            Daftar SPMB
-                                        </Link>
-                                    )}
-                                    {user ? (
-                                        <Link
-                                            href={route(dashboardRoute)}
-                                            onClick={closeMobileMenu}
-                                            className="rounded-xl border border-slate-200 px-4 py-2.5 text-center text-sm font-semibold text-slate-700 transition-all duration-300 hover:-translate-y-1 hover:border-indigo-200 hover:bg-indigo-50 hover:shadow-lg"
-                                        >
-                                            Masuk ke Dasbor
-                                        </Link>
-                                    ) : canLogin ? (
-                                        <Link
-                                            href={route('login')}
-                                            onClick={closeMobileMenu}
-                                            className="rounded-xl px-4 py-2.5 text-center text-sm font-semibold text-slate-600 transition-all duration-300 hover:-translate-y-1 hover:bg-indigo-50 hover:shadow-lg"
-                                        >
-                                            Login Portal
-                                        </Link>
-                                    ) : null}
-                                </div>
-                            </nav>
-                        </div>
-                    )}
-                </header>
-
-                <main>
-                    <section
-                        id="beranda"
-                        className="relative isolate overflow-hidden bg-gradient-to-br from-white via-slate-50 to-indigo-50"
-                    >
-                        <div className="absolute -right-32 -top-32 -z-10 h-96 w-96 rounded-full bg-indigo-200/50 blur-3xl" />
-                        <div className="absolute -bottom-48 left-1/3 -z-10 h-96 w-96 rounded-full bg-sky-100/70 blur-3xl" />
-
-                        <div className="mx-auto grid max-w-7xl gap-12 px-4 py-16 sm:px-6 sm:py-20 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:gap-16 lg:px-8 lg:py-24">
-                            <div>
-                                <span className="inline-flex items-center gap-2 rounded-full border border-indigo-200 bg-white px-3 py-1.5 text-xs font-semibold tracking-wide text-indigo-800 shadow-sm">
-                                    <span className="h-2 w-2 rounded-full bg-emerald-500" aria-hidden="true" />
-                                    Portal resmi akademik sekolah
-                                </span>
-                                <h1 className="mt-6 max-w-2xl text-4xl font-bold leading-tight tracking-tight text-slate-950 sm:text-5xl lg:text-6xl">
-                                    Akademik terpadu,
-                                    <span className="block text-indigo-700">langkah masa depan lebih pasti.</span>
-                                </h1>
-                                <p className="mt-6 max-w-xl text-base leading-7 text-slate-600 sm:text-lg sm:leading-8">
-                                    Satu portal untuk menghubungkan informasi belajar, layanan sekolah, dan penerimaan siswa baru secara lebih mudah dan terarah.
-                                </p>
-                                <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                                    {!user && canRegister && (
-                                        <Link
-                                            href={route('register')}
-                                            className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 text-sm font-bold text-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:bg-indigo-700 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-                                        >
-                                            Mulai Pendaftaran SPMB
-                                            <span aria-hidden="true">→</span>
-                                        </Link>
-                                    )}
-                                    {!user && canRegister && (
-                                        <GoogleAuthButton
-                                            label="Daftar SPMB dengan Google"
-                                            className="sm:w-auto"
-                                        />
-                                    )}
-                                    {user ? (
-                                        <Link
-                                            href={route(dashboardRoute)}
-                                            className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 text-sm font-bold text-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:bg-indigo-700 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-                                        >
-                                            Masuk ke Dasbor
-                                            <span aria-hidden="true">→</span>
-                                        </Link>
-                                    ) : canLogin ? (
-                                        <Link
-                                            href={route('login')}
-                                            className="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-800 transition-all duration-300 hover:-translate-y-1 hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-800 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-                                        >
-                                            Login Portal
-                                        </Link>
-                                    ) : null}
-                                </div>
-                                <a
-                                    href="#fitur-akademik"
-                                    className="mt-7 inline-flex items-center gap-2 text-sm font-semibold text-indigo-800 transition hover:text-indigo-950"
-                                >
-                                    Jelajahi fitur akademik <span aria-hidden="true">↓</span>
-                                </a>
-                            </div>
-
-                            <div className="relative">
-                                <div className="absolute -inset-4 rounded-[2rem] bg-indigo-400/10 blur-2xl" aria-hidden="true" />
-                                <div className="relative rounded-3xl border border-slate-200 bg-white/90 p-4 shadow-xl shadow-indigo-950/10 backdrop-blur sm:p-6">
-                                    <div className="flex items-center justify-between gap-4 border-b border-slate-100 pb-4">
+                        <div className="mt-10 rounded-3xl border border-white bg-white/85 p-2 shadow-[0_8px_30px_rgb(0,0,0,0.04)] ring-1 ring-slate-900/5 backdrop-blur-xl sm:p-6">
+                            <div className="grid grid-cols-1 divide-y divide-slate-200/60 md:grid-cols-3 md:divide-x md:divide-y-0">
+                                {registrationSteps.map((step) => (
+                                    <article key={step.number} className="flex items-center gap-4 px-4 py-5 sm:px-5 md:py-3">
+                                        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100">
+                                            <StepIcon number={step.number} />
+                                        </span>
                                         <div>
-                                            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-indigo-700">
-                                                Sekilas sekolah
+                                            <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
+                                                {step.label}
                                             </p>
-                                            <h2 className="mt-1 text-lg font-bold text-slate-950">{schoolName}</h2>
+                                            <h2 className="mt-0.5 font-bold text-slate-900">{step.title}</h2>
+                                            <p className="mt-1 text-sm leading-5 text-slate-500">{step.description}</p>
                                         </div>
-                                        <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-50 text-lg text-indigo-700" aria-hidden="true">
-                                            ✦
-                                        </span>
-                                    </div>
-                                    <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                                        <StatisticCard
-                                            label="Siswa aktif"
-                                            value={numberFormatter.format(schoolStatistics.siswaAktif ?? 0)}
-                                            detail="Terdaftar sebagai siswa aktif"
-                                            icon="users"
-                                            tone="indigo"
-                                        />
-                                        <StatisticCard
-                                            label="Guru"
-                                            value={numberFormatter.format(schoolStatistics.guru ?? 0)}
-                                            detail="Tenaga pendidik sekolah"
-                                            icon="school"
-                                            tone="sky"
-                                        />
-                                        <div className="rounded-2xl border border-indigo-200/70 bg-indigo-50 p-4 sm:col-span-2 sm:p-5">
-                                            <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-                                                <div>
-                                                    <p className="text-sm font-semibold text-indigo-950">Pendaftaran SPMB</p>
-                                                    <p className="mt-1 text-xs leading-5 text-indigo-700">
-                                                        {pendaftarStatus}
-                                                    </p>
-                                                </div>
-                                                <div className="flex items-center gap-3">
-                                                    <span className="text-3xl font-bold tracking-tight text-indigo-950">
-                                                        {numberFormatter.format(schoolStatistics.pendaftarSpmb ?? 0)}
-                                                    </span>
-                                                    <span className="text-xs font-semibold text-indigo-700">pendaftar</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <p className="mt-4 text-center text-xs text-slate-500">
-                                        Data diperbarui langsung dari sistem sekolah
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                    </section>
-
-                    <section id="fitur-akademik" className="scroll-mt-24 bg-white py-16 sm:py-20">
-                        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                            <div className="mx-auto max-w-2xl text-center">
-                                <p className="text-sm font-bold uppercase tracking-[0.16em] text-indigo-600">
-                                    Fitur akademik
-                                </p>
-                                <h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">
-                                    Semua kebutuhan sekolah dalam satu portal
-                                </h2>
-                                <p className="mt-4 text-base leading-7 text-slate-600">
-                                    Informasi yang jelas membantu siswa, guru, dan keluarga tetap terhubung dengan kegiatan sekolah.
-                                </p>
-                            </div>
-                            <div className="mt-10 grid gap-5 md:grid-cols-3">
-                                {academicFeatures.map((feature) => (
-                                    <article
-                                        key={feature.number}
-                                        className="group rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-indigo-200 hover:shadow-lg"
-                                    >
-                                        <span className={`flex h-12 w-12 items-center justify-center rounded-2xl text-sm font-bold ${feature.color}`}>
-                                            {feature.number}
-                                        </span>
-                                        <h3 className="mt-5 text-lg font-bold text-slate-900">{feature.title}</h3>
-                                        <p className="mt-2 text-sm leading-6 text-slate-600">{feature.description}</p>
                                     </article>
                                 ))}
                             </div>
                         </div>
                     </section>
 
-                    <section id="alur-spmb" className="scroll-mt-24 bg-slate-50 py-16 sm:py-20">
-                        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                            <div className="grid gap-10 lg:grid-cols-[0.8fr_1.2fr] lg:items-center">
-                                <div>
-                                    <p className="text-sm font-bold uppercase tracking-[0.16em] text-indigo-600">
-                                        Penerimaan siswa baru
-                                    </p>
-                                    <h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">
-                                        Alur SPMB yang mudah diikuti
-                                    </h2>
-                                    <p className="mt-4 text-base leading-7 text-slate-600">
-                                        {pengaturanSekolah?.info_spmb || 'Mulai pendaftaran secara online dan pantau setiap tahap melalui akun portal Anda.'}
-                                    </p>
-                                    {!user && canRegister && (
-                                        <Link
-                                            href={route('register')}
-                                            className="mt-6 inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:bg-indigo-700 hover:shadow-lg"
-                                        >
-                                            Daftar sekarang <span aria-hidden="true">→</span>
-                                        </Link>
-                                    )}
-                                </div>
-                                <div className="grid gap-4 sm:grid-cols-3">
-                                    {registrationSteps.map((step) => (
-                                        <article
-                                            key={step.number}
-                                            className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-indigo-200 hover:shadow-lg sm:p-6"
-                                        >
-                                            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-600 text-sm font-bold text-white">
-                                                {step.number}
-                                            </span>
-                                            <h3 className="mt-5 font-bold text-slate-900">{step.title}</h3>
-                                            <p className="mt-2 text-sm leading-6 text-slate-600">{step.description}</p>
-                                        </article>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
-                    </section>
+                    <section id="informasi" className="relative mx-auto grid max-w-7xl grid-cols-1 gap-5 px-4 pb-16 sm:px-6 lg:grid-cols-2 lg:px-8">
+                        <article className="rounded-3xl border border-white/80 bg-white/80 p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] ring-1 ring-slate-900/5 backdrop-blur-xl sm:p-8">
+                            <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100">
+                                <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="m5 12 4 4L19 6" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 3a9 9 0 1 0 9 9" />
+                                </svg>
+                            </span>
+                            <h2 className="mt-5 text-2xl font-bold tracking-tight text-slate-900">
+                                Persyaratan Berkas Utama
+                            </h2>
+                            <p className="mt-2 text-sm leading-6 text-slate-600">
+                                Siapkan dokumen berikut untuk melengkapi data pendaftaran:
+                            </p>
+                            <ul className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                {requiredDocuments.map((document) => (
+                                    <li key={document} className="flex items-center gap-3 rounded-2xl bg-slate-50/80 px-4 py-3 text-sm font-medium text-slate-700">
+                                        <span className="h-2 w-2 rounded-full bg-emerald-600" aria-hidden="true" />
+                                        {document}
+                                    </li>
+                                ))}
+                            </ul>
+                            <p className="mt-5 text-sm leading-6 text-slate-500">
+                                Pilihan jenjang dan program keahlian mengikuti layanan serta kuota yang tersedia. Konfirmasi informasi tahun berjalan kepada panitia.
+                            </p>
+                        </article>
 
-                    <section id="kontak" className="scroll-mt-24 bg-white py-16 sm:py-20">
-                        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                            <div className="flex flex-col gap-6 rounded-3xl bg-indigo-950 px-6 py-9 text-white sm:px-10 sm:py-11 lg:flex-row lg:items-center lg:justify-between">
-                                <div>
-                                    <p className="text-sm font-semibold text-indigo-300">Informasi sekolah</p>
-                                    <h2 className="mt-2 text-2xl font-bold tracking-tight sm:text-3xl">
-                                        Butuh informasi lebih lanjut?
-                                    </h2>
-                                    <div className="mt-2 flex flex-col gap-1 text-sm leading-6 text-indigo-100">
-                                        {pengaturanSekolah?.alamat && <p>{pengaturanSekolah.alamat}</p>}
-                                        {pengaturanSekolah?.telepon && (
-                                            <a href={`tel:${pengaturanSekolah.telepon}`} className="transition hover:text-white">
-                                                {pengaturanSekolah.telepon}
-                                            </a>
-                                        )}
-                                    </div>
-                                </div>
-                                {pengaturanSekolah?.email && (
-                                    <a
-                                        href={`mailto:${pengaturanSekolah.email}`}
-                                        className="inline-flex shrink-0 items-center justify-center rounded-xl bg-white px-5 py-3 text-sm font-bold text-indigo-900 transition-all duration-300 hover:-translate-y-1 hover:bg-indigo-50 hover:shadow-lg"
-                                    >
-                                        {pengaturanSekolah.email}
-                                    </a>
-                                )}
-                            </div>
-                        </div>
+                        <article className="rounded-3xl border border-white/80 bg-white/80 p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] ring-1 ring-slate-900/5 backdrop-blur-xl sm:p-8">
+                            <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100">
+                                <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 21s7-4.5 7-11a7 7 0 1 0-14 0c0 6.5 7 11 7 11Z" />
+                                    <circle cx="12" cy="10" r="2.25" />
+                                </svg>
+                            </span>
+                            <h2 className="mt-5 text-2xl font-bold tracking-tight text-slate-900">
+                                Bantuan Panitia
+                            </h2>
+                            <p className="mt-2 text-sm leading-6 text-slate-600">
+                                Hubungi panitia SPMB jika membutuhkan informasi lebih lanjut.
+                            </p>
+                            <address className="mt-5 not-italic text-sm leading-6 text-slate-700">
+                                {helpdeskAddress}
+                            </address>
+                            <a
+                                href={`tel:${contactPhone}`}
+                                className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-emerald-800 transition hover:text-emerald-950"
+                            >
+                                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 3.75h3l1.5 4.5-2.25 1.5a15 15 0 0 0 7.5 7.5l1.5-2.25 4.5 1.5v3A1.5 1.5 0 0 1 18.75 21 15.75 15.75 0 0 1 3 5.25 1.5 1.5 0 0 1 4.5 3.75Z" />
+                                </svg>
+                                {contactPhone}
+                            </a>
+                            <a
+                                href={contactEmail ? `mailto:${contactEmail}` : `tel:${contactPhone}`}
+                                className="mt-6 inline-flex min-h-11 items-center justify-center rounded-full bg-emerald-800 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-900 focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:ring-offset-2"
+                            >
+                                Kirim Email
+                            </a>
+                        </article>
                     </section>
                 </main>
 
-                <footer className="border-t border-slate-200 bg-slate-50">
-                    <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-7 sm:px-6 md:flex-row md:items-center md:justify-between lg:px-8">
-                        <div className="flex items-center gap-3">
-                            <SchoolMark small logoUrl={schoolLogo} schoolName={schoolName} />
-                            <div>
-                                <p className="text-sm font-bold text-slate-900">{schoolName}</p>
-                                <p className="text-xs text-slate-500">Sistem Informasi Akademik Terpadu</p>
-                            </div>
-                        </div>
-                        <p className="text-xs text-slate-500">
-                            © {new Date().getFullYear()} {schoolName}. Semua hak dilindungi.
-                        </p>
-                    </div>
+                <footer className="border-t border-slate-200/70 bg-white/70 px-4 py-6 text-center text-xs text-slate-500 backdrop-blur sm:px-6">
+                    <p>SPMB YAPESDAI · {schoolName} · © 2026 YAPESDAI</p>
                 </footer>
             </div>
         </>

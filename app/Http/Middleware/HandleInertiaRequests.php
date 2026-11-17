@@ -4,7 +4,6 @@ namespace App\Http\Middleware;
 
 use App\Models\PengaturanSekolah;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 use Inertia\Middleware;
 
 class HandleInertiaRequests extends Middleware
@@ -62,7 +61,7 @@ class HandleInertiaRequests extends Middleware
                     'tarif_spp_reguler' => $settings->tarif_spp_reguler,
                     'tarif_praktikum' => $settings->tarif_praktikum,
                     'logo_url' => $settings->logo_path
-                        ? Storage::disk('public')->url($settings->logo_path)
+                        ? route('public-files.show', ['path' => $settings->logo_path], false)
                         : null,
                     'info_spmb' => $settings->info_spmb,
                 ];

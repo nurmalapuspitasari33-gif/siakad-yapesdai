@@ -1,11 +1,12 @@
 export default function GoogleAuthButton({
     label = 'Masuk dengan Google',
     className = '',
+    fullWidth = true,
 }) {
     return (
         <a
             href={route('google.redirect')}
-            className={`inline-flex w-full items-center justify-center gap-3 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-slate-400 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${className}`}
+            className={`inline-flex ${fullWidth ? 'w-full' : 'w-auto'} items-center justify-center gap-3 rounded-full border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-slate-400 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:ring-offset-2 ${className}`}
         >
             <svg viewBox="0 0 48 48" className="h-5 w-5 shrink-0" aria-hidden="true">
                 <path

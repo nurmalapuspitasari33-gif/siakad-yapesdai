@@ -23,10 +23,14 @@ class GoogleAuthControllerTest extends TestCase
             'services.google.client_secret' => 'google-client-secret',
             'services.google.redirect' => 'http://localhost/auth/google/callback',
         ]);
-        GoogleSocialite::fake('google');
 
-        $this->get(route('google.redirect'))
-            ->assertRedirect();
+        $response = $this->get(route('google.redirect'));
+
+        $response->assertRedirect();
+        $this->assertStringContainsString(
+            'prompt=select_account',
+            (string) $response->headers->get('Location'),
+        );
     }
 
     public function test_google_redirect_reports_missing_oauth_configuration(): void

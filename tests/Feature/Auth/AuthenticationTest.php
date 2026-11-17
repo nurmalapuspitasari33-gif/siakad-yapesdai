@@ -27,7 +27,7 @@ class AuthenticationTest extends TestCase
         $this->get('/login')
             ->assertOk()
             ->assertSee(
-                'rel="icon" href="'.asset('storage/identitas-sekolah/logo.png').'"',
+                'rel="icon" href="/public-files/identitas-sekolah/logo.png"',
                 false,
             );
     }

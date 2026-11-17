@@ -69,12 +69,12 @@ const Content = ({
                 leaveTo="opacity-0 scale-95"
             >
                 <div
-                    className={`absolute z-50 mt-2 rounded-xl shadow-lg shadow-slate-900/10 ${alignmentClasses} ${widthClasses}`}
+                    className={`absolute z-50 mt-2 rounded-2xl border border-white/80 shadow-[0_8px_30px_rgb(0,0,0,0.08)] backdrop-blur-xl ${alignmentClasses} ${widthClasses}`}
                     onClick={() => setOpen(false)}
                 >
                     <div
                         className={
-                            `rounded-xl ring-1 ring-slate-900/10 ` +
+                            `rounded-2xl bg-white/95 ring-1 ring-slate-900/5 ` +
                             contentClasses
                         }
                     >
@@ -91,7 +91,7 @@ const DropdownLink = ({ className = '', children, ...props }) => {
         <Link
             {...props}
             className={
-                'block w-full px-4 py-2.5 text-start text-sm leading-5 text-slate-700 transition duration-150 ease-in-out hover:bg-indigo-50 hover:text-indigo-800 focus:bg-indigo-50 focus:text-indigo-800 focus:outline-none ' +
+                'block w-full px-4 py-2.5 text-start text-sm leading-5 text-slate-700 transition duration-150 ease-in-out hover:bg-emerald-50 hover:text-emerald-900 focus:bg-emerald-50 focus:text-emerald-900 focus:outline-none ' +
                 className
             }
         >

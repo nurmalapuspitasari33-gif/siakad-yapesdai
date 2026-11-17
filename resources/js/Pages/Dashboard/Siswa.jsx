@@ -102,7 +102,7 @@ export default function SiswaDashboard({
                   value: 'Calon Siswa',
                   detail: 'Akun penerimaan siswa baru',
                   icon: 'users',
-                  tone: 'indigo',
+                  tone: 'emerald',
               },
               {
                   label: 'Nomor pendaftaran',
@@ -129,7 +129,7 @@ export default function SiswaDashboard({
                   value: statusSiswa === 'aktif' ? 'Aktif' : statusSiswa,
                   detail: statusSiswa === 'aktif' ? 'Terdaftar sebagai siswa aktif' : 'Status akun siswa',
                   icon: 'check',
-                  tone: statusSiswa === 'aktif' ? 'emerald' : 'indigo',
+                  tone: 'emerald',
               },
               {
                   label: 'Kelas',
@@ -143,7 +143,7 @@ export default function SiswaDashboard({
                   value: numberFormatter.format(jadwals.length),
                   detail: 'Jadwal pada tahun ajaran aktif',
                   icon: 'calendar',
-                  tone: 'indigo',
+                  tone: 'emerald',
               },
               {
                   label: 'Ujian aktif',
@@ -187,12 +187,12 @@ export default function SiswaDashboard({
             {isCandidate ? (
                 <section
                     id="status-spmb"
-                    className="scroll-mt-24 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
+                    className="scroll-mt-24 overflow-hidden rounded-3xl border border-white/80 bg-white/85 shadow-[0_8px_30px_rgb(0,0,0,0.04)] ring-1 ring-slate-900/5 backdrop-blur-xl"
                 >
-                    <div className="bg-gradient-to-r from-indigo-700 to-violet-700 px-6 py-7 text-white sm:px-8">
-                        <p className="text-sm font-semibold text-indigo-200">Penerimaan siswa baru</p>
+                    <div className="bg-gradient-to-r from-emerald-950 via-emerald-900 to-teal-900 px-6 py-7 text-white sm:px-8">
+                        <p className="text-sm font-semibold text-emerald-100">Penerimaan siswa baru</p>
                         <h2 className="mt-2 text-xl font-bold sm:text-2xl">Status seleksi SPMB</h2>
-                        <p className="mt-2 max-w-xl text-sm leading-6 text-indigo-100">
+                        <p className="mt-2 max-w-xl text-sm leading-6 text-emerald-100/90">
                             Informasi pendaftaran Anda ditampilkan di bawah ini. Periksa kembali secara berkala untuk pembaruan.
                         </p>
                     </div>
@@ -222,7 +222,7 @@ export default function SiswaDashboard({
                         <div className="mt-5">
                             <Link
                                 href={route('siswa.spmb.index')}
-                                className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700"
+                                className="inline-flex items-center gap-2 rounded-2xl bg-emerald-800 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-900"
                             >
                                 Lengkapi formulir SPMB <span aria-hidden="true">→</span>
                             </Link>
@@ -231,21 +231,21 @@ export default function SiswaDashboard({
                 </section>
             ) : statusSiswa === 'aktif' ? (
                 <div className="flex flex-col gap-6">
-                    <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-indigo-100 bg-indigo-50 px-5 py-4">
+                    <div className="flex flex-wrap items-center justify-between gap-3 rounded-3xl border border-emerald-100 bg-emerald-50/70 px-5 py-4">
                         <div>
-                            <p className="text-sm font-semibold text-indigo-900">Status siswa aktif</p>
-                            <p className="mt-1 text-sm text-indigo-700">
+                            <p className="text-sm font-semibold text-emerald-950">Status siswa aktif</p>
+                            <p className="mt-1 text-sm text-emerald-800">
                                 {siswa.kelas ? `Kelas ${siswa.kelas}` : 'Kelas belum ditetapkan'}
                             </p>
                         </div>
-                        <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-indigo-700 shadow-sm">
+                        <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-emerald-800 shadow-sm">
                             Tahun ajaran aktif
                         </span>
                     </div>
 
                     <section
                         id="jadwal-pelajaran"
-                        className="scroll-mt-24 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7"
+                        className="scroll-mt-24 rounded-3xl border border-white/80 bg-white/80 p-5 shadow-[0_8px_30px_rgb(0,0,0,0.04)] ring-1 ring-slate-900/5 backdrop-blur-xl sm:p-7"
                     >
                         <div className="mb-5">
                             <h2 className="text-lg font-bold text-slate-900">Jadwal pelajaran</h2>
@@ -256,7 +256,7 @@ export default function SiswaDashboard({
                         <div className="mb-4">
                             <Link
                                 href={route('siswa.jadwal.index')}
-                                className="inline-flex items-center gap-2 text-sm font-semibold text-indigo-700 transition hover:text-indigo-900"
+                                className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-800 transition hover:text-emerald-950"
                             >
                                 Buka tampilan jadwal <span aria-hidden="true">→</span>
                             </Link>
@@ -280,7 +280,7 @@ export default function SiswaDashboard({
                                                 {dayLabels[jadwal.hari] ?? jadwal.hari ?? '—'} · {jadwal.guru ?? '—'}
                                             </p>
                                         </div>
-                                        <p className="text-sm font-semibold text-indigo-700">
+                                        <p className="text-sm font-semibold text-emerald-800">
                                             {jadwal.jam_mulai} – {jadwal.jam_selesai}
                                         </p>
                                     </div>
@@ -292,7 +292,7 @@ export default function SiswaDashboard({
                     <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
                         <section
                             id="tagihan-spp"
-                            className="scroll-mt-24 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7"
+                            className="scroll-mt-24 rounded-3xl border border-white/80 bg-white/80 p-5 shadow-[0_8px_30px_rgb(0,0,0,0.04)] ring-1 ring-slate-900/5 backdrop-blur-xl sm:p-7"
                         >
                             <div className="mb-5">
                                 <h2 className="text-lg font-bold text-slate-900">Tagihan SPP</h2>
@@ -309,7 +309,7 @@ export default function SiswaDashboard({
                                     {tagihans.map((tagihan) => (
                                         <article
                                             key={tagihan.id}
-                                            className="rounded-xl border border-slate-200 p-4"
+                                            className="rounded-2xl border border-slate-200/80 bg-white/60 p-4"
                                         >
                                             <div className="flex flex-wrap items-start justify-between gap-3">
                                                 <div>
@@ -333,7 +333,7 @@ export default function SiswaDashboard({
 
                         <section
                             id="ujian-aktif"
-                            className="scroll-mt-24 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7"
+                            className="scroll-mt-24 rounded-3xl border border-white/80 bg-white/80 p-5 shadow-[0_8px_30px_rgb(0,0,0,0.04)] ring-1 ring-slate-900/5 backdrop-blur-xl sm:p-7"
                         >
                             <div className="mb-5">
                                 <h2 className="text-lg font-bold text-slate-900">Ujian aktif</h2>
@@ -356,7 +356,7 @@ export default function SiswaDashboard({
                                             <p className="mt-1 text-sm text-slate-500">
                                                 {ujian.mata_pelajaran ?? 'Mata Pelajaran belum tersedia'} · {formatDateTime(ujian.waktu_mulai)}
                                             </p>
-                                            <p className="mt-3 text-xs font-semibold text-indigo-700">
+                                            <p className="mt-3 text-xs font-semibold text-emerald-800">
                                                 Durasi {ujian.durasi_menit} menit
                                             </p>
                                         </article>

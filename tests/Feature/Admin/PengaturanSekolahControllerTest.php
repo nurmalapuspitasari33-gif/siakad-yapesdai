@@ -64,7 +64,11 @@ class PengaturanSekolahControllerTest extends TestCase
         $this->get('/')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->where('pengaturanSekolah.logo_url', Storage::disk('public')->url($settings->logo_path)));
+                ->where('pengaturanSekolah.logo_url', '/public-files/'.$settings->logo_path));
+
+        $this->get('/public-files/'.$settings->logo_path)
+            ->assertOk()
+            ->assertHeader('content-type', 'image/png');
     }
 
     public function test_invalid_logo_does_not_update_school_identity(): void

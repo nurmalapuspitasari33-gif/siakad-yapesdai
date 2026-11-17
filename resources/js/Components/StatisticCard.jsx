@@ -48,26 +48,26 @@ const iconGraphics = {
 };
 
 const toneStyles = {
-    indigo: 'bg-indigo-50 text-indigo-600',
-    emerald: 'bg-emerald-50 text-emerald-600',
+    indigo: 'bg-emerald-50 text-emerald-700',
+    emerald: 'bg-emerald-50 text-emerald-700',
     amber: 'bg-amber-50 text-amber-600',
-    sky: 'bg-sky-50 text-sky-600',
+    sky: 'bg-emerald-50 text-emerald-700',
 };
 
 const accentTones = {
-    'bg-indigo-500': 'indigo',
+    'bg-indigo-500': 'emerald',
     'bg-emerald-500': 'emerald',
     'bg-amber-500': 'amber',
-    'bg-sky-500': 'sky',
+    'bg-sky-500': 'emerald',
 };
 
 export default function StatisticCard({ label, value, detail, icon = 'document', tone, accent }) {
-    const cardTone = tone ?? accentTones[accent] ?? 'indigo';
+    const cardTone = tone ?? accentTones[accent] ?? 'emerald';
 
     return (
-        <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-md">
+        <article className="rounded-3xl border border-white/80 bg-white/80 p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] ring-1 ring-slate-900/5 backdrop-blur-xl transition-all duration-200 hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-md">
             <div className="flex items-start justify-between gap-3">
-                <span className={`flex h-11 w-11 items-center justify-center rounded-xl ${toneStyles[cardTone] ?? toneStyles.indigo}`}>
+                <span className={`flex h-11 w-11 items-center justify-center rounded-2xl p-3 ${toneStyles[cardTone] ?? toneStyles.emerald}`}>
                     <svg
                         viewBox="0 0 24 24"
                         fill="none"

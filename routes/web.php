@@ -29,24 +29,19 @@ use App\Http\Controllers\Siswa\RaporController as SiswaRaporController;
 use App\Http\Controllers\Siswa\SpmbController as SiswaSpmbController;
 use App\Http\Controllers\Siswa\TagihanController as SiswaTagihanController;
 use App\Http\Controllers\Siswa\UjianController as SiswaUjianController;
-use App\Models\Guru;
-use App\Models\PendaftaranSpmb;
-use App\Models\Siswa;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
-Route::get('/', function () {
+Route::get('/', fn () => Inertia::render('Home'))->name('home');
+
+Route::get('/spmb', function () {
     return Inertia::render('Welcome', [
-        'statistics' => [
-            'siswaAktif' => Siswa::query()->where('status_siswa', 'aktif')->count(),
-            'guru' => Guru::query()->count(),
-            'pendaftarSpmb' => PendaftaranSpmb::query()->count(),
-            'menungguSeleksi' => PendaftaranSpmb::query()->where('status_seleksi', 'pending')->count(),
-        ],
         'canLogin' => Route::has('login'),
         'canRegister' => Route::has('register'),
     ]);
-});
+})->name('spmb.home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])
@@ -208,5 +203,8 @@ Route::middleware('auth')->group(function () {
 
 require __DIR__.'/auth.php';
 
-Route::get("/storage/{path}", function ($path) { $f = storage_path("app/public/" . $path); return file_exists($f) ? response()->file($f) : abort(404); })->where("path", ".*");
-Route::get("/logo-aktif", function () { \Illuminate\Support\Facades\DB::table("pengaturan_sekolahs")->update(["logo_path" => "../logo.png"]); return "LOGO AKTIF!"; });
+Route::get('/public-files/{path}', function (string $path): StreamedResponse {
+    abort_unless(Storage::disk('public')->exists($path), 404);
+
+    return Storage::disk('public')->response($path);
+})->where('path', '.*')->name('public-files.show');
