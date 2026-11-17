@@ -61,7 +61,7 @@ const Content = ({
         <>
             <Transition
                 show={open}
-                enter="transition ease-out duration-200"
+                enter="transition ease-out duration-150"
                 enterFrom="opacity-0 scale-95"
                 enterTo="opacity-100 scale-100"
                 leave="transition ease-in duration-75"

@@ -53,9 +53,7 @@ export default function SpmbApplicantReportDocument({
     return (
         <section className="print-document spmb-print-document hidden bg-white text-black print:block">
             <header className="spmb-report-school-heading">
-                {schoolSettings.logo_url && (
-                    <img src={schoolSettings.logo_url} alt="" className="spmb-report-logo" />
-                )}
+                <img src="/logo.png" alt="" className="spmb-report-logo" />
                 <div>
                     <h1>{printValue(schoolSettings.nama_sekolah)}</h1>
                     <p>NPSN: {printValue(schoolSettings.npsn)}</p>

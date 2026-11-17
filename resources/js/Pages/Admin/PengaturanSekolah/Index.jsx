@@ -2,7 +2,6 @@ import InputError from '@/Components/InputError';
 import AdminNavigationItems from '@/Components/AdminNavigationItems';
 import DashboardLayout from '@/Layouts/DashboardLayout';
 import { Head, useForm, usePage } from '@inertiajs/react';
-import { useEffect, useState } from 'react';
 
 export default function PengaturanSekolahIndex() {
     const { pengaturanSekolah = {} } = usePage().props;
@@ -20,30 +19,12 @@ export default function PengaturanSekolahIndex() {
         tarif_praktikum: pengaturanSekolah?.tarif_praktikum ?? '0.00',
         info_spmb: pengaturanSekolah?.info_spmb ?? '',
         template_kokurikuler: pengaturanSekolah?.template_kokurikuler ?? '',
-        logo: null,
     });
-    const [logoPreview, setLogoPreview] = useState(pengaturanSekolah?.logo_url ?? null);
-
-    useEffect(() => {
-        if (!form.data.logo) {
-            setLogoPreview(pengaturanSekolah?.logo_url ?? null);
-
-            return undefined;
-        }
-
-        const previewUrl = URL.createObjectURL(form.data.logo);
-        setLogoPreview(previewUrl);
-
-        return () => URL.revokeObjectURL(previewUrl);
-    }, [form.data.logo, pengaturanSekolah?.logo_url]);
 
     const submit = (event) => {
         event.preventDefault();
-        form.transform((data) => ({ ...data, _method: 'put' }));
-        form.post(route('admin.pengaturan.update'), {
-            forceFormData: true,
+        form.put(route('admin.pengaturan.update'), {
             preserveScroll: true,
-            onSuccess: () => form.reset('logo'),
         });
     };
 
@@ -232,32 +213,6 @@ export default function PengaturanSekolahIndex() {
                                 className="block w-full rounded-xl border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                             />
                             <InputError message={form.errors.tarif_praktikum} className="mt-2" />
-                        </div>
-
-                        <div className="md:col-span-2">
-                            <label htmlFor="logo-sekolah" className="mb-2 block text-sm font-semibold text-slate-700">
-                                Logo Sekolah
-                            </label>
-                            <div className="flex flex-col gap-4 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 sm:flex-row sm:items-center">
-                                <div className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-white">
-                                    {logoPreview ? (
-                                        <img src={logoPreview} alt="Pratinjau logo sekolah" className="h-full w-full object-contain p-2" />
-                                    ) : (
-                                        <span className="text-xs font-medium text-slate-400">Belum ada logo</span>
-                                    )}
-                                </div>
-                                <div className="min-w-0 flex-1">
-                                    <input
-                                        id="logo-sekolah"
-                                        type="file"
-                                        accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
-                                        onChange={(event) => form.setData('logo', event.target.files?.[0] ?? null)}
-                                        className="block w-full rounded-lg border border-slate-300 bg-white text-sm text-slate-600 file:mr-4 file:rounded-lg file:border-0 file:bg-indigo-50 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-indigo-700 hover:file:bg-indigo-100"
-                                    />
-                                    <p className="mt-2 text-xs text-slate-500">Format JPG, PNG, atau WEBP. Ukuran maksimal 2 MB.</p>
-                                    <InputError message={form.errors.logo} className="mt-2" />
-                                </div>
-                            </div>
                         </div>
 
                         <div className="md:col-span-2">

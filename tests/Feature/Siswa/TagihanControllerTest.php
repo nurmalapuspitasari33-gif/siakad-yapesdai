@@ -50,6 +50,26 @@ class TagihanControllerTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Siswa/Tagihan/Index')
                 ->has('tagihans', 1)
-                ->where('tagihans.0.judul_tagihan', 'SPP November 2026'));
+                ->where('tagihans.0.judul_tagihan', 'SPP November 2026')
+                ->where('isCandidate', false));
+    }
+
+    public function test_candidate_student_keeps_spmb_navigation_on_the_bill_page(): void
+    {
+        $candidate = User::factory()->create(['role' => 'siswa']);
+        Siswa::create([
+            'user_id' => $candidate->id,
+            'nisn' => '0000000003',
+            'nama_lengkap' => 'Calon Siswa',
+            'status_siswa' => 'calon_spmb',
+        ]);
+
+        $this->actingAs($candidate)
+            ->get(route('siswa.tagihan.index'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Siswa/Tagihan/Index')
+                ->has('tagihans', 0)
+                ->where('isCandidate', true));
     }
 }

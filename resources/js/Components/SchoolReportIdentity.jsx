@@ -3,16 +3,14 @@ export function SchoolReportLetterhead({ settings = {}, title, subtitle }) {
 
     return (
         <header className="flex items-center justify-center gap-4 border-b-2 border-slate-900 pb-4 text-center">
-            {settings?.logo_url && (
-                <img
-                    src={settings.logo_url}
-                    alt={`Logo ${settings?.nama_sekolah ?? 'sekolah'}`}
-                    className="h-16 w-16 shrink-0 object-contain print:h-16 print:w-16"
-                />
-            )}
+            <img
+                src="/logo.png"
+                alt="Logo SMK Al Mu'allim Kesugihan"
+                className="h-16 w-16 shrink-0 object-contain print:h-16 print:w-16"
+            />
             <div>
                 <p className="text-xl font-bold uppercase text-slate-950">
-                    {settings?.nama_sekolah ?? 'Nama Sekolah'}
+                    {settings?.nama_sekolah ?? "SMK Al Mu'allim Kesugihan"}
                 </p>
                 {settings?.npsn && <p className="mt-1 text-xs text-slate-700">NPSN {settings.npsn}</p>}
                 {settings?.alamat && <p className="mt-1 whitespace-pre-line text-xs text-slate-700">{settings.alamat}</p>}

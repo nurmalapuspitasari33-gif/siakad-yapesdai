@@ -1,6 +1,6 @@
 import { Link, usePage } from '@inertiajs/react';
 import Dropdown from '@/Components/Dropdown';
-import { useState } from 'react';
+import { createContext, useCallback, useContext, useLayoutEffect, useState } from 'react';
 
 const mobileNavigationIcons = {
     home: (
@@ -112,7 +112,61 @@ function mobileQuickLinksFor(role, navigation, isAccountPage) {
     return [dashboard, schedule, profileLink].filter(Boolean);
 }
 
-export default function DashboardLayout({
+const DashboardLayoutContext = createContext(null);
+
+function sameNavigation(previous = [], next = []) {
+    return previous.length === next.length && previous.every((item, index) => {
+        const nextItem = next[index];
+
+        return item.id === nextItem.id
+            && item.label === nextItem.label
+            && item.href === nextItem.href
+            && item.active === nextItem.active
+            && item.sectionTitle === nextItem.sectionTitle
+            && item.isRoute === nextItem.isRoute;
+    });
+}
+
+export function PersistentDashboardLayout({ children }) {
+    const [layoutConfig, setLayoutConfig] = useState({
+        title: '',
+        subtitle: '',
+        roleLabel: '',
+        navigation: [],
+    });
+    const updateLayout = useCallback((nextConfig) => {
+        setLayoutConfig((previousConfig) => {
+            const isUnchanged = previousConfig.title === nextConfig.title
+                && previousConfig.subtitle === nextConfig.subtitle
+                && previousConfig.roleLabel === nextConfig.roleLabel
+                && sameNavigation(previousConfig.navigation, nextConfig.navigation);
+
+            return isUnchanged ? previousConfig : nextConfig;
+        });
+    }, []);
+
+    return (
+        <DashboardLayoutContext.Provider value={updateLayout}>
+            <DashboardFrame {...layoutConfig}>{children}</DashboardFrame>
+        </DashboardLayoutContext.Provider>
+    );
+}
+
+// Page wrappers provide their current metadata while this outer frame stays mounted.
+export default function DashboardLayout(props) {
+    const updateLayout = useContext(DashboardLayoutContext);
+    const { children, ...layoutConfig } = props;
+
+    useLayoutEffect(() => {
+        updateLayout?.(layoutConfig);
+    }, [updateLayout, layoutConfig.title, layoutConfig.subtitle, layoutConfig.roleLabel, layoutConfig.navigation]);
+
+    return updateLayout
+        ? children
+        : <DashboardFrame {...layoutConfig}>{children}</DashboardFrame>;
+}
+
+function DashboardFrame({
     title,
     subtitle,
     roleLabel,
@@ -127,9 +181,10 @@ export default function DashboardLayout({
     const accountLink = (
         <Link
             href={route('profile.edit')}
+            prefetch
             onClick={() => setIsNavigationOpen(false)}
             aria-current={isAccountPage ? 'page' : undefined}
-            className={`flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-medium transition-all ${
+            className={`flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-medium transition-all duration-150 ${
                 isAccountPage
                     ? 'bg-emerald-800 font-semibold text-white shadow-sm shadow-emerald-900/15'
                     : 'text-slate-600 hover:bg-emerald-50/80 hover:text-emerald-900'
@@ -150,7 +205,7 @@ export default function DashboardLayout({
             method="post"
             as="button"
             onClick={() => setIsNavigationOpen(false)}
-            className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-rose-600 transition hover:bg-rose-50 hover:text-rose-700"
+            className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-rose-600 transition duration-150 hover:bg-rose-50 hover:text-rose-700"
         >
             <span className="h-2 w-2 rounded-full bg-rose-400" aria-hidden="true" />
             Keluar
@@ -161,7 +216,7 @@ export default function DashboardLayout({
     return (
         <div className="dashboard-theme min-h-screen bg-gradient-to-br from-emerald-50/40 via-slate-50 to-teal-50/30 font-sans antialiased tracking-tight text-slate-900 print:min-h-0 print:bg-white">
             <header className="sticky top-0 z-40 border-b border-slate-200/60 bg-white/75 backdrop-blur-xl print:hidden">
-                <div className="mx-auto flex h-16 max-w-[1600px] items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+                <div className="flex h-16 w-full items-center justify-between gap-4 px-6 lg:px-10">
                     <div className="flex min-w-0 items-center gap-3">
                         {navigation.length > 0 && (
                             <button
@@ -214,7 +269,7 @@ export default function DashboardLayout({
                                 </button>
                             </Dropdown.Trigger>
                             <Dropdown.Content contentClasses="py-1 bg-white/95 backdrop-blur-xl">
-                                <Dropdown.Link href={route('profile.edit')}>
+                                <Dropdown.Link href={route('profile.edit')} prefetch>
                                     Pengaturan Akun
                                 </Dropdown.Link>
                                 <Dropdown.Link href={route('logout')} method="post" as="button">
@@ -226,7 +281,7 @@ export default function DashboardLayout({
                 </div>
             </header>
 
-            <div className="mx-auto flex max-w-[1600px]">
+            <div className="flex w-full">
                 {navigation.length > 0 && (
                     <>
                         {isNavigationOpen && (
@@ -240,24 +295,19 @@ export default function DashboardLayout({
                         <aside
                             className={`print:hidden ${
                                 isNavigationOpen ? 'block' : 'hidden'
-                            } fixed inset-y-16 left-0 z-20 w-72 overflow-y-auto border-r border-slate-200/70 bg-white/85 p-5 backdrop-blur-xl lg:sticky lg:top-16 lg:block lg:h-[calc(100vh-4rem)] lg:shrink-0`}
+                            } fixed inset-y-16 left-0 z-20 w-72 overflow-y-auto border-r border-slate-200/70 bg-white/85 p-5 backdrop-blur-xl lg:sticky lg:top-16 lg:block lg:h-[calc(100vh-4rem)] lg:w-72 lg:shrink-0`}
                         >
                             <Link
                                 href="/"
+                                prefetch
                                 className="mb-7 flex items-center gap-3 rounded-2xl px-2 py-1"
                                 aria-label={`${pengaturanSekolah?.nama_sekolah ?? 'SIAKAD Sekolah'}, beranda`}
                             >
-                                {pengaturanSekolah?.logo_url ? (
-                                    <img
-                                        src={pengaturanSekolah.logo_url}
-                                        alt=""
-                                        className="h-10 w-10 shrink-0 rounded-xl border border-slate-200/70 bg-white object-contain p-1"
-                                    />
-                                ) : (
-                                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-800 text-sm font-bold text-white">
-                                        SA
-                                    </span>
-                                )}
+                                <img
+                                    src="/logo.png"
+                                    alt=""
+                                    className="h-10 w-10 shrink-0 rounded-xl border border-slate-200/70 bg-white object-contain p-1"
+                                />
                                 <span className="min-w-0">
                                     <span className="block break-words text-[13px] font-bold leading-4 text-slate-900">
                                         {pengaturanSekolah?.nama_sekolah ?? 'SIAKAD Sekolah'}
@@ -275,7 +325,7 @@ export default function DashboardLayout({
                             <nav className="flex flex-col gap-1" aria-label="Navigasi dasbor">
                                 {navigation.map((item) => {
                                     const isActive = Boolean(item.active);
-                                    const className = `group flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm transition-all ${
+                                    const className = `group flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm transition-all duration-150 ${
                                         isActive
                                             ? 'bg-emerald-800 font-semibold text-white shadow-sm shadow-emerald-900/15'
                                             : 'font-medium text-slate-600 hover:bg-emerald-50/80 hover:text-emerald-900'
@@ -306,6 +356,7 @@ export default function DashboardLayout({
                                             )}
                                             <Link
                                                 href={item.href}
+                                                prefetch
                                                 onClick={onClick}
                                                 aria-current={isActive ? 'page' : undefined}
                                                 className={className}
@@ -349,9 +400,9 @@ export default function DashboardLayout({
                     </>
                 )}
 
-                <main className="min-w-0 flex-1 px-4 pt-6 pb-20 print:p-0 sm:px-6 sm:pt-8 md:pb-8 lg:px-10">
-                    <div className="mx-auto max-w-6xl print:max-w-none">
-                        <div className="mb-8 print:hidden">
+                <main className="min-w-0 flex-1 px-6 pt-6 pb-20 print:p-0 sm:pt-8 md:pb-8 lg:px-10">
+                    <div className="w-full print:max-w-none">
+                        <div className="mb-6 print:hidden">
                             <p className="mb-2 text-sm font-semibold text-emerald-700">
                                 {roleLabel}
                             </p>
@@ -393,6 +444,7 @@ export default function DashboardLayout({
                             <Link
                                 key={item.id}
                                 href={item.href}
+                                prefetch
                                 onClick={() => setIsNavigationOpen(false)}
                                 aria-label={item.label}
                                 aria-current={item.active ? 'page' : undefined}

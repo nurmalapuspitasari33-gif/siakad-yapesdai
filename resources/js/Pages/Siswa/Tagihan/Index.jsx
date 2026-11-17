@@ -26,13 +26,13 @@ function formatDate(value) {
     }).format(date);
 }
 
-export default function SiswaTagihanIndex({ tagihans = [] }) {
+export default function SiswaTagihanIndex({ tagihans = [], isCandidate = false }) {
     return (
         <DashboardLayout
             title="Riwayat Tagihan SPP"
             subtitle="Lihat nominal, tanggal jatuh tempo, dan status pembayaran tagihan Anda."
             roleLabel="Siswa"
-            navigation={roleNavigationItems('siswa', 'tagihan')}
+            navigation={roleNavigationItems('siswa', 'tagihan', { isCandidate })}
         >
             <Head title="Tagihan SPP" />
 

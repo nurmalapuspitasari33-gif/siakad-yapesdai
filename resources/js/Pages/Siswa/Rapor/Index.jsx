@@ -64,7 +64,7 @@ function AttendanceAndNotes({ catatan = {} }) {
     );
 }
 
-export default function SiswaRaporIndex({ siswa = {}, rapor = [] }) {
+export default function SiswaRaporIndex({ siswa = {}, rapor = [], isCandidate = false }) {
     const { pengaturanSekolah = {} } = usePage().props;
     const [printTarget, setPrintTarget] = useState(null);
 
@@ -85,7 +85,7 @@ export default function SiswaRaporIndex({ siswa = {}, rapor = [] }) {
             title="Rapor Akademik"
             subtitle="Lihat nilai akhir, capaian kompetensi, catatan wali kelas, dan cetak dokumen rapor."
             roleLabel="Siswa"
-            navigation={roleNavigationItems('siswa', 'rapor')}
+            navigation={roleNavigationItems('siswa', 'rapor', { isCandidate })}
         >
             <Head title="Rapor Akademik" />
 

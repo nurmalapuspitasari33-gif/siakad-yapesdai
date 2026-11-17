@@ -14,7 +14,7 @@ const currencyFormatter = new Intl.NumberFormat('id-ID', {
 function PrintHeading({ schoolSettings, title, yearLabel }) {
     return (
         <header className="hidden print:block executive-report-print-heading">
-            <h1>{schoolSettings?.nama_sekolah ?? 'Nama Sekolah'}</h1>
+            <h1>{schoolSettings?.nama_sekolah ?? "SMK Al Mu'allim Kesugihan"}</h1>
             <p>
                 {[schoolSettings?.alamat, schoolSettings?.npsn ? `NPSN ${schoolSettings.npsn}` : null]
                     .filter(Boolean)

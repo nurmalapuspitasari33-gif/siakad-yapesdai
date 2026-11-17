@@ -95,6 +95,7 @@ class RaporController extends Controller
                 'wali_niky' => $siswa->kelas?->waliKelas?->nip,
             ],
             'rapor' => $rapor,
+            'isCandidate' => $siswa->status_siswa === 'calon_spmb',
         ]);
     }
 }

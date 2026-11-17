@@ -35,6 +35,7 @@ class JadwalController extends Controller
 
         return Inertia::render('Guru/Jadwal/Index', [
             'jadwals' => $jadwals,
+            'isWaliKelas' => (bool) ($guru?->is_wali_kelas ?? false),
             'tahunAjaranAktif' => $tahunAjaranAktif
                 ? "{$tahunAjaranAktif->nama_tahun} · {$tahunAjaranAktif->semester}"
                 : null,

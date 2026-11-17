@@ -35,6 +35,7 @@ class JadwalController extends Controller
 
         return Inertia::render('Siswa/Jadwal/Index', [
             'jadwals' => $jadwals,
+            'isCandidate' => $siswa?->status_siswa === 'calon_spmb',
             'tahunAjaranAktif' => $tahunAjaranAktif
                 ? "{$tahunAjaranAktif->nama_tahun} · {$tahunAjaranAktif->semester}"
                 : null,

@@ -1,6 +1,5 @@
 import GoogleAuthButton from '@/Components/GoogleAuthButton';
 import InputError from '@/Components/InputError';
-import PublicSiteHeader from '@/Components/PublicSiteHeader';
 import { Head, Link, useForm, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 
@@ -94,16 +93,14 @@ export default function Login({ canResetPassword = true, status = null }) {
 
     return (
         <>
-            <Head title="Login Portal" />
+            <Head title="Login | YAPESDAI" />
 
-            <div className="relative min-h-screen bg-[#F8FAFC] font-public tracking-tight text-slate-900 antialiased">
-                <PublicSiteHeader activePage="login" />
-
-                <main className="relative isolate min-h-[calc(100vh-5rem)] overflow-hidden bg-gradient-to-br from-emerald-50/80 via-white to-teal-50/50">
+            <div className="relative flex min-h-[calc(100vh-5rem)] flex-1 flex-col bg-[#F8FAFC] font-public tracking-tight text-slate-900 antialiased lg:h-[calc(100vh-5rem)] lg:min-h-0">
+                <main className="relative isolate flex min-h-0 flex-1 flex-col overflow-hidden bg-gradient-to-br from-emerald-50/80 via-white to-teal-50/50">
                     <div className="pointer-events-none absolute -right-36 top-12 -z-10 h-96 w-96 rounded-full bg-emerald-200/30 opacity-40 blur-3xl" />
                     <div className="pointer-events-none absolute -bottom-28 -left-20 -z-10 h-80 w-[60%] rounded-[50%] bg-teal-100/70 opacity-40 blur-2xl" />
 
-                    <section className="relative mx-auto grid max-w-6xl grid-cols-1 items-center gap-10 px-4 py-10 sm:px-6 sm:py-12 lg:grid-cols-12 lg:gap-12 lg:px-8 lg:py-14">
+                    <section className="relative mx-auto grid w-full flex-1 grid-cols-1 items-center gap-8 px-6 py-8 sm:px-8 lg:grid-cols-12 lg:gap-10 lg:px-10 lg:py-2">
                         <div className="lg:col-span-6">
                             <p className="text-2xl font-semibold tracking-normal text-emerald-700 sm:text-3xl">
                                 Selamat Datang
@@ -134,12 +131,12 @@ export default function Login({ canResetPassword = true, status = null }) {
                         </div>
 
                         <div className="flex justify-center lg:col-span-6 lg:justify-end">
-                            <div className="w-full max-w-md rounded-[2rem] border border-white bg-white/85 p-6 shadow-[0_20px_50px_rgb(0,0,0,0.06)] ring-1 ring-slate-900/5 backdrop-blur-2xl sm:p-10">
+                            <div className="w-full max-w-md rounded-[2rem] border border-white bg-white/85 p-6 shadow-[0_20px_50px_rgb(0,0,0,0.06)] ring-1 ring-slate-900/5 backdrop-blur-2xl sm:p-8 lg:p-4">
                                 <div className="text-center">
-                                    <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-white bg-emerald-50/90 text-emerald-800 shadow-sm ring-1 ring-emerald-900/5">
+                                    <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-white bg-emerald-50/90 text-emerald-800 shadow-sm ring-1 ring-emerald-900/5 lg:h-12 lg:w-12">
                                         <FieldIcon type="password" />
                                     </span>
-                                    <h2 className="mt-4 text-2xl font-bold tracking-tight text-slate-900">
+                                    <h2 className="mt-4 text-2xl font-bold tracking-tight text-slate-900 lg:mt-2">
                                         Login Akun
                                     </h2>
                                     <p className="mt-1 text-sm text-slate-500">
@@ -153,12 +150,12 @@ export default function Login({ canResetPassword = true, status = null }) {
                                     </div>
                                 )}
 
-                                <form onSubmit={submit} className="mt-6 flex flex-col gap-4">
+                                <form onSubmit={submit} className="mt-6 flex flex-col gap-4 lg:mt-3 lg:gap-2">
                                     <div>
                                         <label htmlFor="email" className="block text-sm font-semibold text-slate-700">
                                             Email
                                         </label>
-                                        <div className="relative mt-2">
+                                        <div className="relative mt-2 lg:mt-1">
                                             <span className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-slate-400">
                                                 <FieldIcon type="email" />
                                             </span>
@@ -173,7 +170,7 @@ export default function Login({ canResetPassword = true, status = null }) {
                                                 onChange={(event) => setData('email', event.target.value)}
                                                 aria-invalid={Boolean(errors.email)}
                                                 aria-describedby={errors.email ? 'email-error' : undefined}
-                                                className="block w-full rounded-2xl border border-transparent bg-slate-100/70 py-3.5 pl-12 pr-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-emerald-600 focus:bg-white focus:ring-4 focus:ring-emerald-600/10"
+                                                className="block w-full rounded-2xl border border-transparent bg-slate-100/70 py-3.5 pl-12 pr-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-emerald-600 focus:bg-white focus:ring-4 focus:ring-emerald-600/10 lg:py-2.5"
                                                 placeholder="nama@email.com"
                                             />
                                         </div>
@@ -184,7 +181,7 @@ export default function Login({ canResetPassword = true, status = null }) {
                                         <label htmlFor="password" className="block text-sm font-semibold text-slate-700">
                                             Password
                                         </label>
-                                        <div className="relative mt-2">
+                                        <div className="relative mt-2 lg:mt-1">
                                             <span className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-slate-400">
                                                 <FieldIcon type="password" />
                                             </span>
@@ -198,7 +195,7 @@ export default function Login({ canResetPassword = true, status = null }) {
                                                 onChange={(event) => setData('password', event.target.value)}
                                                 aria-invalid={Boolean(errors.password)}
                                                 aria-describedby={errors.password ? 'password-error' : undefined}
-                                                className="block w-full rounded-2xl border border-transparent bg-slate-100/70 py-3.5 pl-12 pr-12 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-emerald-600 focus:bg-white focus:ring-4 focus:ring-emerald-600/10"
+                                                className="block w-full rounded-2xl border border-transparent bg-slate-100/70 py-3.5 pl-12 pr-12 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-emerald-600 focus:bg-white focus:ring-4 focus:ring-emerald-600/10 lg:py-2.5"
                                                 placeholder="Masukkan kata sandi"
                                             />
                                             <button
@@ -228,6 +225,7 @@ export default function Login({ canResetPassword = true, status = null }) {
                                         {canResetPassword && (
                                             <Link
                                                 href={route('password.request')}
+                                                prefetch
                                                 className="text-sm font-semibold text-emerald-800 transition hover:text-emerald-950 focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:ring-offset-2"
                                             >
                                                 Lupa kata sandi?
@@ -238,25 +236,25 @@ export default function Login({ canResetPassword = true, status = null }) {
                                     <button
                                         type="submit"
                                         disabled={processing}
-                                        className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-emerald-800 px-5 py-3.5 text-sm font-semibold text-white shadow-md shadow-emerald-900/15 transition hover:-translate-y-0.5 hover:bg-emerald-900 focus:outline-none focus:ring-4 focus:ring-emerald-700/15 disabled:cursor-not-allowed disabled:opacity-60"
+                                        className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-emerald-800 px-5 py-3.5 text-sm font-semibold text-white shadow-md shadow-emerald-900/15 transition hover:-translate-y-0.5 hover:bg-emerald-900 focus:outline-none focus:ring-4 focus:ring-emerald-700/15 disabled:cursor-not-allowed disabled:opacity-60 lg:min-h-10 lg:py-2"
                                     >
                                         {processing ? 'Memproses...' : 'Masuk →'}
                                     </button>
                                 </form>
 
-                                <div className="my-5 flex items-center gap-3 text-xs font-medium text-slate-400">
+                                <div className="my-5 flex items-center gap-3 text-xs font-medium text-slate-400 lg:my-2">
                                     <span className="h-px flex-1 bg-slate-200" />
                                     <span>atau</span>
                                     <span className="h-px flex-1 bg-slate-200" />
                                 </div>
                                 <GoogleAuthButton
                                     label="Masuk dengan Google"
-                                    className="min-h-12 border-slate-200/80 bg-white/90 py-3 text-slate-700 backdrop-blur-md hover:bg-white"
+                                    className="min-h-12 border-slate-200/80 bg-white/90 py-3 text-slate-700 backdrop-blur-md hover:bg-white lg:min-h-9 lg:py-1.5"
                                 />
 
                                 <a
                                     href={contactHref}
-                                    className="mt-5 inline-flex w-full items-center justify-center gap-2 text-sm font-semibold text-emerald-800 transition hover:text-emerald-950 focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:ring-offset-2"
+                                    className="mt-5 inline-flex w-full items-center justify-center gap-2 text-sm font-semibold text-emerald-800 transition hover:text-emerald-950 focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:ring-offset-2 lg:mt-2"
                                 >
                                     <BenefitIcon type="support" />
                                     Hubungi Admin

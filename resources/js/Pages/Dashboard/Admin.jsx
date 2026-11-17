@@ -109,7 +109,7 @@ export default function AdminDashboard({ statistics, modules }) {
                 </div>
             </section>
 
-            <section className="mt-10" aria-labelledby="module-title">
+            <section className="mt-8" aria-labelledby="module-title">
                 <div className="mb-5">
                     <h2 id="module-title" className="text-lg font-bold text-slate-900">
                         Modul akademik

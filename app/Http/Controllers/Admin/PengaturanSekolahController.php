@@ -6,8 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Models\PengaturanSekolah;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -37,39 +35,14 @@ class PengaturanSekolahController extends Controller
             'template_kokurikuler' => ['nullable', 'string', 'max:5000'],
             'tarif_spp_reguler' => ['required', 'numeric', 'gte:0', 'max:9999999999.99'],
             'tarif_praktikum' => ['required', 'numeric', 'gte:0', 'max:9999999999.99'],
-            'logo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
         ], [
             'nama_sekolah.required' => 'Nama sekolah wajib diisi.',
             'email.email' => 'Format email sekolah tidak valid.',
-            'logo.image' => 'Logo harus berupa gambar.',
-            'logo.mimes' => 'Logo harus berformat JPG, PNG, atau WEBP.',
-            'logo.max' => 'Ukuran logo maksimal 2 MB.',
             'tarif_spp_reguler.required' => 'Tarif SPP Reguler wajib diisi.',
             'tarif_praktikum.required' => 'Tarif praktikum wajib diisi.',
         ]);
 
-        $newLogoPath = $request->file('logo')?->store('identitas-sekolah', 'public');
-
-        if ($request->hasFile('logo') && ! is_string($newLogoPath)) {
-            return back()->with('error', 'Logo gagal disimpan. Silakan coba kembali.');
-        }
-
-        $oldLogoPath = $settings->logo_path;
-        $attributes = $validated;
-        unset($attributes['logo']);
-
-        if (is_string($newLogoPath)) {
-            $attributes['logo_path'] = $newLogoPath;
-        }
-
-        $settings->update($attributes);
-
-        if ($oldLogoPath && is_string($newLogoPath) && ! Storage::disk('public')->delete($oldLogoPath)) {
-            Log::warning('Logo sekolah lama gagal dihapus setelah penggantian.', [
-                'pengaturan_sekolah_id' => $settings->id,
-                'path' => $oldLogoPath,
-            ]);
-        }
+        $settings->update($validated);
 
         return to_route('admin.pengaturan.index')->with('success', 'Identitas sekolah berhasil diperbarui.');
     }
@@ -79,7 +52,7 @@ class PengaturanSekolahController extends Controller
         return PengaturanSekolah::query()->firstOrCreate(
             ['id' => 1],
             [
-                'nama_sekolah' => 'Nama Sekolah',
+                'nama_sekolah' => "SMK Al Mu'allim Kesugihan",
                 'tempat_rapor' => 'Kesugihan',
                 'info_spmb' => 'Pendaftaran SPMB dilakukan secara daring melalui portal ini. Lengkapi formulir dan berkas persyaratan, lalu pantau hasil seleksi melalui akun Anda.',
             ],

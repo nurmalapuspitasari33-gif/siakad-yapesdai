@@ -55,7 +55,8 @@ class JadwalControllerTest extends TestCase
                 ->has('jadwals', 1)
                 ->where('jadwals.0.id', $jadwalSiswa->id)
                 ->where('jadwals.0.kelas', 'X IPA 1')
-                ->where('jadwals.0.guru', 'Guru Matematika'));
+                ->where('jadwals.0.guru', 'Guru Matematika')
+                ->where('isCandidate', false));
     }
 
     public function test_candidate_student_does_not_receive_a_class_schedule(): void
@@ -73,7 +74,8 @@ class JadwalControllerTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Siswa/Jadwal/Index')
-                ->has('jadwals', 0));
+                ->has('jadwals', 0)
+                ->where('isCandidate', true));
     }
 
     private function createKelas(TahunAjaran $tahunAjaran, string $namaKelas): Kelas

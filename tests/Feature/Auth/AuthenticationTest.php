@@ -18,7 +18,7 @@ class AuthenticationTest extends TestCase
         $response->assertStatus(200);
     }
 
-    public function test_school_logo_is_used_as_the_favicon_when_available(): void
+    public function test_static_school_logo_is_used_as_the_favicon_when_a_legacy_logo_exists(): void
     {
         PengaturanSekolah::query()->findOrFail(1)->update([
             'logo_path' => 'identitas-sekolah/logo.png',
@@ -27,12 +27,12 @@ class AuthenticationTest extends TestCase
         $this->get('/login')
             ->assertOk()
             ->assertSee(
-                'rel="icon" href="/public-files/identitas-sekolah/logo.png"',
+                'rel="icon" type="image/png" href="'.asset('logo.png').'?v=2"',
                 false,
             );
     }
 
-    public function test_default_favicon_is_used_when_school_logo_is_missing(): void
+    public function test_static_school_logo_is_used_as_the_favicon_when_no_legacy_logo_exists(): void
     {
         PengaturanSekolah::query()->findOrFail(1)->update([
             'logo_path' => null,
@@ -41,7 +41,7 @@ class AuthenticationTest extends TestCase
         $this->get('/login')
             ->assertOk()
             ->assertSee(
-                'rel="icon" href="'.asset('favicon.ico').'"',
+                'rel="icon" type="image/png" href="'.asset('logo.png').'?v=2"',
                 false,
             );
     }

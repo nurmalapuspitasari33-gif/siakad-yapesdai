@@ -91,7 +91,8 @@ class RaporControllerTest extends TestCase
                 ->has('rapor', 1)
                 ->has('rapor.0.mata_pelajaran', 1)
                 ->where('rapor.0.mata_pelajaran.0.nilai_akhir', '80.00')
-                ->where('rapor.0.mata_pelajaran.0.capaian_kompetensi', 'Menerapkan konsep secara mandiri.'));
+                ->where('rapor.0.mata_pelajaran.0.capaian_kompetensi', 'Menerapkan konsep secara mandiri.')
+                ->where('isCandidate', false));
 
         CatatanRapor::create([
             'tahun_ajaran_id' => $tahunAjaran->id,
@@ -116,5 +117,24 @@ class RaporControllerTest extends TestCase
                 ->where('rapor.0.catatan_rapor.ekstra_4_nama', 'Futsal')
                 ->where('rapor.0.catatan_rapor.ekstra_4_ket', 'Amat Baik')
                 ->where('rapor.0.catatan_rapor.sakit', 1));
+    }
+
+    public function test_candidate_student_keeps_spmb_navigation_on_the_report_page(): void
+    {
+        $candidate = User::factory()->create(['role' => 'siswa']);
+        Siswa::create([
+            'user_id' => $candidate->id,
+            'nisn' => '0000000003',
+            'nama_lengkap' => 'Calon Siswa',
+            'status_siswa' => 'calon_spmb',
+        ]);
+
+        $this->actingAs($candidate)
+            ->get(route('siswa.rapor.index'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Siswa/Rapor/Index')
+                ->has('rapor', 0)
+                ->where('isCandidate', true));
     }
 }

@@ -63,7 +63,7 @@ export default function ClassLedgerPrintDocument({
             }`}
         >
             <header className="ledger-school-heading">
-                {settings.logo_url && <img src={settings.logo_url} alt="" />}
+                <img src="/logo.png" alt="" />
                 <div>
                     <h1>{printValue(settings.nama_sekolah)}</h1>
                     <p>NPSN: {printValue(settings.npsn)}</p>

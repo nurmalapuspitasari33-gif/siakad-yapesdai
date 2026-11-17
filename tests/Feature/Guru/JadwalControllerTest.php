@@ -45,10 +45,23 @@ class JadwalControllerTest extends TestCase
                 ->has('jadwals', 1)
                 ->where('jadwals.0.id', $jadwalSaya->id)
                 ->where('jadwals.0.kelas', 'X IPA 1')
-                ->where('jadwals.0.mata_pelajaran', 'Matematika'));
+                ->where('jadwals.0.mata_pelajaran', 'Matematika')
+                ->where('isWaliKelas', false));
     }
 
-    private function createGuru(string $nip, string $nama): Guru
+    public function test_wali_kelas_receives_navigation_state_on_their_schedule_page(): void
+    {
+        $guru = $this->createGuru('19870003', 'Wali Kelas', true);
+
+        $this->actingAs($guru->user)
+            ->get(route('guru.jadwal.index'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Guru/Jadwal/Index')
+                ->where('isWaliKelas', true));
+    }
+
+    private function createGuru(string $nip, string $nama, bool $isWaliKelas = false): Guru
     {
         $user = User::factory()->create(['role' => 'guru']);
 
@@ -56,6 +69,7 @@ class JadwalControllerTest extends TestCase
             'user_id' => $user->id,
             'nip' => $nip,
             'nama_lengkap' => $nama,
+            'is_wali_kelas' => $isWaliKelas,
         ]);
     }
 

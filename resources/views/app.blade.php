@@ -5,12 +5,9 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
-        @php
-            $logoUrl = data_get($page, 'props.pengaturanSekolah.logo_url');
-        @endphp
-        <link rel="icon" href="{{ $logoUrl ?: asset('favicon.ico') }}">
+        <link rel="icon" type="image/png" href="{{ asset('logo.png') }}?v=2">
 
-        <title inertia>{{ config('app.name', 'Laravel') }}</title>
+        <title inertia>{{ config('app.name', 'YAPESDAI') }}</title>
 
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

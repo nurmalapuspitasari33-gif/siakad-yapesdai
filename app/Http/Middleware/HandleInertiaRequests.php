@@ -56,13 +56,9 @@ class HandleInertiaRequests extends Middleware
                     'email' => $settings->email,
                     'kepala_sekolah' => $settings->kepala_sekolah,
                     'niky_kepala_sekolah' => $settings->niky_kepala_sekolah,
-                    'logo_path' => $settings->logo_path,
                     'template_kokurikuler' => $settings->template_kokurikuler,
                     'tarif_spp_reguler' => $settings->tarif_spp_reguler,
                     'tarif_praktikum' => $settings->tarif_praktikum,
-                    'logo_url' => $settings->logo_path
-                        ? route('public-files.show', ['path' => $settings->logo_path], false)
-                        : null,
                     'info_spmb' => $settings->info_spmb,
                 ];
             },

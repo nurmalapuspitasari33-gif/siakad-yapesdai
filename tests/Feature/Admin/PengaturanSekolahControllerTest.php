@@ -7,7 +7,6 @@ use App\Models\Siswa;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
@@ -15,9 +14,8 @@ class PengaturanSekolahControllerTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_admin_can_update_school_identity_and_upload_a_logo(): void
+    public function test_admin_can_update_school_identity(): void
     {
-        Storage::fake('public');
         $admin = User::factory()->create(['role' => 'admin']);
 
         $this->actingAs($admin)
@@ -46,7 +44,6 @@ class PengaturanSekolahControllerTest extends TestCase
             'template_kokurikuler' => 'Ananda sudah {predikat} dalam kegiatan.',
             'tarif_spp_reguler' => 250000,
             'tarif_praktikum' => 150000,
-            'logo' => UploadedFile::fake()->image('logo.png'),
         ])->assertRedirectToRoute('admin.pengaturan.index');
 
         $settings = PengaturanSekolah::query()->findOrFail(1);
@@ -58,38 +55,24 @@ class PengaturanSekolahControllerTest extends TestCase
         $this->assertSame('Ananda sudah {predikat} dalam kegiatan.', $settings->template_kokurikuler);
         $this->assertSame('250000.00', $settings->tarif_spp_reguler);
         $this->assertSame('150000.00', $settings->tarif_praktikum);
-        $this->assertNotNull($settings->logo_path);
-        Storage::disk('public')->assertExists($settings->logo_path);
-
-        $this->get('/')
-            ->assertOk()
-            ->assertInertia(fn (Assert $page) => $page
-                ->where('pengaturanSekolah.logo_url', '/public-files/'.$settings->logo_path));
-
-        $this->get('/public-files/'.$settings->logo_path)
-            ->assertOk()
-            ->assertHeader('content-type', 'image/png');
     }
 
-    public function test_invalid_logo_does_not_update_school_identity(): void
+    public function test_logo_upload_does_not_change_the_static_school_logo(): void
     {
-        Storage::fake('public');
         $admin = User::factory()->create(['role' => 'admin']);
+        $settings = PengaturanSekolah::query()->findOrFail(1);
+        $settings->update(['logo_path' => 'identitas-sekolah/logo-lama.png']);
 
         $this->actingAs($admin)
             ->put(route('admin.pengaturan.update'), [
-                'nama_sekolah' => 'Nama yang Tidak Valid',
-                'tarif_spp_reguler' => 0,
-                'tarif_praktikum' => 0,
-                'logo' => UploadedFile::fake()->create('logo.pdf', 20, 'application/pdf'),
+                'nama_sekolah' => $settings->nama_sekolah,
+                'tarif_spp_reguler' => $settings->tarif_spp_reguler,
+                'tarif_praktikum' => $settings->tarif_praktikum,
+                'logo' => UploadedFile::fake()->image('logo.png'),
             ])
-            ->assertSessionHasErrors('logo');
+            ->assertRedirectToRoute('admin.pengaturan.index');
 
-        $this->assertDatabaseHas('pengaturan_sekolahs', [
-            'id' => 1,
-            'nama_sekolah' => 'Nama Sekolah',
-        ]);
-        $this->assertSame([], Storage::disk('public')->allFiles('identitas-sekolah'));
+        $this->assertSame('identitas-sekolah/logo-lama.png', $settings->fresh()->logo_path);
     }
 
     public function test_non_admin_cannot_access_school_settings(): void

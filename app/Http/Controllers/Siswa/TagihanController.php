@@ -21,6 +21,7 @@ class TagihanController extends Controller
                 ->orderByDesc('jatuh_tempo')
                 ->orderByDesc('id')
                 ->get(['id', 'judul_tagihan', 'nominal', 'jatuh_tempo', 'status_bayar']),
+            'isCandidate' => $siswa->status_siswa === 'calon_spmb',
         ]);
     }
 }

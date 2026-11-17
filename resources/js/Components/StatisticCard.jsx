@@ -65,9 +65,9 @@ export default function StatisticCard({ label, value, detail, icon = 'document',
     const cardTone = tone ?? accentTones[accent] ?? 'emerald';
 
     return (
-        <article className="rounded-3xl border border-white/80 bg-white/80 p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] ring-1 ring-slate-900/5 backdrop-blur-xl transition-all duration-200 hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-md">
+        <article className="rounded-3xl border border-white/80 bg-white/80 p-4 shadow-[0_8px_30px_rgb(0,0,0,0.04)] ring-1 ring-slate-900/5 backdrop-blur-xl transition-all duration-150 hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-md">
             <div className="flex items-start justify-between gap-3">
-                <span className={`flex h-11 w-11 items-center justify-center rounded-2xl p-3 ${toneStyles[cardTone] ?? toneStyles.emerald}`}>
+                <span className={`flex h-10 w-10 items-center justify-center rounded-2xl p-2.5 ${toneStyles[cardTone] ?? toneStyles.emerald}`}>
                     <svg
                         viewBox="0 0 24 24"
                         fill="none"
@@ -83,8 +83,8 @@ export default function StatisticCard({ label, value, detail, icon = 'document',
                 </span>
                 <span className={`mt-1 h-2 w-2 rounded-full ${accent ?? 'bg-slate-200'}`} aria-hidden="true" />
             </div>
-            <p className="mt-4 text-sm font-medium text-slate-600">{label}</p>
-            <p className="mt-1 break-words text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">
+            <p className="mt-3 text-sm font-medium text-slate-600">{label}</p>
+            <p className="mt-1 break-words text-2xl font-bold tracking-tight text-slate-950">
                 {value}
             </p>
             <p className="mt-1 text-xs leading-5 text-slate-500">{detail}</p>

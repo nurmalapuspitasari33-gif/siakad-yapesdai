@@ -14,10 +14,11 @@ export default function PublicSiteHeader({ activePage }) {
         : `tel:${pengaturanSekolah.telepon || '0282695626'}`;
 
     return (
-        <header className="sticky top-0 z-50 flex h-20 items-center border-b border-slate-200/60 bg-white/75 backdrop-blur-xl">
-            <div className="mx-auto flex h-full w-full max-w-7xl items-center justify-between gap-2 px-4 sm:gap-4 sm:px-6 lg:px-8">
+        <header className="sticky top-0 z-50 flex h-20 shrink-0 items-center border-b border-slate-200/60 bg-white/75 backdrop-blur-xl">
+            <div className="flex h-full w-full items-center justify-between gap-2 px-6 sm:gap-4 lg:px-10">
                 <Link
                     href={route('home')}
+                    prefetch
                     aria-label="YAPESDAI — Yayasan Pengembangan Sumber Daya Insani"
                     className="flex min-w-0 items-center gap-2"
                 >
@@ -29,7 +30,7 @@ export default function PublicSiteHeader({ activePage }) {
                         />
                     </span>
                     <span className="min-w-0">
-                        <span className="block truncate text-sm font-bold text-slate-900 sm:text-base">
+                        <span className="block truncate text-xs font-bold text-slate-900 sm:text-base">
                             YAPESDAI
                         </span>
                         <span className="hidden text-xs text-slate-500 sm:block">
@@ -51,8 +52,9 @@ export default function PublicSiteHeader({ activePage }) {
                             <Link
                                 key={item.key}
                                 href={href}
+                                prefetch
                                 aria-current={isActive ? 'page' : undefined}
-                                className={`inline-flex items-center justify-center rounded-full px-1.5 py-2 text-[10px] font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:ring-offset-2 sm:px-3 sm:text-sm ${
+                                className={`inline-flex items-center justify-center rounded-full px-1.5 py-2 text-[10px] font-semibold transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:ring-offset-2 sm:px-3 sm:text-sm ${
                                     isActive
                                         ? 'bg-emerald-50 text-emerald-800'
                                         : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
@@ -64,7 +66,7 @@ export default function PublicSiteHeader({ activePage }) {
                     })}
                     <a
                         href={contactHref}
-                        className="inline-flex items-center gap-1.5 rounded-full bg-emerald-800 px-2.5 py-2 text-[10px] font-semibold text-white shadow-sm transition hover:bg-emerald-900 focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:ring-offset-2 sm:ml-2 sm:px-5 sm:text-sm"
+                        className="inline-flex items-center gap-1.5 rounded-full bg-emerald-800 px-2.5 py-2 text-[10px] font-semibold text-white shadow-sm transition duration-150 hover:bg-emerald-900 focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:ring-offset-2 sm:ml-2 sm:px-5 sm:text-sm"
                     >
                         <svg
                             className="h-3.5 w-3.5 sm:h-4 sm:w-4"

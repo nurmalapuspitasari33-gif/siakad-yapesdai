@@ -3,13 +3,13 @@ import ScheduleTable from '@/Components/ScheduleTable';
 import roleNavigationItems from '@/Components/RoleNavigationItems';
 import { Head } from '@inertiajs/react';
 
-export default function SiswaJadwalIndex({ jadwals = [], tahunAjaranAktif = null }) {
+export default function SiswaJadwalIndex({ jadwals = [], tahunAjaranAktif = null, isCandidate = false }) {
     return (
         <DashboardLayout
             title="Jadwal Pelajaran"
             subtitle="Jadwal kelas Anda pada tahun ajaran aktif."
             roleLabel="Siswa"
-            navigation={roleNavigationItems('siswa', 'jadwal')}
+            navigation={roleNavigationItems('siswa', 'jadwal', { isCandidate })}
         >
             <Head title="Jadwal Pelajaran" />
             <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
