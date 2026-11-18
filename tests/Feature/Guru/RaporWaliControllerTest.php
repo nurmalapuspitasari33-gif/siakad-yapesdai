@@ -10,6 +10,7 @@ use App\Models\Kelas;
 use App\Models\MataPelajaran;
 use App\Models\Nilai;
 use App\Models\PengaturanSekolah;
+use App\Models\PresensiKelas;
 use App\Models\Siswa;
 use App\Models\TahunAjaran;
 use App\Models\User;
@@ -20,6 +21,76 @@ use Tests\TestCase;
 class RaporWaliControllerTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_wali_teacher_sees_attendance_totals_and_subject_completeness(): void
+    {
+        [$waliUser, $wali, $tahunAjaran, $kelas, $student, $mapel] = $this->createWaliClass();
+        $secondStudent = Siswa::create([
+            'user_id' => User::factory()->create(['role' => 'siswa'])->id,
+            'kelas_id' => $kelas->id,
+            'nisn' => '0000000002',
+            'nama_lengkap' => 'Siswa Kedua',
+            'status_siswa' => 'aktif',
+        ]);
+        $secondMapel = MataPelajaran::create([
+            'kode_mapel' => 'PRA-001',
+            'nama_mapel' => 'Prakarya',
+        ]);
+        $firstSchedule = Jadwal::query()
+            ->where('kelas_id', $kelas->id)
+            ->where('mapel_id', $mapel->id)
+            ->firstOrFail();
+        $secondSchedule = Jadwal::create([
+            'tahun_ajaran_id' => $tahunAjaran->id,
+            'kelas_id' => $kelas->id,
+            'mapel_id' => $secondMapel->id,
+            'guru_id' => $wali->id,
+            'hari' => 'selasa',
+            'jam_mulai' => '09:00',
+            'jam_selesai' => '10:00',
+        ]);
+        Nilai::create([
+            'tahun_ajaran_id' => $tahunAjaran->id,
+            'siswa_id' => $student->id,
+            'mapel_id' => $mapel->id,
+            'nilai_tugas' => 80,
+            'nilai_uts' => 80,
+            'nilai_uas' => 80,
+            'nilai_akhir' => 80,
+        ]);
+        foreach ([
+            [$firstSchedule, $student, '2026-11-18', 'S'],
+            [$secondSchedule, $student, '2026-11-18', 'S'],
+            [$firstSchedule, $student, '2026-11-19', 'I'],
+            [$firstSchedule, $student, '2026-11-20', 'A'],
+            [$firstSchedule, $secondStudent, '2026-11-18', 'A'],
+        ] as [$schedule, $siswa, $date, $status]) {
+            PresensiKelas::create([
+                'jadwal_id' => $schedule->id,
+                'kelas_id' => $kelas->id,
+                'mapel_id' => $schedule->mapel_id,
+                'guru_id' => $wali->id,
+                'siswa_id' => $siswa->id,
+                'tanggal' => $date,
+                'status' => $status,
+            ]);
+        }
+
+        $this->actingAs($waliUser)
+            ->get(route('guru.rapor-wali.index'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->has('monitoringNilai', 2)
+                ->where('monitoringNilai.0.nama_mapel', 'Matematika')
+                ->where('monitoringNilai.0.status', 'sebagian')
+                ->where('monitoringNilai.0.siswa_terisi', 1)
+                ->where('monitoringNilai.1.nama_mapel', 'Prakarya')
+                ->where('monitoringNilai.1.status', 'belum')
+                ->where('siswas.0.catatan_rapor.sakit', 1)
+                ->where('siswas.0.catatan_rapor.izin', 1)
+                ->where('siswas.0.catatan_rapor.tanpa_keterangan', 1)
+                ->where('siswas.1.catatan_rapor.tanpa_keterangan', 1));
+    }
 
     public function test_wali_teacher_can_view_report_scores_for_their_class(): void
     {
@@ -119,6 +190,25 @@ class RaporWaliControllerTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_teacher_without_an_active_wali_class_cannot_access_wali_report(): void
+    {
+        $teacherUser = User::factory()->create(['role' => 'guru']);
+        Guru::create([
+            'user_id' => $teacherUser->id,
+            'nip' => '19870003',
+            'nama_lengkap' => 'Wali Tanpa Kelas Aktif',
+            'is_wali_kelas' => true,
+        ]);
+
+        $this->actingAs($teacherUser)
+            ->get(route('guru.rapor-wali.index'))
+            ->assertForbidden();
+
+        $this->actingAs($teacherUser)
+            ->post(route('guru.rapor-wali.store'))
+            ->assertForbidden();
+    }
+
     public function test_wali_teacher_can_save_report_notes_and_generates_the_competency_description(): void
     {
         [$waliUser, , $tahunAjaran, $kelas, $student] = $this->createWaliClass('genap');
@@ -153,6 +243,9 @@ class RaporWaliControllerTest extends TestCase
                     'sakit' => 2,
                     'izin' => 1,
                     'tanpa_keterangan' => 0,
+                    'presensi_manual_sakit' => 2,
+                    'presensi_manual_izin' => 1,
+                    'presensi_manual_tanpa_keterangan' => 0,
                     'catatan_wali_kelas' => 'Terus tingkatkan semangat belajar.',
                     'status_kenaikan' => 'naik',
                     'naik_ke_kelas' => 'XI RPL 1',
@@ -172,6 +265,7 @@ class RaporWaliControllerTest extends TestCase
         $this->assertSame('naik', $catatan->status_kenaikan);
         $this->assertSame('XI RPL 1', $catatan->naik_ke_kelas);
         $this->assertSame(2, $catatan->sakit);
+        $this->assertSame(2, $catatan->presensi_manual_sakit);
         $this->assertSame('Pramuka', $catatan->ekstra_1_nama);
         $this->assertSame('Baik', $catatan->ekstra_1_ket);
         $this->assertSame('Pramuka', $catatan->ekstra_2_nama);

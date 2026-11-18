@@ -51,6 +51,7 @@ class SpreadsheetFile
         array $expectedHeaders,
         array $headerAliases = [],
         array $optionalHeaders = [],
+        ?string $sheetName = null,
     ): array {
         try {
             $spreadsheet = IOFactory::load($file->getRealPath());
@@ -61,7 +62,9 @@ class SpreadsheetFile
         }
 
         try {
-            $sheet = $spreadsheet->getActiveSheet();
+            $sheet = $sheetName === null
+                ? $spreadsheet->getActiveSheet()
+                : ($spreadsheet->getSheetByName($sheetName) ?? $spreadsheet->getActiveSheet());
             $uploadedLastColumn = Coordinate::columnIndexFromString(
                 $sheet->getHighestDataColumn(1),
             );
@@ -91,8 +94,16 @@ class SpreadsheetFile
             );
             $requiredHeaders = array_values(array_diff($normalizedHeaders, $normalizedOptionalHeaders));
 
+            $headersAreKnown = array_diff($uploadedHeaders, $normalizedHeaders) === [];
+            $headersAreOrdered = array_values(array_intersect($normalizedHeaders, $uploadedHeaders)) === $uploadedHeaders;
+            $headersAreUnique = count($uploadedHeaders) === count(array_unique($uploadedHeaders));
+            $hasRequiredHeaders = array_diff($requiredHeaders, $uploadedHeaders) === [];
+
             if (
-                ! in_array($uploadedHeaders, [$normalizedHeaders, $requiredHeaders], true)
+                ! $headersAreKnown
+                || ! $headersAreOrdered
+                || ! $headersAreUnique
+                || ! $hasRequiredHeaders
                 || $uploadedLastColumn !== count($uploadedHeaders)
             ) {
                 throw ValidationException::withMessages([

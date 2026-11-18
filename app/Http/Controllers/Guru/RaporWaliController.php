@@ -7,6 +7,7 @@ use App\Models\CatatanRapor;
 use App\Models\Ekstrakurikuler;
 use App\Models\Jadwal;
 use App\Models\PengaturanSekolah;
+use App\Models\PresensiKelas;
 use App\Models\Siswa;
 use App\Models\TahunAjaran;
 use App\Support\StudentReportData;
@@ -25,14 +26,10 @@ class RaporWaliController extends Controller
     public function index(Request $request): Response
     {
         $guru = $request->user()->guru;
-        abort_unless($guru?->is_wali_kelas, 403);
+        abort_unless($guru, 403);
         $tahunAjaranAktif = TahunAjaran::query()->where('is_aktif', true)->first();
-        $kelasOptions = $tahunAjaranAktif
-            ? $guru->kelasWalian()
-                ->where('tahun_ajaran_id', $tahunAjaranAktif->id)
-                ->orderBy('nama_kelas')
-                ->get(['id', 'nama_kelas', 'fase'])
-            : collect();
+        $kelasOptions = $guru->kelasWalianAktif();
+        abort_unless($kelasOptions->isNotEmpty(), 403);
 
         $filters = $request->validate([
             'kelas_id' => ['nullable', 'integer', Rule::exists('kelas', 'id')],
@@ -46,24 +43,29 @@ class RaporWaliController extends Controller
         $kelas = $selectedKelasId
             ? $kelasOptions->firstWhere('id', (int) $selectedKelasId)
             : null;
-        $mataPelajarans = $selectedKelasId && $tahunAjaranAktif
+        $jadwals = $selectedKelasId && $tahunAjaranAktif
             ? Jadwal::query()
                 ->where('tahun_ajaran_id', $tahunAjaranAktif->id)
                 ->where('kelas_id', $selectedKelasId)
-                ->with('mataPelajaran:id,kode_mapel,nama_mapel,kelompok_mapel')
-                ->get()
-                ->pluck('mataPelajaran')
-                ->filter()
-                ->unique('id')
-                ->sortBy('nama_mapel')
-                ->values()
-                ->map(fn ($mapel): array => [
-                    'id' => $mapel->id,
-                    'kode_mapel' => $mapel->kode_mapel,
-                    'nama_mapel' => $mapel->nama_mapel,
-                    'kelompok_mapel' => $mapel->kelompok_mapel,
+                ->with([
+                    'mataPelajaran:id,kode_mapel,nama_mapel,kelompok_mapel',
+                    'guru:id,nama_lengkap',
                 ])
+                ->get()
             : collect();
+        $mataPelajarans = $jadwals
+            ->pluck('mataPelajaran')
+            ->filter()
+            ->unique('id')
+            ->sortBy('nama_mapel')
+            ->values()
+            ->map(fn ($mapel): array => [
+                'id' => $mapel->id,
+                'kode_mapel' => $mapel->kode_mapel,
+                'nama_mapel' => $mapel->nama_mapel,
+                'kelompok_mapel' => $mapel->kelompok_mapel,
+                'nama_guru' => $jadwals->firstWhere('mapel_id', $mapel->id)?->guru?->nama_lengkap,
+            ]);
 
         $siswas = $selectedKelasId && $tahunAjaranAktif
             ? Siswa::query()
@@ -82,9 +84,23 @@ class RaporWaliController extends Controller
                 ->orderBy('nama_lengkap')
                 ->get()
             : collect();
+        $attendanceByStudent = $selectedKelasId && $tahunAjaranAktif
+            ? PresensiKelas::query()
+                ->where('kelas_id', $selectedKelasId)
+                ->whereHas('jadwal', fn ($query) => $query
+                    ->where('tahun_ajaran_id', $tahunAjaranAktif->id))
+                ->select('siswa_id')
+                ->selectRaw("COUNT(DISTINCT CASE WHEN status = 'S' THEN tanggal END) AS sakit")
+                ->selectRaw("COUNT(DISTINCT CASE WHEN status = 'I' THEN tanggal END) AS izin")
+                ->selectRaw("COUNT(DISTINCT CASE WHEN status = 'A' THEN tanggal END) AS tanpa_keterangan")
+                ->groupBy('siswa_id')
+                ->get()
+                ->keyBy('siswa_id')
+            : collect();
 
-        $students = $siswas->map(function (Siswa $siswa) use ($guru): array {
+        $students = $siswas->map(function (Siswa $siswa) use ($guru, $attendanceByStudent): array {
             $catatan = $siswa->catatanRapors->first();
+            $attendance = $attendanceByStudent->get($siswa->id);
             $scores = $siswa->nilais
                 ->pluck('nilai_akhir')
                 ->filter(fn ($nilai): bool => $nilai !== null)
@@ -118,9 +134,12 @@ class RaporWaliController extends Controller
                     'ekstra_3_ket' => $catatan?->ekstra_3_ket,
                     'ekstra_4_nama' => $catatan?->ekstra_4_nama,
                     'ekstra_4_ket' => $catatan?->ekstra_4_ket,
-                    'sakit' => $catatan?->sakit ?? 0,
-                    'izin' => $catatan?->izin ?? 0,
-                    'tanpa_keterangan' => $catatan?->tanpa_keterangan ?? 0,
+                    'sakit' => $catatan?->presensi_manual_sakit ?? (int) ($attendance?->sakit ?? 0),
+                    'izin' => $catatan?->presensi_manual_izin ?? (int) ($attendance?->izin ?? 0),
+                    'tanpa_keterangan' => $catatan?->presensi_manual_tanpa_keterangan ?? (int) ($attendance?->tanpa_keterangan ?? 0),
+                    'presensi_manual_sakit' => $catatan?->presensi_manual_sakit,
+                    'presensi_manual_izin' => $catatan?->presensi_manual_izin,
+                    'presensi_manual_tanpa_keterangan' => $catatan?->presensi_manual_tanpa_keterangan,
                     'catatan_wali_kelas' => $catatan?->catatan_wali_kelas,
                     'status_kenaikan' => $catatan?->status_kenaikan,
                     'naik_ke_kelas' => $catatan?->naik_ke_kelas,
@@ -150,6 +169,30 @@ class RaporWaliController extends Controller
 
             return $student;
         });
+        $filledScoresBySubject = [];
+
+        foreach ($siswas as $siswa) {
+            foreach ($siswa->nilais as $nilai) {
+                if ($nilai->nilai_akhir !== null) {
+                    $filledScoresBySubject[$nilai->mapel_id] = ($filledScoresBySubject[$nilai->mapel_id] ?? 0) + 1;
+                }
+            }
+        }
+
+        $monitoringNilai = $mataPelajarans->map(function (array $mapel) use ($filledScoresBySubject, $siswas): array {
+            $filled = $filledScoresBySubject[$mapel['id']] ?? 0;
+            $total = $siswas->count();
+            $status = $total > 0 && $filled === $total
+                ? 'lengkap'
+                : ($filled > 0 ? 'sebagian' : 'belum');
+
+            return [
+                ...$mapel,
+                'siswa_terisi' => $filled,
+                'jumlah_siswa' => $total,
+                'status' => $status,
+            ];
+        });
 
         return Inertia::render('Guru/RaporWali/Index', [
             'kelasOptions' => $kelasOptions,
@@ -158,6 +201,7 @@ class RaporWaliController extends Controller
             'fase' => $kelas?->fase,
             'namaWaliKelas' => $guru->nama_lengkap,
             'waliNiky' => $guru->nip,
+            'waliKelasName' => $kelasOptions->pluck('nama_kelas')->implode(', '),
             'tahunAjaran' => $tahunAjaranAktif ? [
                 'id' => $tahunAjaranAktif->id,
                 'nama_tahun' => $tahunAjaranAktif->nama_tahun,
@@ -173,6 +217,7 @@ class RaporWaliController extends Controller
                 ->orderBy('nama_ekstra')
                 ->get(['id', 'nama_ekstra']),
             'mataPelajarans' => $mataPelajarans,
+            'monitoringNilai' => $monitoringNilai,
             'siswas' => $students,
         ]);
     }
@@ -180,7 +225,7 @@ class RaporWaliController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $guru = $request->user()->guru;
-        abort_unless($guru?->is_wali_kelas, 403);
+        abort_unless($guru && $guru->kelasWalianAktif()->isNotEmpty(), 403);
 
         $tahunAjaranAktif = TahunAjaran::query()->where('is_aktif', true)->first();
 
@@ -238,6 +283,9 @@ class RaporWaliController extends Controller
             'catatan_rapor.*.sakit' => ['nullable', 'integer', 'between:0,366'],
             'catatan_rapor.*.izin' => ['nullable', 'integer', 'between:0,366'],
             'catatan_rapor.*.tanpa_keterangan' => ['nullable', 'integer', 'between:0,366'],
+            'catatan_rapor.*.presensi_manual_sakit' => ['nullable', 'integer', 'between:0,366'],
+            'catatan_rapor.*.presensi_manual_izin' => ['nullable', 'integer', 'between:0,366'],
+            'catatan_rapor.*.presensi_manual_tanpa_keterangan' => ['nullable', 'integer', 'between:0,366'],
             'catatan_rapor.*.catatan_wali_kelas' => ['nullable', 'string', 'max:5000'],
             'catatan_rapor.*.status_kenaikan' => $semesterGenap
                 ? ['nullable', Rule::in(['naik', 'tidak_naik'])]
@@ -301,6 +349,9 @@ class RaporWaliController extends Controller
                 'sakit' => $row['sakit'] ?? 0,
                 'izin' => $row['izin'] ?? 0,
                 'tanpa_keterangan' => $row['tanpa_keterangan'] ?? 0,
+                'presensi_manual_sakit' => $row['presensi_manual_sakit'] ?? null,
+                'presensi_manual_izin' => $row['presensi_manual_izin'] ?? null,
+                'presensi_manual_tanpa_keterangan' => $row['presensi_manual_tanpa_keterangan'] ?? null,
                 'catatan_wali_kelas' => $row['catatan_wali_kelas'] ?? null,
                 'created_at' => $now,
                 'updated_at' => $now,
@@ -329,6 +380,9 @@ class RaporWaliController extends Controller
                 'sakit',
                 'izin',
                 'tanpa_keterangan',
+                'presensi_manual_sakit',
+                'presensi_manual_izin',
+                'presensi_manual_tanpa_keterangan',
                 'catatan_wali_kelas',
                 'updated_at',
             ];

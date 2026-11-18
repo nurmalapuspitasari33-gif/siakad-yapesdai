@@ -31,13 +31,18 @@ export default function roleNavigationItems(role, activeItem, options = {}) {
         : [
               { id: 'dashboard', label: 'Ringkasan', href: route('siswa.dashboard') },
               { id: 'jadwal', label: 'Jadwal Pelajaran', href: route('siswa.jadwal.index') },
+              { id: 'presensi', label: 'Riwayat Kehadiran', href: route('siswa.presensi.index') },
               { id: 'tagihan', label: 'Tagihan Sekolah', href: route('siswa.tagihan.index') },
               { id: 'ujian', label: 'Ujian Online', href: route('siswa.ujian.index') },
               { id: 'rapor', label: 'Rapor', href: route('siswa.rapor.index') },
           ];
     const roleItems = {
         admin: adminItems,
-        guru: guruItems.filter((item) => item.id !== 'rapor-wali' || options.isWaliKelas),
+        guru: guruItems
+            .filter((item) => item.id !== 'rapor-wali' || options.isWaliKelas)
+            .map((item) => item.id === 'rapor-wali'
+                ? { ...item, badge: options.waliKelasName }
+                : item),
         siswa: siswaItems,
     };
 

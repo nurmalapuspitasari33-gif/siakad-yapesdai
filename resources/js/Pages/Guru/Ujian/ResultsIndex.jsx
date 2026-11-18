@@ -3,13 +3,13 @@ import DashboardLayout from '@/Layouts/DashboardLayout';
 import roleNavigationItems from '@/Components/RoleNavigationItems';
 import { Head, Link } from '@inertiajs/react';
 
-export default function GuruUjianResultsIndex({ ujians, isWaliKelas = false }) {
+export default function GuruUjianResultsIndex({ ujians, isWaliKelas = false, waliKelasName = '' }) {
     return (
         <DashboardLayout
             title="Hasil Ujian"
             subtitle="Pilih ujian untuk melihat status pengerjaan dan nilai seluruh siswa di kelas."
             roleLabel="Guru"
-            navigation={roleNavigationItems('guru', 'hasil-ujian', { isWaliKelas })}
+            navigation={roleNavigationItems('guru', 'hasil-ujian', { isWaliKelas, waliKelasName })}
         >
             <Head title="Hasil Ujian" />
 

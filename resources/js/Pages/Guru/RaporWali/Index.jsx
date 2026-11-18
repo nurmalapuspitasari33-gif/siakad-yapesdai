@@ -53,6 +53,9 @@ function initialNotes(siswas, template) {
             sakit: note.sakit ?? 0,
             izin: note.izin ?? 0,
             tanpa_keterangan: note.tanpa_keterangan ?? 0,
+            presensi_manual_sakit: note.presensi_manual_sakit ?? null,
+            presensi_manual_izin: note.presensi_manual_izin ?? null,
+            presensi_manual_tanpa_keterangan: note.presensi_manual_tanpa_keterangan ?? null,
             catatan_wali_kelas: note.catatan_wali_kelas ?? '',
             status_kenaikan: note.status_kenaikan ?? '',
             naik_ke_kelas: note.naik_ke_kelas ?? '',
@@ -99,18 +102,23 @@ export default function GuruRaporWaliIndex({
     fase = null,
     namaWaliKelas = null,
     waliNiky = null,
+    waliKelasName = '',
     tahunAjaran = null,
     tahunAjaranAktif = null,
     templateKokurikuler = '',
     ekstrakurikulers = [],
     mataPelajarans = [],
+    monitoringNilai = [],
     siswas = [],
 }) {
     const { pengaturanSekolah = {} } = usePage().props;
+    const [activeTab, setActiveTab] = useState('monitoring');
     const [printTarget, setPrintTarget] = useState(null);
     const [isLedgerPrinting, setIsLedgerPrinting] = useState(false);
+    const [ledgerPrintSiswas, setLedgerPrintSiswas] = useState([]);
     const [ledgerOrientation, setLedgerOrientation] = useState('landscape');
-    const [expandedStudents, setExpandedStudents] = useState({});
+    const [selectedPrintStudentId, setSelectedPrintStudentId] = useState('all');
+    const [isLedgerTableExpanded, setIsLedgerTableExpanded] = useState(true);
     const form = useForm({
         kelas_id: selectedKelasId,
         catatan_rapor: initialNotes(siswas, templateKokurikuler),
@@ -120,6 +128,11 @@ export default function GuruRaporWaliIndex({
         subjects: mataPelajarans.filter((mapel) => mapel.kelompok_mapel === group.key),
     })), [mataPelajarans]);
     const hasPromotionTerm = tahunAjaran?.semester === 'genap';
+    const selectedPrintStudent = siswas.find((siswa) => String(siswa.id) === selectedPrintStudentId);
+    const selectedPrintStudents = selectedPrintStudentId === 'all' || !selectedPrintStudent
+        ? siswas
+        : [selectedPrintStudent];
+    const printSelectionId = selectedPrintStudent ? selectedPrintStudentId : 'all';
 
     useEffect(() => {
         form.setData({
@@ -128,25 +141,6 @@ export default function GuruRaporWaliIndex({
         });
         form.clearErrors();
     }, [siswas, selectedKelasId, templateKokurikuler]);
-
-    useEffect(() => {
-        setExpandedStudents({});
-    }, [selectedKelasId]);
-
-    useEffect(() => {
-        const erroredStudentIds = Object.keys(form.errors)
-            .map((key) => /^catatan_rapor\.(\d+)\./.exec(key))
-            .filter(Boolean)
-            .map(([, index]) => siswas[Number(index)]?.id)
-            .filter(Boolean);
-
-        if (erroredStudentIds.length > 0) {
-            setExpandedStudents((current) => ({
-                ...current,
-                ...Object.fromEntries(erroredStudentIds.map((id) => [id, true])),
-            }));
-        }
-    }, [form.errors, siswas]);
 
     useEffect(() => {
         if (!printTarget && !isLedgerPrinting) {
@@ -165,6 +159,7 @@ export default function GuruRaporWaliIndex({
             ledgerPageStyle?.remove();
             setPrintTarget(null);
             setIsLedgerPrinting(false);
+            setLedgerPrintSiswas([]);
         };
         window.addEventListener('afterprint', handleAfterPrint);
         window.print();
@@ -198,31 +193,49 @@ export default function GuruRaporWaliIndex({
         ));
     };
 
-    const saveNotes = (event) => {
-        event.preventDefault();
-        form.post(route('guru.rapor-wali.store'), { preserveScroll: true });
+    const updateAttendance = (index, key, manualKey, value) => {
+        form.setData('catatan_rapor', form.data.catatan_rapor.map((note, noteIndex) =>
+            noteIndex === index
+                ? { ...note, [key]: value, [manualKey]: value }
+                : note,
+        ));
     };
 
-    const setPrint = (student, mode) => {
-        setIsLedgerPrinting(false);
-        const semester = tahunAjaran ? {
-            ...tahunAjaran,
-            mata_pelajaran: mataPelajarans.map((mapel) => ({
-                ...mapel,
-                ...(student.nilai?.[mapel.id] ?? {}),
-            })),
-            catatan_rapor: student.catatan_rapor,
-        } : {};
+    const saveNotes = (event) => {
+        event.preventDefault();
+        form.post(route('guru.rapor-wali.store'), {
+            preserveScroll: true,
+            onError: (errors) => {
+                if (Object.keys(errors).some((key) => key.includes('.ekstra_'))) {
+                    setActiveTab('ekstrakurikuler');
+                } else {
+                    setActiveTab('absensi');
+                }
+            },
+        });
+    };
 
+    const setPrint = (mode) => {
+        setIsLedgerPrinting(false);
         setPrintTarget({
             mode,
-            student,
-            semester: mode === 'semester' ? semester : null,
+            documents: selectedPrintStudents.map((student) => ({
+                student,
+                semester: mode === 'semester' && tahunAjaran ? {
+                    ...tahunAjaran,
+                    mata_pelajaran: mataPelajarans.map((mapel) => ({
+                        ...mapel,
+                        ...(student.nilai?.[mapel.id] ?? {}),
+                    })),
+                    catatan_rapor: student.catatan_rapor,
+                } : {},
+            })),
         });
     };
 
     const printLedger = () => {
         setPrintTarget(null);
+        setLedgerPrintSiswas(selectedPrintStudents);
         setIsLedgerPrinting(true);
     };
 
@@ -231,7 +244,7 @@ export default function GuruRaporWaliIndex({
             title="Rapor Kelas Wali"
             subtitle="Kelola catatan rapor, pantau nilai akhir dan capaian, serta cetak dokumen siswa."
             roleLabel="Wali Kelas"
-            navigation={roleNavigationItems('guru', 'rapor-wali', { isWaliKelas: true })}
+            navigation={roleNavigationItems('guru', 'rapor-wali', { isWaliKelas: kelasOptions.length > 0, waliKelasName })}
         >
             <Head title="Rapor Kelas Wali" />
 
@@ -259,13 +272,97 @@ export default function GuruRaporWaliIndex({
                 </section>
 
                 {kelas ? (
+                    <>
+                        <nav className="grid grid-cols-2 gap-2 rounded-2xl border border-slate-200 bg-white p-2 shadow-sm lg:grid-cols-4" role="tablist" aria-label="Rapor kelas wali">
+                            {[
+                                ['monitoring', 'Monitoring Nilai Mapel'],
+                                ['absensi', 'Rekap Absensi & Catatan'],
+                                ['ekstrakurikuler', 'Ekstrakurikuler'],
+                                ['cetak', 'Cetak Rapor & Leger'],
+                            ].map(([tab, label]) => (
+                                <button
+                                    key={tab}
+                                    type="button"
+                                    role="tab"
+                                    aria-selected={activeTab === tab}
+                                    onClick={() => setActiveTab(tab)}
+                                    className={`rounded-xl px-3 py-2.5 text-sm font-semibold transition ${
+                                        activeTab === tab
+                                            ? 'bg-indigo-600 text-white'
+                                            : 'text-slate-600 hover:bg-slate-100'
+                                    }`}
+                                >
+                                    {label}
+                                </button>
+                            ))}
+                        </nav>
+
+                        {activeTab === 'monitoring' && (
+                            <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
+                                <div className="mb-5">
+                                    <h2 className="font-bold text-slate-900">Monitoring Kelengkapan Nilai Mapel</h2>
+                                    <p className="mt-1 text-sm text-slate-500">
+                                        Status menunjukkan jumlah siswa aktif yang sudah memiliki nilai akhir pada tahun ajaran aktif.
+                                    </p>
+                                </div>
+                                {monitoringNilai.length === 0 ? (
+                                    <p className="py-8 text-center text-sm text-slate-500">Belum ada mata pelajaran pada jadwal kelas ini.</p>
+                                ) : (
+                                    <div className="overflow-x-auto rounded-xl border border-slate-200">
+                                        <table className="min-w-full divide-y divide-slate-100 text-left">
+                                            <thead className="bg-slate-50">
+                                                <tr>
+                                                    {['Mata Pelajaran', 'Guru Mapel', 'Nilai Terisi', 'Status'].map((heading) => (
+                                                        <th key={heading} className="whitespace-nowrap px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                                            {heading}
+                                                        </th>
+                                                    ))}
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-slate-100">
+                                                {monitoringNilai.map((mapel) => {
+                                                    const status = {
+                                                        lengkap: ['Lengkap', 'bg-emerald-100 text-emerald-800'],
+                                                        sebagian: ['Sebagian', 'bg-amber-100 text-amber-800'],
+                                                        belum: ['Belum Input', 'bg-red-100 text-red-800'],
+                                                    }[mapel.status] ?? ['Belum Input', 'bg-red-100 text-red-800'];
+
+                                                    return (
+                                                        <tr key={mapel.id}>
+                                                            <td className="px-4 py-4">
+                                                                <p className="text-sm font-semibold text-slate-800">{mapel.nama_mapel}</p>
+                                                                <p className="text-xs text-slate-500">{mapel.kode_mapel}</p>
+                                                            </td>
+                                                            <td className="px-4 py-4 text-sm text-slate-600">{mapel.nama_guru ?? '—'}</td>
+                                                            <td className="px-4 py-4 text-sm text-slate-700">
+                                                                {mapel.siswa_terisi} / {mapel.jumlah_siswa} siswa
+                                                            </td>
+                                                            <td className="px-4 py-4">
+                                                                <span className={`rounded-full px-3 py-1 text-xs font-bold ${status[1]}`}>{status[0]}</span>
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                })}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                )}
+                            </section>
+                        )}
+
+                        {activeTab !== 'monitoring' && (
                     <form onSubmit={saveNotes} className="flex flex-col gap-5">
+                        {activeTab !== 'cetak' && (
                         <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
                             <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                                 <div>
-                                    <h2 className="font-bold text-slate-900">Catatan Kokurikuler dan Rapor Wali</h2>
+                                    <h2 className="font-bold text-slate-900">
+                                        {activeTab === 'absensi' ? 'Rekap Absensi & Catatan Wali Kelas' : 'Input Ekstrakurikuler Siswa'}
+                                    </h2>
                                     <p className="mt-1 text-sm text-slate-500">
-                                        Pilih predikat untuk membuat deskripsi otomatis; deskripsi dapat disunting sebelum disimpan.
+                                        {activeTab === 'absensi'
+                                            ? 'Jumlah ketidakhadiran dihitung dari presensi dan dapat disesuaikan secara manual.'
+                                            : 'Pilih kegiatan dari master ekstrakurikuler aktif dan tentukan predikat setiap siswa.'}
                                     </p>
                                 </div>
                                 <button
@@ -273,7 +370,11 @@ export default function GuruRaporWaliIndex({
                                     disabled={form.processing || siswas.length === 0}
                                     className="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
                                 >
-                                    {form.processing ? 'Menyimpan...' : 'Simpan Catatan Rapor'}
+                                    {form.processing
+                                        ? 'Menyimpan...'
+                                        : activeTab === 'absensi'
+                                            ? 'Simpan Catatan Rapor'
+                                            : 'Simpan Ekstrakurikuler'}
                                 </button>
                             </div>
 
@@ -283,9 +384,7 @@ export default function GuruRaporWaliIndex({
                                 <div className="flex flex-col gap-4">
                                     {siswas.map((siswa, index) => {
                                         const note = form.data.catatan_rapor[index] ?? {};
-                                        const isExpanded = Boolean(expandedStudents[siswa.id]);
                                         const isComplete = noteIsComplete(note);
-                                        const panelId = `catatan-siswa-${siswa.id}`;
 
                                         return (
                                             <article key={siswa.id} className="rounded-xl border border-slate-200">
@@ -305,32 +404,12 @@ export default function GuruRaporWaliIndex({
                                                             NISN {siswa.nisn || '—'} · Total Nilai {siswa.has_nilai ? siswa.jumlah_nilai : '—'} · Ranking {siswa.ranking ?? '—'}
                                                         </p>
                                                     </div>
-                                                    <div className="flex flex-wrap items-center gap-2">
-                                                        <button type="button" onClick={() => setPrint(siswa, 'identity')} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:border-indigo-300 hover:bg-slate-50">
-                                                            Cetak Identitas Murid (1 Halaman)
-                                                        </button>
-                                                        <button type="button" onClick={() => setPrint(siswa, 'semester')} disabled={!tahunAjaran} className="rounded-xl bg-indigo-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50">
-                                                            Cetak Rapor Semester (2 Halaman)
-                                                        </button>
-                                                        <button
-                                                            type="button"
-                                                            aria-expanded={isExpanded}
-                                                            aria-controls={panelId}
-                                                            onClick={() => setExpandedStudents((current) => ({
-                                                                ...current,
-                                                                [siswa.id]: !current[siswa.id],
-                                                            }))}
-                                                            className="rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-700 transition hover:bg-indigo-100"
-                                                        >
-                                                            {isExpanded ? 'Tutup Catatan ▲' : 'Input Catatan ▼'}
-                                                        </button>
-                                                    </div>
                                                 </div>
 
-                                                {isExpanded && (
-                                                    <div id={panelId} className="border-t border-slate-100 p-4">
+                                                <div id={`catatan-siswa-${siswa.id}`} className="border-t border-slate-100 p-4">
                                                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
                                                             <div className="space-y-4">
+                                                                {activeTab === 'absensi' && (
                                                                 <div>
                                                                     <label htmlFor={`predikat-${siswa.id}`} className="mb-1.5 block text-xs font-semibold text-slate-700">Predikat Kokurikuler</label>
                                                                     <select
@@ -344,6 +423,8 @@ export default function GuruRaporWaliIndex({
                                                                     </select>
                                                                     <InputError message={form.errors[`catatan_rapor.${index}.kokurikuler_predikat`]} className="mt-1" />
                                                                 </div>
+                                                                )}
+                                                                {activeTab === 'ekstrakurikuler' && (
                                                                 <div className="space-y-2 rounded-lg bg-slate-50 p-3">
                                                                     {[1, 2, 3, 4].map((number) => (
                                                                         <div key={number} className="grid grid-cols-1 sm:grid-cols-12 gap-2 items-center">
@@ -398,8 +479,11 @@ export default function GuruRaporWaliIndex({
                                                                         </div>
                                                                     ))}
                                                                 </div>
+                                                                )}
                                                             </div>
                                                             <div className="space-y-3">
+                                                                {activeTab === 'absensi' && (
+                                                                <>
                                                                 <div>
                                                                     <label htmlFor={`deskripsi-${siswa.id}`} className="mb-1.5 block text-xs font-semibold text-slate-700">Deskripsi Kokurikuler</label>
                                                                     <textarea
@@ -428,10 +512,10 @@ export default function GuruRaporWaliIndex({
                                                                     <p className="mb-1.5 text-xs font-semibold text-slate-700">Ketidakhadiran (hari)</p>
                                                                     <div className="grid grid-cols-3 gap-2">
                                                                         {[
-                                                                            ['sakit', 'Sakit'],
-                                                                            ['izin', 'Izin'],
-                                                                            ['tanpa_keterangan', 'Alpa'],
-                                                                        ].map(([key, label]) => (
+                                                                            ['sakit', 'Sakit', 'presensi_manual_sakit'],
+                                                                            ['izin', 'Izin', 'presensi_manual_izin'],
+                                                                            ['tanpa_keterangan', 'Alpa', 'presensi_manual_tanpa_keterangan'],
+                                                                        ].map(([key, label, manualKey]) => (
                                                                             <label key={key} className="text-xs text-slate-600">
                                                                                 {label}
                                                                                 <input
@@ -439,7 +523,7 @@ export default function GuruRaporWaliIndex({
                                                                                     min="0"
                                                                                     max="366"
                                                                                     value={note[key]}
-                                                                                    onChange={(event) => updateNote(index, key, event.target.value)}
+                                                                                    onChange={(event) => updateAttendance(index, key, manualKey, event.target.value)}
                                                                                     className="mt-1 block w-full rounded-lg border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                                                                                 />
                                                                                 <InputError message={form.errors[`catatan_rapor.${index}.${key}`]} className="mt-1" />
@@ -476,51 +560,108 @@ export default function GuruRaporWaliIndex({
                                                                         </div>
                                                                     </div>
                                                                 )}
+                                                                </>
+                                                                )}
                                                             </div>
                                                         </div>
                                                     </div>
-                                                )}
                                             </article>
                                         );
                                     })}
                                 </div>
                             )}
                         </section>
-
+                        )}
+                        {activeTab === 'cetak' && (
                         <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
-                            <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                                <div>
-                                    <h2 className="font-bold text-slate-900">Tabel Leger Rekap Nilai Kelas</h2>
-                                    <p className="text-sm text-slate-500">{kelas} {fase ? `· Fase ${fase}` : ''} · {siswas.length} murid</p>
-                                </div>
-                                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                                    <label htmlFor="orientasi-leger" className="text-xs font-semibold text-slate-600">
-                                        Orientasi cetak
-                                    </label>
-                                    <select
-                                        id="orientasi-leger"
-                                        value={ledgerOrientation}
-                                        onChange={(event) => setLedgerOrientation(event.target.value)}
-                                        className="rounded-xl border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                                    >
-                                        <option value="landscape">Landscape (Disarankan)</option>
-                                        <option value="portrait">Portrait</option>
-                                    </select>
+                            <div className="mb-4 flex flex-col gap-4">
+                                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                    <div>
+                                        <h2 className="font-bold text-slate-900">Tabel Leger Rekap Nilai Kelas</h2>
+                                        <p className="text-sm text-slate-500">{kelas} {fase ? `· Fase ${fase}` : ''} · {siswas.length} murid</p>
+                                    </div>
                                     <button
                                         type="button"
-                                        onClick={printLedger}
+                                        onClick={() => setIsLedgerTableExpanded((expanded) => !expanded)}
+                                        aria-expanded={isLedgerTableExpanded}
+                                        aria-controls="tabel-leger-kelas"
                                         disabled={siswas.length === 0}
-                                        className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
+                                        className="self-start rounded-xl border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
                                     >
-                                        Cetak Leger Kelas
+                                        {isLedgerTableExpanded ? 'Sembunyikan tabel' : 'Tampilkan tabel'}
                                     </button>
+                                </div>
+                                <div className="grid gap-3 lg:grid-cols-[minmax(12rem,1fr)_auto] lg:items-end">
+                                    <div>
+                                        <label htmlFor="siswa-cetak-rapor-wali" className="mb-1.5 block text-xs font-semibold text-slate-600">
+                                            Pilih siswa untuk dicetak
+                                        </label>
+                                        <select
+                                            id="siswa-cetak-rapor-wali"
+                                            value={printSelectionId}
+                                            onChange={(event) => setSelectedPrintStudentId(event.target.value)}
+                                            disabled={siswas.length === 0}
+                                            className="block w-full rounded-xl border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 disabled:bg-slate-100"
+                                        >
+                                            <option value="all">Semua siswa</option>
+                                            {siswas.map((siswa) => (
+                                                <option key={siswa.id} value={String(siswa.id)}>
+                                                    {siswa.nama_lengkap}{siswa.nisn ? ` · ${siswa.nisn}` : ''}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        <p className="mt-1 text-xs text-slate-500">
+                                            Pilih satu siswa atau semua siswa untuk identitas, rapor, maupun leger.
+                                        </p>
+                                    </div>
+                                    <div className="flex flex-wrap items-end gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => setPrint('identity')}
+                                            disabled={selectedPrintStudents.length === 0}
+                                            className="rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-sm font-semibold text-indigo-700 transition hover:bg-indigo-100 disabled:cursor-not-allowed disabled:opacity-50"
+                                        >
+                                            Cetak Identitas Murid
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setPrint('semester')}
+                                            disabled={!tahunAjaran || selectedPrintStudents.length === 0}
+                                            className="rounded-xl bg-indigo-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
+                                        >
+                                            Cetak Rapor Semester
+                                        </button>
+                                        <div className="flex items-center gap-2">
+                                            <label htmlFor="orientasi-leger" className="text-xs font-semibold text-slate-600">
+                                                Orientasi
+                                            </label>
+                                            <select
+                                                id="orientasi-leger"
+                                                value={ledgerOrientation}
+                                                onChange={(event) => setLedgerOrientation(event.target.value)}
+                                                className="rounded-xl border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                            >
+                                                <option value="landscape">Landscape (Disarankan)</option>
+                                                <option value="portrait">Portrait</option>
+                                            </select>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={printLedger}
+                                            disabled={selectedPrintStudents.length === 0}
+                                            className="rounded-xl bg-slate-800 px-3 py-2 text-sm font-semibold text-white transition hover:bg-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
+                                        >
+                                            Cetak Leger Kelas
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                             {siswas.length === 0 ? (
                                 <p className="py-10 text-center text-sm text-slate-500">Belum ada siswa aktif di kelas ini.</p>
                             ) : (
-                                <div className="overflow-x-auto">
-                                    <table className="report-table min-w-max border-collapse text-[10px]">
+                                <div id="tabel-leger-kelas" className={isLedgerTableExpanded ? '' : 'hidden'}>
+                                    <div className="overflow-x-auto">
+                                        <table className="report-table min-w-max border-collapse text-[10px]">
                                         <thead>
                                             <tr>
                                                 <th rowSpan="3" className="border border-slate-400 bg-slate-100 px-2 py-2">No</th>
@@ -538,7 +679,6 @@ export default function GuruRaporWaliIndex({
                                                 <th rowSpan="3" className="border border-slate-400 bg-slate-100 px-2 py-2">Catatan Wali Kelas</th>
                                                 <th rowSpan="3" className="border border-slate-400 bg-slate-100 px-2 py-2">Jumlah Nilai</th>
                                                 <th rowSpan="3" className="border border-slate-400 bg-slate-100 px-2 py-2">Ranking</th>
-                                                <th rowSpan="3" className="border border-slate-400 bg-slate-100 px-2 py-2 print:hidden">Cetak</th>
                                             </tr>
                                             <tr>
                                                 {groupedSubjects.map((group) => group.subjects.length === 0 ? (
@@ -599,25 +739,19 @@ export default function GuruRaporWaliIndex({
                                                     <td className="min-w-40 border border-slate-400 px-2 py-2">{siswa.catatan_rapor.catatan_wali_kelas ?? '—'}</td>
                                                     <td className="border border-slate-400 px-2 py-2 text-center font-bold">{siswa.has_nilai ? siswa.jumlah_nilai : '—'}</td>
                                                     <td className="border border-slate-400 px-2 py-2 text-center font-bold">{siswa.ranking ?? '—'}</td>
-                                                    <td className="print:hidden border border-slate-400 px-2 py-2">
-                                                        <div className="flex min-w-48 flex-col gap-1">
-                                                            <button type="button" onClick={() => setPrint(siswa, 'identity')} className="rounded bg-indigo-50 px-2 py-1 text-left text-[10px] font-semibold text-indigo-700 hover:bg-indigo-100">
-                                                                Cetak Identitas Murid (1 Halaman)
-                                                            </button>
-                                                            <button type="button" onClick={() => setPrint(siswa, 'semester')} disabled={!tahunAjaran} className="rounded bg-indigo-600 px-2 py-1 text-left text-[10px] font-semibold text-white hover:bg-indigo-700 disabled:opacity-50">
-                                                                Cetak Rapor Semester (2 Halaman)
-                                                            </button>
-                                                        </div>
-                                                    </td>
                                                 </tr>
                                             ))}
                                         </tbody>
-                                    </table>
+                                        </table>
+                                    </div>
                                 </div>
                             )}
                             <InputError message={form.errors.kelas_id} className="mt-3" />
                         </section>
+                        )}
                     </form>
+                        )}
+                    </>
                 ) : (
                     <section className="rounded-2xl border border-dashed border-slate-300 bg-white px-5 py-12 text-center shadow-sm">
                         <p className="text-sm text-slate-500">Belum ada kelas yang ditetapkan sebagai kelas wali pada tahun ajaran aktif.</p>
@@ -628,9 +762,8 @@ export default function GuruRaporWaliIndex({
             {printTarget && (
                 <StudentReportDocument
                     mode={printTarget.mode}
-                    student={printTarget.student}
                     settings={pengaturanSekolah}
-                    semester={printTarget.semester}
+                    documents={printTarget.documents}
                 />
             )}
             {isLedgerPrinting && (
@@ -643,7 +776,7 @@ export default function GuruRaporWaliIndex({
                     waliNiky={waliNiky}
                     tahunAjaran={tahunAjaran}
                     mataPelajarans={mataPelajarans}
-                    siswas={siswas}
+                    siswas={ledgerPrintSiswas}
                 />
             )}
         </DashboardLayout>

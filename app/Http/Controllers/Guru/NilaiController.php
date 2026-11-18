@@ -8,6 +8,7 @@ use App\Models\Jadwal;
 use App\Models\Nilai;
 use App\Models\Siswa;
 use App\Models\TahunAjaran;
+use App\Models\Ujian;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -23,6 +24,7 @@ class NilaiController extends Controller
     {
         $guru = $request->user()->guru;
         abort_unless($guru, 404);
+        $kelasWalianAktif = $guru->kelasWalianAktif();
         $tahunAjaranAktif = TahunAjaran::query()->where('is_aktif', true)->first();
         $assignments = $this->assignments($guru, $tahunAjaranAktif?->id);
         $filters = $request->validate([
@@ -42,6 +44,7 @@ class NilaiController extends Controller
         }
 
         $siswas = collect();
+        $ujians = collect();
 
         if ($tahunAjaranAktif && $selectedKelasId && $selectedMapelId) {
             $siswas = Siswa::query()
@@ -63,6 +66,17 @@ class NilaiController extends Controller
                         'capaian_kompetensi' => $siswa->nilais->first()->capaian_kompetensi,
                     ] : null,
                 ]);
+            $ujians = Ujian::query()
+                ->where('guru_id', $guru->id)
+                ->where('kelas_id', $selectedKelasId)
+                ->where('mapel_id', $selectedMapelId)
+                ->orderByDesc('waktu_mulai')
+                ->get(['id', 'judul_ujian', 'waktu_mulai'])
+                ->map(fn (Ujian $ujian): array => [
+                    'id' => $ujian->id,
+                    'judul_ujian' => $ujian->judul_ujian,
+                    'waktu_mulai' => $ujian->waktu_mulai?->format('Y-m-d H:i'),
+                ]);
         }
 
         return Inertia::render('Guru/Nilai/Index', [
@@ -73,7 +87,9 @@ class NilaiController extends Controller
                 'mapel_id' => $jadwal->mapel_id,
             ]),
             'siswas' => $siswas,
-            'isWaliKelas' => $guru->is_wali_kelas,
+            'ujians' => $ujians,
+            'isWaliKelas' => $kelasWalianAktif->isNotEmpty(),
+            'waliKelasName' => $kelasWalianAktif->pluck('nama_kelas')->implode(', '),
             'filters' => [
                 'kelas_id' => (string) ($selectedKelasId ?? ''),
                 'mapel_id' => (string) ($selectedMapelId ?? ''),
@@ -148,6 +164,108 @@ class NilaiController extends Controller
             'kelas_id' => $validated['kelas_id'],
             'mapel_id' => $validated['mapel_id'],
         ])->with('success', 'Nilai siswa berhasil disimpan.');
+    }
+
+    public function importExamResults(Request $request): RedirectResponse
+    {
+        $guru = $request->user()->guru;
+        abort_unless($guru, 404);
+
+        $validated = $request->validate([
+            'kelas_id' => ['required', 'integer', Rule::exists('kelas', 'id')],
+            'mapel_id' => ['required', 'integer', Rule::exists('mata_pelajarans', 'id')],
+            'ujian_id' => ['required', 'integer', Rule::exists('ujians', 'id')],
+            'siswa_ids' => ['nullable', 'array'],
+            'siswa_ids.*' => [
+                'required',
+                'integer',
+                'distinct',
+                Rule::exists('siswas', 'id')
+                    ->where('kelas_id', $request->input('kelas_id'))
+                    ->where('status_siswa', 'aktif'),
+            ],
+        ]);
+
+        $tahunAjaranAktif = TahunAjaran::query()->where('is_aktif', true)->first();
+        $isAssigned = $tahunAjaranAktif && Jadwal::query()
+            ->where('tahun_ajaran_id', $tahunAjaranAktif->id)
+            ->where('guru_id', $guru->id)
+            ->where('kelas_id', $validated['kelas_id'])
+            ->where('mapel_id', $validated['mapel_id'])
+            ->exists();
+
+        if (! $isAssigned) {
+            throw ValidationException::withMessages([
+                'kelas_id' => 'Anda hanya dapat menarik nilai untuk kelas dan mata pelajaran yang Anda ampu.',
+            ]);
+        }
+
+        $ujian = Ujian::query()
+            ->whereKey($validated['ujian_id'])
+            ->where('guru_id', $guru->id)
+            ->where('kelas_id', $validated['kelas_id'])
+            ->where('mapel_id', $validated['mapel_id'])
+            ->first();
+
+        abort_unless($ujian, 404);
+
+        $hasilUjians = $ujian->hasilUjians()
+            ->where('status_pengerjaan', 'selesai')
+            ->whereNotNull('skor_akhir')
+            ->whereBetween('skor_akhir', [0, 100])
+            ->whereHas('siswa', fn ($query) => $query
+                ->where('kelas_id', $validated['kelas_id'])
+                ->where('status_siswa', 'aktif'))
+            ->get(['siswa_id', 'skor_akhir']);
+
+        $selectedStudentIds = collect($validated['siswa_ids'] ?? [])
+            ->map(fn ($id): int => (int) $id);
+        $existingScores = Nilai::query()
+            ->where('tahun_ajaran_id', $tahunAjaranAktif->id)
+            ->where('mapel_id', $validated['mapel_id'])
+            ->whereIn('siswa_id', $hasilUjians->pluck('siswa_id'))
+            ->get(['siswa_id', 'nilai_akhir'])
+            ->keyBy('siswa_id');
+        $now = now();
+        $rows = $hasilUjians
+            ->filter(function ($hasil) use ($selectedStudentIds, $existingScores): bool {
+                if ($selectedStudentIds->isNotEmpty()) {
+                    return $selectedStudentIds->contains((int) $hasil->siswa_id);
+                }
+
+                $nilai = $existingScores->get($hasil->siswa_id);
+
+                return ! $nilai || $nilai->nilai_akhir === null;
+            })
+            ->map(fn ($hasil): array => [
+                'tahun_ajaran_id' => $tahunAjaranAktif->id,
+                'siswa_id' => $hasil->siswa_id,
+                'mapel_id' => $validated['mapel_id'],
+                'nilai_akhir' => $hasil->skor_akhir,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ])
+            ->values()
+            ->all();
+
+        if ($rows === []) {
+            throw ValidationException::withMessages([
+                'ujian_id' => 'Tidak ada hasil CBT selesai yang dapat diimpor untuk pilihan ini.',
+            ]);
+        }
+
+        DB::transaction(function () use ($rows): void {
+            Nilai::query()->upsert(
+                $rows,
+                ['tahun_ajaran_id', 'siswa_id', 'mapel_id'],
+                ['nilai_akhir', 'updated_at'],
+            );
+        });
+
+        return to_route('guru.nilai.index', [
+            'kelas_id' => $validated['kelas_id'],
+            'mapel_id' => $validated['mapel_id'],
+        ])->with('success', count($rows).' nilai CBT berhasil ditarik.');
     }
 
     /**

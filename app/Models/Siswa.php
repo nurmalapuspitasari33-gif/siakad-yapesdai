@@ -83,6 +83,11 @@ class Siswa extends Model
         return $this->hasMany(Tagihan::class);
     }
 
+    public function presensiKelas(): HasMany
+    {
+        return $this->hasMany(PresensiKelas::class);
+    }
+
     public function hasilUjians(): HasMany
     {
         return $this->hasMany(HasilUjian::class);

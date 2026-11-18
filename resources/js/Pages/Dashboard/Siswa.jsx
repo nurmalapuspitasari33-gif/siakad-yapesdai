@@ -6,16 +6,6 @@ import { Head, Link } from '@inertiajs/react';
 
 const numberFormatter = new Intl.NumberFormat('id-ID');
 
-const dayLabels = {
-    senin: 'Senin',
-    selasa: 'Selasa',
-    rabu: 'Rabu',
-    kamis: 'Kamis',
-    jumat: 'Jumat',
-    sabtu: 'Sabtu',
-    minggu: 'Minggu',
-};
-
 const currencyFormatter = new Intl.NumberFormat('id-ID', {
     style: 'currency',
     currency: 'IDR',
@@ -86,6 +76,9 @@ export default function SiswaDashboard({
     jadwals = [],
     tagihans = [],
     ujians = [],
+    attendance = {},
+    tagihanSummary = {},
+    hariIni = 'Hari ini',
 }) {
     const statusSiswa = siswa?.status_siswa ?? 'calon_spmb';
     const isCandidate = statusSiswa === 'calon_spmb';
@@ -139,18 +132,32 @@ export default function SiswaDashboard({
                   tone: 'sky',
               },
               {
-                  label: 'Jadwal pelajaran',
+                  label: 'Jadwal hari ini',
                   value: numberFormatter.format(jadwals.length),
-                  detail: 'Jadwal pada tahun ajaran aktif',
+                  detail: `Jadwal pelajaran hari ${hariIni}`,
                   icon: 'calendar',
                   tone: 'emerald',
               },
               {
-                  label: 'Ujian aktif',
+                  label: 'Kehadiran semester ini',
+                  value: `${numberFormatter.format(Number(attendance.persentase_kehadiran ?? 0))}%`,
+                  detail: `${attendance.hadir ?? 0} dari ${attendance.total_sesi ?? 0} sesi`,
+                  icon: 'check',
+                  tone: 'emerald',
+              },
+              {
+                  label: 'Ujian hari ini',
                   value: numberFormatter.format(ujians.length),
-                  detail: 'Ujian yang tersedia untuk kelas Anda',
+                  detail: 'Ujian hari ini yang belum berakhir',
                   icon: 'document',
                   tone: 'amber',
+              },
+              {
+                  label: 'Tagihan belum lunas',
+                  value: numberFormatter.format(tagihanSummary.belum_lunas ?? 0),
+                  detail: `${currencyFormatter.format(Number(tagihanSummary.nominal_belum_lunas ?? 0))} menunggu pelunasan`,
+                  icon: 'wallet',
+                  tone: (tagihanSummary.belum_lunas ?? 0) > 0 ? 'amber' : 'emerald',
               },
           ];
 
@@ -175,9 +182,7 @@ export default function SiswaDashboard({
 
             <section
                 aria-label="Ringkasan siswa"
-                className={`mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 ${
-                    isCandidate ? 'xl:grid-cols-3' : 'xl:grid-cols-4'
-                }`}
+                className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3"
             >
                 {statisticCards.map((card) => (
                     <StatisticCard key={card.label} {...card} />
@@ -248,9 +253,9 @@ export default function SiswaDashboard({
                         className="scroll-mt-24 rounded-3xl border border-white/80 bg-white/80 p-5 shadow-[0_8px_30px_rgb(0,0,0,0.04)] ring-1 ring-slate-900/5 backdrop-blur-xl sm:p-7"
                     >
                         <div className="mb-5">
-                            <h2 className="text-lg font-bold text-slate-900">Jadwal pelajaran</h2>
+                            <h2 className="text-lg font-bold text-slate-900">Jadwal pelajaran hari ini</h2>
                             <p className="mt-1 text-sm text-slate-500">
-                                Jadwal untuk kelas Anda pada tahun ajaran aktif.
+                                {hariIni} · Jadwal kelas Anda pada tahun ajaran aktif.
                             </p>
                         </div>
                         <div className="mb-4">
@@ -277,7 +282,7 @@ export default function SiswaDashboard({
                                                 {jadwal.mata_pelajaran}
                                             </p>
                                             <p className="mt-1 text-sm text-slate-500">
-                                                {dayLabels[jadwal.hari] ?? jadwal.hari ?? '—'} · {jadwal.guru ?? '—'}
+                                                {jadwal.guru ?? 'Guru belum ditetapkan'}
                                             </p>
                                         </div>
                                         <p className="text-sm font-semibold text-emerald-800">
@@ -295,7 +300,7 @@ export default function SiswaDashboard({
                             className="scroll-mt-24 rounded-3xl border border-white/80 bg-white/80 p-5 shadow-[0_8px_30px_rgb(0,0,0,0.04)] ring-1 ring-slate-900/5 backdrop-blur-xl sm:p-7"
                         >
                             <div className="mb-5">
-                                <h2 className="text-lg font-bold text-slate-900">Tagihan SPP</h2>
+                                <h2 className="text-lg font-bold text-slate-900">Status tagihan</h2>
                                 <p className="mt-1 text-sm text-slate-500">
                                     Status pembayaran tagihan Anda.
                                 </p>
@@ -336,9 +341,9 @@ export default function SiswaDashboard({
                             className="scroll-mt-24 rounded-3xl border border-white/80 bg-white/80 p-5 shadow-[0_8px_30px_rgb(0,0,0,0.04)] ring-1 ring-slate-900/5 backdrop-blur-xl sm:p-7"
                         >
                             <div className="mb-5">
-                                <h2 className="text-lg font-bold text-slate-900">Ujian aktif</h2>
+                                <h2 className="text-lg font-bold text-slate-900">Ujian hari ini</h2>
                                 <p className="mt-1 text-sm text-slate-500">
-                                    Ujian yang belum berakhir untuk kelas Anda.
+                                    Ujian untuk kelas Anda yang berlangsung hari ini dan belum berakhir.
                                 </p>
                             </div>
                             {ujians.length === 0 ? (

@@ -5,9 +5,11 @@ namespace App\Http\Controllers\Siswa;
 use App\Http\Controllers\Controller;
 use App\Models\CatatanRapor;
 use App\Models\Nilai;
+use App\Models\PengaturanSekolah;
 use App\Models\TahunAjaran;
 use App\Support\StudentReportData;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -23,6 +25,32 @@ class RaporController extends Controller
             'programKeahlian',
             'konsentrasiKeahlian',
         ]);
+
+        $settings = PengaturanSekolah::query()->find(1);
+        $statusRilisRapor = $settings?->status_rilis_rapor ?? 'otomatis';
+        $tanggalRilisRapor = $settings?->tanggal_rapor?->toDateString();
+        $isReportReleased = $this->isReportReleased($statusRilisRapor, $settings);
+        $sharedProps = [
+            'siswa' => [
+                ...StudentReportData::identity($siswa),
+                'wali_kelas_nama' => $siswa->kelas?->waliKelas?->nama_lengkap,
+                'wali_niky' => $siswa->kelas?->waliKelas?->nip,
+            ],
+            'isReportReleased' => $isReportReleased,
+            'tanggalRilisRapor' => $tanggalRilisRapor,
+            'statusRilisRapor' => $statusRilisRapor,
+            'isCandidate' => $siswa->status_siswa === 'calon_spmb',
+        ];
+
+        if (! $isReportReleased) {
+            return Inertia::render('Siswa/Rapor/Index', [
+                ...$sharedProps,
+                'rapor' => [],
+                'tahunAjaranOptions' => [],
+                'selectedTahunAjaran' => null,
+                'selectedSemester' => null,
+            ]);
+        }
 
         $nilais = Nilai::query()
             ->where('siswa_id', $siswa->id)
@@ -44,8 +72,40 @@ class RaporController extends Controller
             ->whereKey($yearIds)
             ->get(['id', 'nama_tahun', 'semester'])
             ->keyBy('id');
+        $availableTerms = $yearIds
+            ->map(function (int|string $tahunAjaranId) use ($tahunAjarans): ?array {
+                $tahunAjaran = $tahunAjarans->get((int) $tahunAjaranId);
 
-        $rapor = $yearIds
+                return $tahunAjaran ? [
+                    'tahun_ajaran_id' => $tahunAjaran->id,
+                    'tahun_ajaran' => $tahunAjaran->nama_tahun,
+                    'semester' => $tahunAjaran->semester,
+                ] : null;
+            })
+            ->filter()
+            ->sortByDesc(fn (array $term): string => $term['tahun_ajaran'].' '.($term['semester'] === 'genap' ? '2' : '1'))
+            ->values();
+        $availableYears = $availableTerms->pluck('tahun_ajaran')->unique()->values();
+        $tahunAjaranAktif = TahunAjaran::query()
+            ->where('is_aktif', true)
+            ->first(['id']);
+        $activeTerm = $availableTerms->first(
+            fn (array $term): bool => (int) $term['tahun_ajaran_id'] === (int) $tahunAjaranAktif?->id,
+        );
+        $defaultTerm = $activeTerm ?? $availableTerms->first();
+        $filters = $request->validate([
+            'tahun_ajaran' => ['sometimes', 'nullable', 'string', Rule::in($availableYears->all())],
+            'semester' => ['sometimes', 'nullable', Rule::in(['ganjil', 'genap'])],
+        ]);
+        $selectedTahunAjaran = $filters['tahun_ajaran']
+            ?? $defaultTerm['tahun_ajaran']
+            ?? null;
+        $selectedSemester = $filters['semester']
+            ?? $activeTerm['semester']
+            ?? $defaultTerm['semester']
+            ?? null;
+
+        $allRapor = $yearIds
             ->map(function (int|string $tahunAjaranId) use ($catatanRapors, $nilaiByYear, $tahunAjarans): array {
                 $tahunAjaranId = (int) $tahunAjaranId;
                 $tahunAjaran = $tahunAjarans->get($tahunAjaranId);
@@ -87,15 +147,27 @@ class RaporController extends Controller
             })
             ->sortByDesc(fn (array $semester): string => "{$semester['tahun_ajaran']} {$semester['semester']}")
             ->values();
+        $rapor = $allRapor
+            ->filter(fn (array $semester): bool => $semester['tahun_ajaran'] === $selectedTahunAjaran
+                && $semester['semester'] === $selectedSemester)
+            ->values();
 
         return Inertia::render('Siswa/Rapor/Index', [
-            'siswa' => [
-                ...StudentReportData::identity($siswa),
-                'wali_kelas_nama' => $siswa->kelas?->waliKelas?->nama_lengkap,
-                'wali_niky' => $siswa->kelas?->waliKelas?->nip,
-            ],
+            ...$sharedProps,
             'rapor' => $rapor,
-            'isCandidate' => $siswa->status_siswa === 'calon_spmb',
+            'tahunAjaranOptions' => $availableYears,
+            'selectedTahunAjaran' => $selectedTahunAjaran,
+            'selectedSemester' => $selectedSemester,
         ]);
+    }
+
+    private function isReportReleased(string $status, ?PengaturanSekolah $settings): bool
+    {
+        $releaseDate = $settings?->tanggal_rapor;
+
+        return $status === 'buka'
+            || ($status === 'otomatis'
+                && $releaseDate !== null
+                && now()->toDateString() >= $releaseDate->toDateString());
     }
 }

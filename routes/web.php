@@ -88,6 +88,8 @@ Route::middleware(['auth', 'verified', 'role:admin'])
         Route::delete('konsentrasi-keahlian/{konsentrasiKeahlian}', [ProgramKeahlianController::class, 'destroyConcentration'])
             ->name('konsentrasi-keahlian.destroy');
 
+        Route::put('mapel/template-kokurikuler', [MataPelajaranController::class, 'updateKokurikulerTemplate'])
+            ->name('mapel.template-kokurikuler.update');
         Route::resource('mapel', MataPelajaranController::class)
             ->except(['create', 'edit', 'show']);
 
@@ -112,6 +114,8 @@ Route::middleware(['auth', 'verified', 'role:admin'])
             ->parameters(['siswa' => 'siswa']);
 
         Route::get('spmb', [AdminSpmbController::class, 'index'])->name('spmb.index');
+        Route::put('spmb/{spmb}', [AdminSpmbController::class, 'update'])->name('spmb.update');
+        Route::delete('spmb/{spmb}', [AdminSpmbController::class, 'destroy'])->name('spmb.destroy');
         Route::patch('spmb/{spmb}/terima', [AdminSpmbController::class, 'accept'])->name('spmb.accept');
         Route::patch('spmb/{spmb}/tolak', [AdminSpmbController::class, 'reject'])->name('spmb.reject');
         Route::get('spmb/{spmb}/berkas', [AdminSpmbController::class, 'download'])->name('spmb.berkas');
@@ -157,6 +161,8 @@ Route::middleware(['auth', 'verified', 'role:guru'])
             ->name('ujian.hasil.export');
         Route::get('ujian/{ujian}/hasil', [GuruUjianController::class, 'results'])
             ->name('ujian.hasil');
+        Route::put('ujian/{ujian}/hasil/{siswa}/esai', [GuruUjianController::class, 'gradeEssays'])
+            ->name('ujian.hasil.esai');
         Route::delete('ujian/{ujian}/peserta/{siswa}', [GuruUjianController::class, 'resetSession'])
             ->name('ujian.reset-session');
         Route::post('ujian', [GuruUjianController::class, 'store'])->name('ujian.store');
@@ -190,6 +196,8 @@ Route::middleware(['auth', 'verified', 'role:siswa'])
         Route::post('ujian/{ujian}/mulai', [SiswaUjianController::class, 'start'])->name('ujian.start');
         Route::patch('ujian/{ujian}/jawaban', [SiswaUjianController::class, 'saveAnswer'])
             ->name('ujian.save-answer');
+        Route::post('ujian/{ujian}/pelanggaran', [SiswaUjianController::class, 'recordViolation'])
+            ->name('ujian.violation');
         Route::post('ujian/{ujian}/selesai', [SiswaUjianController::class, 'finish'])->name('ujian.finish');
         Route::get('ujian/{ujian}', [SiswaUjianController::class, 'show'])->name('ujian.show');
         Route::get('rapor', [SiswaRaporController::class, 'index'])->name('rapor.index');

@@ -16,6 +16,68 @@ const selectionLabels = {
     ditolak: 'Ditolak',
 };
 
+const emptyEditFormData = {
+    nama_lengkap: '',
+    nisn: '',
+    sekolah_asal: '',
+    no_wa_wali: '',
+    program_keahlian_id: '',
+    konsentrasi_keahlian_id: '',
+    nis: '',
+    tempat_lahir: '',
+    tanggal_lahir: '',
+    jenis_kelamin: '',
+    agama: '',
+    status_keluarga: '',
+    anak_ke: '',
+    alamat_murid: '',
+    telepon_rumah: '',
+    diterima_di_kelas: '',
+    tanggal_diterima: '',
+    nama_ayah: '',
+    nama_ibu: '',
+    alamat_ortu: '',
+    telepon_ortu: '',
+    pekerjaan_ayah: '',
+    pekerjaan_ibu: '',
+    nama_wali: '',
+    alamat_wali: '',
+    telepon_wali: '',
+    pekerjaan_wali: '',
+    ukuran_seragam: '',
+    tipe_program: 'reguler',
+    kategori_beasiswa_id: '',
+};
+
+const editProfileFields = [
+    { field: 'nis', label: 'NIS' },
+    { field: 'tempat_lahir', label: 'Tempat Lahir' },
+    { field: 'tanggal_lahir', label: 'Tanggal Lahir', type: 'date' },
+    { field: 'jenis_kelamin', label: 'Jenis Kelamin', type: 'select', options: [['L', 'Laki-laki'], ['P', 'Perempuan']] },
+    { field: 'agama', label: 'Agama' },
+    { field: 'status_keluarga', label: 'Status Keluarga' },
+    { field: 'anak_ke', label: 'Anak Ke', type: 'number' },
+    { field: 'alamat_murid', label: 'Alamat Murid', type: 'textarea' },
+    { field: 'telepon_rumah', label: 'Telepon Rumah' },
+    { field: 'diterima_di_kelas', label: 'Diterima di Kelas' },
+    { field: 'tanggal_diterima', label: 'Tanggal Diterima', type: 'date' },
+    { field: 'nama_ayah', label: 'Nama Ayah' },
+    { field: 'nama_ibu', label: 'Nama Ibu' },
+    { field: 'alamat_ortu', label: 'Alamat Orang Tua', type: 'textarea' },
+    { field: 'telepon_ortu', label: 'Telepon Orang Tua' },
+    { field: 'pekerjaan_ayah', label: 'Pekerjaan Ayah' },
+    { field: 'pekerjaan_ibu', label: 'Pekerjaan Ibu' },
+    { field: 'nama_wali', label: 'Nama Wali' },
+    { field: 'alamat_wali', label: 'Alamat Wali', type: 'textarea' },
+    { field: 'telepon_wali', label: 'Telepon Wali' },
+    { field: 'pekerjaan_wali', label: 'Pekerjaan Wali' },
+    { field: 'ukuran_seragam', label: 'Ukuran Seragam', type: 'select', options: [['S', 'S'], ['M', 'M'], ['L', 'L'], ['XL', 'XL'], ['XXL', 'XXL']] },
+];
+
+function dateInputValue(value) {
+    return value ? String(value).slice(0, 10) : '';
+}
+
 function SelectionBadge({ status }) {
     const style = {
         pending: 'bg-amber-50 text-amber-700',
@@ -36,14 +98,17 @@ export default function SpmbIndex({
     tahunAjaranAktif,
     fotoSiswaUrls = {},
     programKeahlians = [],
+    kategoriBeasiswas = [],
     printPendaftarans = [],
     filters = {},
 }) {
     const [acceptingPendaftaran, setAcceptingPendaftaran] = useState(null);
     const [rejectingPendaftaran, setRejectingPendaftaran] = useState(null);
     const [viewingPendaftaran, setViewingPendaftaran] = useState(null);
+    const [editingPendaftaran, setEditingPendaftaran] = useState(null);
     const form = useForm({ kelas_id: '' });
     const rejectForm = useForm({});
+    const editForm = useForm({ ...emptyEditFormData });
     const filterForm = useForm({
         program_keahlian_id: filters.program_keahlian_id ?? '',
         konsentrasi_keahlian_id: filters.konsentrasi_keahlian_id ?? '',
@@ -90,6 +155,120 @@ export default function SpmbIndex({
             preserveScroll: true,
             onSuccess: () => setRejectingPendaftaran(null),
         });
+    };
+
+    const openEditModal = (pendaftaran) => {
+        const student = pendaftaran.user?.siswa ?? {};
+        const profileValue = (field) => pendaftaran[field] ?? student[field] ?? '';
+
+        editForm.setData({
+            ...emptyEditFormData,
+            nama_lengkap: student.nama_lengkap ?? pendaftaran.user?.name ?? '',
+            nisn: student.nisn ?? '',
+            sekolah_asal: pendaftaran.sekolah_asal ?? pendaftaran.asal_sekolah ?? '',
+            no_wa_wali: student.no_wa_wali ?? '',
+            program_keahlian_id: String(pendaftaran.program_keahlian_id ?? student.program_keahlian_id ?? ''),
+            konsentrasi_keahlian_id: String(pendaftaran.konsentrasi_keahlian_id ?? student.konsentrasi_keahlian_id ?? ''),
+            nis: profileValue('nis'),
+            tempat_lahir: profileValue('tempat_lahir'),
+            tanggal_lahir: dateInputValue(profileValue('tanggal_lahir')),
+            jenis_kelamin: profileValue('jenis_kelamin'),
+            agama: profileValue('agama'),
+            status_keluarga: profileValue('status_keluarga'),
+            anak_ke: profileValue('anak_ke') === '' ? '' : String(profileValue('anak_ke')),
+            alamat_murid: profileValue('alamat_murid'),
+            telepon_rumah: profileValue('telepon_rumah'),
+            diterima_di_kelas: profileValue('diterima_di_kelas'),
+            tanggal_diterima: dateInputValue(profileValue('tanggal_diterima')),
+            nama_ayah: profileValue('nama_ayah'),
+            nama_ibu: profileValue('nama_ibu'),
+            alamat_ortu: profileValue('alamat_ortu'),
+            telepon_ortu: profileValue('telepon_ortu'),
+            pekerjaan_ayah: profileValue('pekerjaan_ayah'),
+            pekerjaan_ibu: profileValue('pekerjaan_ibu'),
+            nama_wali: profileValue('nama_wali'),
+            alamat_wali: profileValue('alamat_wali'),
+            telepon_wali: profileValue('telepon_wali'),
+            pekerjaan_wali: profileValue('pekerjaan_wali'),
+            ukuran_seragam: profileValue('ukuran_seragam'),
+            tipe_program: profileValue('tipe_program') || 'reguler',
+            kategori_beasiswa_id: String(profileValue('kategori_beasiswa_id') || ''),
+        });
+        editForm.clearErrors();
+        setEditingPendaftaran(pendaftaran);
+    };
+
+    const submitEdit = (event) => {
+        event.preventDefault();
+        if (!editingPendaftaran) {
+            return;
+        }
+
+        router.put(route('admin.spmb.update', editingPendaftaran.id), editForm.data, {
+            preserveScroll: true,
+            onSuccess: () => setEditingPendaftaran(null),
+            onError: (errors) => editForm.setError(errors),
+        });
+    };
+
+    const deletePendaftaran = (pendaftaran) => {
+        const nama = pendaftaran.user?.siswa?.nama_lengkap ?? pendaftaran.user?.name ?? 'Pendaftar';
+        const confirmation = `Hapus data pendaftar ${nama} dengan nomor pendaftaran ${pendaftaran.no_pendaftaran}? Tindakan ini tidak dapat dibatalkan.`;
+
+        if (window.confirm(confirmation)) {
+            router.delete(route('admin.spmb.destroy', pendaftaran.id), {
+                preserveScroll: true,
+            });
+        }
+    };
+
+    const renderEditField = (field, label, type = 'text') => {
+        const id = `spmb-edit-${field}`;
+        const controlClassName = 'block w-full rounded-xl border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500';
+        const controlProps = {
+            id,
+            value: editForm.data[field],
+            onChange: (event) => editForm.setData(field, event.target.value),
+            className: controlClassName,
+        };
+
+        return (
+            <div key={field}>
+                <label htmlFor={id} className="mb-1.5 block text-xs font-semibold text-slate-600">
+                    {label}
+                </label>
+                {type === 'textarea' ? (
+                    <textarea {...controlProps} rows="2" />
+                ) : (
+                    <input {...controlProps} type={type} />
+                )}
+                <InputError message={editForm.errors[field]} className="mt-1.5" />
+            </div>
+        );
+    };
+
+    const renderEditSelect = (field, label, options, emptyLabel) => {
+        const id = `spmb-edit-${field}`;
+
+        return (
+            <div key={field}>
+                <label htmlFor={id} className="mb-1.5 block text-xs font-semibold text-slate-600">
+                    {label}
+                </label>
+                <select
+                    id={id}
+                    value={editForm.data[field]}
+                    onChange={(event) => editForm.setData(field, event.target.value)}
+                    className="block w-full rounded-xl border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                >
+                    <option value="">{emptyLabel}</option>
+                    {options.map(([value, name]) => (
+                        <option key={value} value={value}>{name}</option>
+                    ))}
+                </select>
+                <InputError message={editForm.errors[field]} className="mt-1.5" />
+            </div>
+        );
     };
 
     const submitFilter = (event) => {
@@ -291,29 +470,47 @@ export default function SpmbIndex({
                                         <SelectionBadge status={pendaftaran.status_seleksi} />
                                     </td>
                                     <td className="whitespace-nowrap px-5 py-4 sm:px-7">
-                                        {pendaftaran.status_seleksi === 'pending' ? (
-                                            <div className="flex justify-end gap-2">
+                                        <div className="flex flex-col items-end gap-1">
+                                            {pendaftaran.status_seleksi === 'pending' ? (
+                                                <div className="flex justify-end gap-1">
+                                                    <button
+                                                        type="button"
+                                                        disabled={eligibleClassesFor(pendaftaran).length === 0}
+                                                        onClick={() => openAcceptModal(pendaftaran)}
+                                                        className="rounded-lg px-2.5 py-1.5 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-50"
+                                                    >
+                                                        Terima
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setRejectingPendaftaran(pendaftaran)}
+                                                        className="rounded-lg px-2.5 py-1.5 text-xs font-semibold text-rose-700 transition hover:bg-rose-50"
+                                                    >
+                                                        Tolak
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <span className="text-right text-xs text-slate-400">
+                                                    {pendaftaran.user?.siswa?.kelas?.nama_kelas ?? '—'}
+                                                </span>
+                                            )}
+                                            <div className="flex justify-end gap-1">
                                                 <button
                                                     type="button"
-                                                    disabled={eligibleClassesFor(pendaftaran).length === 0}
-                                                    onClick={() => openAcceptModal(pendaftaran)}
-                                                    className="rounded-lg px-2.5 py-1.5 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-50"
+                                                    onClick={() => openEditModal(pendaftaran)}
+                                                    className="rounded-lg px-2.5 py-1.5 text-xs font-semibold text-indigo-700 transition hover:bg-indigo-50"
                                                 >
-                                                    Terima
+                                                    Edit
                                                 </button>
                                                 <button
                                                     type="button"
-                                                    onClick={() => setRejectingPendaftaran(pendaftaran)}
+                                                    onClick={() => deletePendaftaran(pendaftaran)}
                                                     className="rounded-lg px-2.5 py-1.5 text-xs font-semibold text-rose-700 transition hover:bg-rose-50"
                                                 >
-                                                    Tolak
+                                                    Hapus
                                                 </button>
                                             </div>
-                                        ) : (
-                                            <span className="block text-right text-xs text-slate-400">
-                                                {pendaftaran.user?.siswa?.kelas?.nama_kelas ?? '—'}
-                                            </span>
-                                        )}
+                                        </div>
                                     </td>
                                 </tr>
                             ))}
@@ -390,6 +587,89 @@ export default function SpmbIndex({
                         </div>
                     );
                 })()}
+            </AdminResourceModal>
+
+            <AdminResourceModal
+                show={Boolean(editingPendaftaran)}
+                title="Edit Data Pendaftar"
+                description={`Perbarui biodata ${editingPendaftaran?.no_pendaftaran ?? ''}.`}
+                processing={editForm.processing}
+                submitLabel="Simpan Perubahan"
+                onClose={() => setEditingPendaftaran(null)}
+                onSubmit={submitEdit}
+                maxWidth="2xl"
+                panelClassName="max-h-[90vh]"
+            >
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    {renderEditField('nama_lengkap', 'Nama Lengkap')}
+                    {renderEditField('nisn', 'NISN')}
+                    {renderEditField('sekolah_asal', 'Asal Sekolah')}
+                    {renderEditField('no_wa_wali', 'No. WhatsApp Wali')}
+                    <div>
+                        <label htmlFor="spmb-edit-program" className="mb-1.5 block text-xs font-semibold text-slate-600">
+                            Program Keahlian
+                        </label>
+                        <select
+                            id="spmb-edit-program"
+                            value={editForm.data.program_keahlian_id}
+                            onChange={(event) => editForm.setData({
+                                ...editForm.data,
+                                program_keahlian_id: event.target.value,
+                                konsentrasi_keahlian_id: '',
+                            })}
+                            className="block w-full rounded-xl border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                        >
+                            <option value="">Pilih Program</option>
+                            {programKeahlians.map((program) => (
+                                <option key={program.id} value={program.id}>{program.nama_jurusan}</option>
+                            ))}
+                        </select>
+                        <InputError message={editForm.errors.program_keahlian_id} className="mt-1.5" />
+                    </div>
+                    <div>
+                        <label htmlFor="spmb-edit-konsentrasi" className="mb-1.5 block text-xs font-semibold text-slate-600">
+                            Konsentrasi Keahlian
+                        </label>
+                        <select
+                            id="spmb-edit-konsentrasi"
+                            value={editForm.data.konsentrasi_keahlian_id}
+                            onChange={(event) => editForm.setData('konsentrasi_keahlian_id', event.target.value)}
+                            disabled={!editForm.data.program_keahlian_id}
+                            className="block w-full rounded-xl border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 disabled:bg-slate-100"
+                        >
+                            <option value="">Pilih Konsentrasi</option>
+                            {(programKeahlians.find(
+                                (program) => String(program.id) === String(editForm.data.program_keahlian_id),
+                            )?.konsentrasi_keahlians ?? []).map((concentration) => (
+                                <option key={concentration.id} value={concentration.id}>
+                                    {concentration.nama_konsentrasi}
+                                </option>
+                            ))}
+                        </select>
+                        <InputError message={editForm.errors.konsentrasi_keahlian_id} className="mt-1.5" />
+                    </div>
+                    {renderEditSelect(
+                        'tipe_program',
+                        'Tipe Program',
+                        [
+                            ['reguler', 'Reguler'],
+                            ['santri_internal', 'Santri Internal PP Al Fiel Kesugihan'],
+                            ['santri_eksternal', 'Santri Eksternal'],
+                        ],
+                        'Pilih Tipe Program',
+                    )}
+                    {renderEditSelect(
+                        'kategori_beasiswa_id',
+                        'Kategori Beasiswa',
+                        kategoriBeasiswas.map((kategori) => [String(kategori.id), kategori.nama_beasiswa]),
+                        'Tanpa Kategori Beasiswa',
+                    )}
+                    {editProfileFields.map(({ field, label, type, options }) => (
+                        type === 'select'
+                            ? renderEditSelect(field, label, options, 'Pilih')
+                            : renderEditField(field, label, type)
+                    ))}
+                </div>
             </AdminResourceModal>
 
             <AdminResourceModal

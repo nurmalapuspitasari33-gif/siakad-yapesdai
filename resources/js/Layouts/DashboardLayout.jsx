@@ -123,7 +123,8 @@ function sameNavigation(previous = [], next = []) {
             && item.href === nextItem.href
             && item.active === nextItem.active
             && item.sectionTitle === nextItem.sectionTitle
-            && item.isRoute === nextItem.isRoute;
+            && item.isRoute === nextItem.isRoute
+            && item.badge === nextItem.badge;
     });
 }
 
@@ -340,7 +341,14 @@ function DashboardFrame({
                                                 }`}
                                                 aria-hidden="true"
                                             />
-                                            {item.label}
+                                            <span className="truncate">{item.label}</span>
+                                            {item.badge && (
+                                                <span className={`ml-auto max-w-24 truncate rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                                                    isActive ? 'bg-white/15 text-white' : 'bg-emerald-50 text-emerald-800'
+                                                }`}>
+                                                    {item.badge}
+                                                </span>
+                                            )}
                                         </>
                                     );
                                     const onClick = () => setIsNavigationOpen(false);
@@ -446,7 +454,7 @@ function DashboardFrame({
                                 href={item.href}
                                 prefetch
                                 onClick={() => setIsNavigationOpen(false)}
-                                aria-label={item.label}
+                                aria-label={item.badge ? `${item.label} · ${item.badge}` : item.label}
                                 aria-current={item.active ? 'page' : undefined}
                                 className={`flex min-w-0 flex-col items-center justify-center gap-1 px-1 py-2 text-[10px] font-semibold transition ${
                                     item.active ? 'text-emerald-800' : 'text-slate-500 hover:text-emerald-800'
@@ -469,6 +477,7 @@ function DashboardFrame({
                                     </svg>
                                 </span>
                                 <span className="block max-w-full truncate">{item.label}</span>
+                                {item.badge && <span className="block max-w-full truncate text-[8px] font-medium">{item.badge}</span>}
                             </Link>
                         ))}
                     </div>

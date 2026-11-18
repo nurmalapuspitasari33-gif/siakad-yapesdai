@@ -3,7 +3,9 @@
 namespace Tests\Feature;
 
 use App\Models\Guru;
+use App\Models\Kelas;
 use App\Models\Siswa;
+use App\Models\TahunAjaran;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -33,17 +35,29 @@ class ProfileTest extends TestCase
     public function test_profile_page_receives_wali_kelas_navigation_state(): void
     {
         $user = User::factory()->create(['role' => 'guru']);
-        Guru::create([
+        $guru = Guru::create([
             'user_id' => $user->id,
             'nip' => '19870010',
             'nama_lengkap' => 'Guru Wali',
             'is_wali_kelas' => true,
+        ]);
+        $tahunAjaran = TahunAjaran::create([
+            'nama_tahun' => '2026/2027',
+            'semester' => 'ganjil',
+            'is_aktif' => true,
+        ]);
+        Kelas::create([
+            'tahun_ajaran_id' => $tahunAjaran->id,
+            'wali_kelas_id' => $guru->id,
+            'nama_kelas' => 'X IPA 1',
+            'tingkat' => 10,
         ]);
 
         $this->actingAs($user)
             ->get('/profile')
             ->assertInertia(fn (Assert $page) => $page
                 ->where('isWaliKelas', true)
+                ->where('waliKelasName', 'X IPA 1')
                 ->where('isCandidate', false));
     }
 

@@ -4,34 +4,56 @@ namespace App\Http\Controllers\Dashboard;
 
 use App\Http\Controllers\Controller;
 use App\Models\TahunAjaran;
+use App\Support\StudentAttendanceSummary;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class SiswaDashboardController extends Controller
 {
-    public function __invoke(Request $request): Response
+    public function __invoke(Request $request, StudentAttendanceSummary $attendanceSummary): Response
     {
         $siswa = $request->user()->siswa;
         $pendaftaran = $request->user()->pendaftaranSpmbs()->latest()->first();
         $tahunAjaranAktif = TahunAjaran::query()
             ->where('is_aktif', true)
-            ->first(['nama_tahun', 'semester']);
+            ->first(['id', 'nama_tahun', 'semester']);
+        $localNow = now('Asia/Jakarta');
+        $startOfTodayUtc = $localNow->copy()->startOfDay()->utc();
+        $startOfTomorrowUtc = $localNow->copy()->addDay()->startOfDay()->utc();
+        $hariIni = [
+            0 => 'minggu',
+            1 => 'senin',
+            2 => 'selasa',
+            3 => 'rabu',
+            4 => 'kamis',
+            5 => 'jumat',
+            6 => 'sabtu',
+        ][$localNow->dayOfWeek];
 
         $jadwals = collect();
         $tagihans = collect();
         $ujians = collect();
+        $attendance = $siswa
+            ? $attendanceSummary->for($siswa, $tahunAjaranAktif)['ringkasan']
+            : [
+                'total_sesi' => 0,
+                'hadir' => 0,
+                'sakit' => 0,
+                'izin' => 0,
+                'alfa' => 0,
+                'persentase_kehadiran' => 0.0,
+            ];
 
-        if ($siswa?->status_siswa === 'aktif') {
+        if ($siswa?->status_siswa === 'aktif' && $tahunAjaranAktif) {
             $jadwals = $siswa->kelas?->jadwals()
-                ->whereHas('tahunAjaran', fn ($query) => $query->where('is_aktif', true))
+                ->where('tahun_ajaran_id', $tahunAjaranAktif->id)
+                ->where('hari', $hariIni)
                 ->with(['mataPelajaran:id,nama_mapel', 'guru:id,nama_lengkap'])
-                ->orderByRaw("CASE hari WHEN 'senin' THEN 1 WHEN 'selasa' THEN 2 WHEN 'rabu' THEN 3 WHEN 'kamis' THEN 4 WHEN 'jumat' THEN 5 WHEN 'sabtu' THEN 6 ELSE 7 END")
                 ->orderBy('jam_mulai')
                 ->get()
                 ->map(fn ($jadwal): array => [
                     'id' => $jadwal->id,
-                    'hari' => $jadwal->hari,
                     'jam_mulai' => substr($jadwal->jam_mulai, 0, 5),
                     'jam_selesai' => substr($jadwal->jam_selesai, 0, 5),
                     'mata_pelajaran' => $jadwal->mataPelajaran?->nama_mapel,
@@ -51,6 +73,8 @@ class SiswaDashboardController extends Controller
 
             $ujians = $siswa->kelas?->ujians()
                 ->with('mataPelajaran:id,nama_mapel')
+                ->where('waktu_mulai', '>=', $startOfTodayUtc)
+                ->where('waktu_mulai', '<', $startOfTomorrowUtc)
                 ->orderBy('waktu_mulai')
                 ->get()
                 ->filter(fn ($ujian): bool => $ujian->waktu_mulai
@@ -83,7 +107,14 @@ class SiswaDashboardController extends Controller
             ] : null,
             'jadwals' => $jadwals,
             'tagihans' => $tagihans,
+            'tagihanSummary' => [
+                'belum_lunas' => $tagihans->where('status', 'belum_lunas')->count(),
+                'lunas' => $tagihans->where('status', 'lunas')->count(),
+                'nominal_belum_lunas' => $tagihans->where('status', 'belum_lunas')->sum('nominal'),
+            ],
+            'attendance' => $attendance,
             'ujians' => $ujians,
+            'hariIni' => ucfirst($hariIni),
         ]);
     }
 }

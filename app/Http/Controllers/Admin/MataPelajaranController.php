@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Ekstrakurikuler;
 use App\Models\MataPelajaran;
+use App\Models\PengaturanSekolah;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -19,6 +20,7 @@ class MataPelajaranController extends Controller
             'search' => ['nullable', 'string', 'max:100'],
         ]);
         $search = trim($filters['search'] ?? '');
+        $requestedTab = $request->query('tab');
 
         $mataPelajarans = MataPelajaran::query()
             ->when($search !== '', function ($query) use ($search): void {
@@ -37,8 +39,26 @@ class MataPelajaranController extends Controller
             'ekstrakurikulers' => Ekstrakurikuler::query()
                 ->orderBy('nama_ekstra')
                 ->get(['id', 'nama_ekstra', 'is_aktif']),
-            'activeTab' => $request->query('tab') === 'ekstrakurikuler' ? 'ekstrakurikuler' : 'mapel',
+            'templateKokurikuler' => PengaturanSekolah::query()->value('template_kokurikuler'),
+            'activeTab' => in_array($requestedTab, ['ekstrakurikuler', 'kokurikuler'], true)
+                ? $requestedTab
+                : 'mapel',
         ]);
+    }
+
+    public function updateKokurikulerTemplate(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'template_kokurikuler' => ['present', 'nullable', 'string', 'max:5000'],
+        ], [
+            'template_kokurikuler.present' => 'Kolom templat kokurikuler wajib dikirim.',
+            'template_kokurikuler.max' => 'Templat deskripsi kokurikuler tidak boleh lebih dari 5000 karakter.',
+        ]);
+
+        PengaturanSekolah::query()->findOrFail(1)->update($validated);
+
+        return to_route('admin.mapel.index', ['tab' => 'kokurikuler'])
+            ->with('success', 'Templat deskripsi kokurikuler berhasil diperbarui.');
     }
 
     public function store(Request $request): RedirectResponse

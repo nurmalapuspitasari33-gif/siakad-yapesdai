@@ -6,6 +6,7 @@ use App\Models\Guru;
 use App\Models\Jadwal;
 use App\Models\Kelas;
 use App\Models\MataPelajaran;
+use App\Models\PengaturanSekolah;
 use App\Models\TahunAjaran;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -122,6 +123,61 @@ class MataPelajaranControllerTest extends TestCase
         ])->assertSessionHasErrors('kelompok_mapel');
     }
 
+    public function test_admin_can_update_the_kokurikuler_template_from_subject_management(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $template = 'Ananda menunjukkan capaian {predikat} dalam kegiatan kokurikuler.';
+
+        $this->actingAs($admin)
+            ->put(route('admin.mapel.template-kokurikuler.update'), [
+                'template_kokurikuler' => $template,
+            ])
+            ->assertRedirectToRoute('admin.mapel.index', ['tab' => 'kokurikuler'])
+            ->assertSessionHas('success', 'Templat deskripsi kokurikuler berhasil diperbarui.');
+
+        $this->assertDatabaseHas('pengaturan_sekolahs', [
+            'id' => 1,
+            'template_kokurikuler' => $template,
+        ]);
+
+        $this->get(route('admin.mapel.index', ['tab' => 'kokurikuler']))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Admin/Mapel/Index')
+                ->where('activeTab', 'kokurikuler')
+                ->where('templateKokurikuler', $template));
+    }
+
+    public function test_kokurikuler_template_rejects_values_longer_than_5000_characters(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $settings = PengaturanSekolah::query()->findOrFail(1);
+
+        $this->actingAs($admin)
+            ->put(route('admin.mapel.template-kokurikuler.update'), [
+                'template_kokurikuler' => str_repeat('a', 5001),
+            ])
+            ->assertSessionHasErrors([
+                'template_kokurikuler' => 'Templat deskripsi kokurikuler tidak boleh lebih dari 5000 karakter.',
+            ]);
+
+        $this->assertSame(null, $settings->fresh()->template_kokurikuler);
+    }
+
+    public function test_kokurikuler_template_must_be_included_in_the_update_request(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $settings = PengaturanSekolah::query()->findOrFail(1);
+
+        $this->actingAs($admin)
+            ->put(route('admin.mapel.template-kokurikuler.update'), [])
+            ->assertSessionHasErrors([
+                'template_kokurikuler' => 'Kolom templat kokurikuler wajib dikirim.',
+            ]);
+
+        $this->assertSame(null, $settings->fresh()->template_kokurikuler);
+    }
+
     public function test_subject_cannot_be_deleted_while_used_by_a_schedule(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
@@ -170,11 +226,19 @@ class MataPelajaranControllerTest extends TestCase
         $this->get(route('admin.mapel.index'))
             ->assertRedirectToRoute('login');
 
+        $this->put(route('admin.mapel.template-kokurikuler.update'), [
+            'template_kokurikuler' => 'Tidak diizinkan',
+        ])->assertRedirectToRoute('login');
+
         $siswa = User::factory()->create(['role' => 'siswa']);
 
         $this->actingAs($siswa)
             ->get(route('admin.mapel.index'))
             ->assertForbidden();
+
+        $this->put(route('admin.mapel.template-kokurikuler.update'), [
+            'template_kokurikuler' => 'Tidak diizinkan',
+        ])->assertForbidden();
 
         $this->post(route('admin.mapel.store'), [])
             ->assertForbidden();

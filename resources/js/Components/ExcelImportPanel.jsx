@@ -6,6 +6,7 @@ export default function ExcelImportPanel({
     importUrl,
     title = 'Template dan Impor Excel',
     description = 'Gunakan template .xlsx agar urutan kolom sesuai.',
+    templateLabel = 'Download Template Excel (.xlsx)',
     locked = false,
 }) {
     const form = useForm({ file: null });
@@ -35,7 +36,7 @@ export default function ExcelImportPanel({
                     href={templateUrl}
                     className="mt-2 inline-flex text-xs font-semibold text-indigo-700 hover:text-indigo-900"
                 >
-                    Download Template Excel (.xlsx)
+                    {templateLabel}
                 </a>
             </div>
             <form onSubmit={submit} className="flex w-full flex-col gap-2 sm:max-w-md">

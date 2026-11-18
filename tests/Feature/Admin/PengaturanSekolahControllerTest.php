@@ -24,10 +24,7 @@ class PengaturanSekolahControllerTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Admin/PengaturanSekolah/Index')
                 ->where('pengaturanSekolah.nama_sekolah', 'Nama Sekolah')
-                ->where(
-                    'pengaturanSekolah.info_spmb',
-                    'Pendaftaran SPMB dilakukan secara daring melalui portal ini. Lengkapi formulir dan berkas persyaratan, lalu pantau hasil seleksi melalui akun Anda.',
-                ));
+                ->where('pengaturanSekolah.status_rilis_rapor', 'otomatis'));
 
         $this->post(route('admin.pengaturan.update'), [
             '_method' => 'put',
@@ -36,12 +33,11 @@ class PengaturanSekolahControllerTest extends TestCase
             'alamat' => 'Jl. Pendidikan No. 1',
             'tempat_rapor' => 'Kesugihan',
             'tanggal_rapor' => '2026-11-16',
+            'status_rilis_rapor' => 'buka',
             'telepon' => '021123456',
             'email' => 'info@sekolah.sch.id',
             'kepala_sekolah' => 'Dewi Puspita',
             'niky_kepala_sekolah' => 'NIKY-001',
-            'info_spmb' => 'Pendaftaran dibuka bulan Januari.',
-            'template_kokurikuler' => 'Ananda sudah {predikat} dalam kegiatan.',
             'tarif_spp_reguler' => 250000,
             'tarif_praktikum' => 150000,
         ])->assertRedirectToRoute('admin.pengaturan.index');
@@ -51,8 +47,8 @@ class PengaturanSekolahControllerTest extends TestCase
         $this->assertSame('SMA Negeri 1 Contoh', $settings->nama_sekolah);
         $this->assertSame('Kesugihan', $settings->tempat_rapor);
         $this->assertSame('2026-11-16', $settings->tanggal_rapor->toDateString());
+        $this->assertSame('buka', $settings->status_rilis_rapor);
         $this->assertSame('NIKY-001', $settings->niky_kepala_sekolah);
-        $this->assertSame('Ananda sudah {predikat} dalam kegiatan.', $settings->template_kokurikuler);
         $this->assertSame('250000.00', $settings->tarif_spp_reguler);
         $this->assertSame('150000.00', $settings->tarif_praktikum);
     }
@@ -73,6 +69,25 @@ class PengaturanSekolahControllerTest extends TestCase
             ->assertRedirectToRoute('admin.pengaturan.index');
 
         $this->assertSame('identitas-sekolah/logo-lama.png', $settings->fresh()->logo_path);
+    }
+
+    public function test_admin_cannot_save_an_invalid_report_release_status(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $settings = PengaturanSekolah::query()->findOrFail(1);
+
+        $this->actingAs($admin)
+            ->put(route('admin.pengaturan.update'), [
+                'nama_sekolah' => $settings->nama_sekolah,
+                'tarif_spp_reguler' => $settings->tarif_spp_reguler,
+                'tarif_praktikum' => $settings->tarif_praktikum,
+                'status_rilis_rapor' => 'rilis',
+            ])
+            ->assertSessionHasErrors([
+                'status_rilis_rapor' => 'Pilihan kontrol rilis rapor tidak valid.',
+            ]);
+
+        $this->assertSame('otomatis', $settings->fresh()->status_rilis_rapor);
     }
 
     public function test_non_admin_cannot_access_school_settings(): void
@@ -97,6 +112,7 @@ class PengaturanSekolahControllerTest extends TestCase
             'alamat' => 'Jl. Pendidikan No. 1',
             'tempat_rapor' => 'Kesugihan',
             'tanggal_rapor' => '2026-11-16',
+            'status_rilis_rapor' => 'otomatis',
             'kepala_sekolah' => 'Dewi Puspita',
             'niky_kepala_sekolah' => 'NIKY-001',
         ]);
@@ -126,6 +142,7 @@ class PengaturanSekolahControllerTest extends TestCase
                 ->where('pengaturanSekolah.kepala_sekolah', 'Dewi Puspita')
                 ->where('pengaturanSekolah.niky_kepala_sekolah', 'NIKY-001')
                 ->where('pengaturanSekolah.tempat_rapor', 'Kesugihan')
-                ->where('pengaturanSekolah.tanggal_rapor', '2026-11-16'));
+                ->where('pengaturanSekolah.tanggal_rapor', '2026-11-16')
+                ->where('pengaturanSekolah.status_rilis_rapor', 'otomatis'));
     }
 }

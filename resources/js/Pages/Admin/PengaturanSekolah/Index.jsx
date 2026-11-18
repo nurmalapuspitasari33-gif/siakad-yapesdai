@@ -11,14 +11,13 @@ export default function PengaturanSekolahIndex() {
         alamat: pengaturanSekolah?.alamat ?? '',
         tempat_rapor: pengaturanSekolah?.tempat_rapor ?? '',
         tanggal_rapor: String(pengaturanSekolah?.tanggal_rapor ?? '').slice(0, 10),
+        status_rilis_rapor: pengaturanSekolah?.status_rilis_rapor ?? 'otomatis',
         telepon: pengaturanSekolah?.telepon ?? '',
         email: pengaturanSekolah?.email ?? '',
         kepala_sekolah: pengaturanSekolah?.kepala_sekolah ?? '',
         niky_kepala_sekolah: pengaturanSekolah?.niky_kepala_sekolah ?? '',
         tarif_spp_reguler: pengaturanSekolah?.tarif_spp_reguler ?? '0.00',
         tarif_praktikum: pengaturanSekolah?.tarif_praktikum ?? '0.00',
-        info_spmb: pengaturanSekolah?.info_spmb ?? '',
-        template_kokurikuler: pengaturanSekolah?.template_kokurikuler ?? '',
     });
 
     const submit = (event) => {
@@ -184,6 +183,23 @@ export default function PengaturanSekolahIndex() {
                         </div>
 
                         <div>
+                            <label htmlFor="status-rilis-rapor" className="mb-2 block text-sm font-semibold text-slate-700">
+                                Kontrol Rilis Rapor
+                            </label>
+                            <select
+                                id="status-rilis-rapor"
+                                value={form.data.status_rilis_rapor}
+                                onChange={(event) => form.setData('status_rilis_rapor', event.target.value)}
+                                className="block w-full rounded-xl border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                            >
+                                <option value="otomatis">Otomatis sesuai tanggal rapor</option>
+                                <option value="buka">Buka Sekarang</option>
+                                <option value="kunci">Kunci Rapor</option>
+                            </select>
+                            <InputError message={form.errors.status_rilis_rapor} className="mt-2" />
+                        </div>
+
+                        <div>
                             <label htmlFor="tarif-spp-reguler" className="mb-2 block text-sm font-semibold text-slate-700">
                                 Tarif Dasar SPP Reguler (Rp)
                             </label>
@@ -215,39 +231,6 @@ export default function PengaturanSekolahIndex() {
                             <InputError message={form.errors.tarif_praktikum} className="mt-2" />
                         </div>
 
-                        <div className="md:col-span-2">
-                            <label htmlFor="info-spmb" className="mb-2 block text-sm font-semibold text-slate-700">
-                                Informasi SPMB
-                            </label>
-                            <textarea
-                                id="info-spmb"
-                                rows="4"
-                                value={form.data.info_spmb}
-                                onChange={(event) => form.setData('info_spmb', event.target.value)}
-                                maxLength="5000"
-                                className="block w-full rounded-xl border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                            />
-                            <p className="mt-2 text-xs text-slate-500">Informasi ini akan ditampilkan pada bagian pendaftaran di landing page.</p>
-                            <InputError message={form.errors.info_spmb} className="mt-2" />
-                        </div>
-
-                        <div className="md:col-span-2">
-                            <label htmlFor="template-kokurikuler" className="mb-2 block text-sm font-semibold text-slate-700">
-                                Templat Deskripsi Kokurikuler
-                            </label>
-                            <textarea
-                                id="template-kokurikuler"
-                                rows="5"
-                                value={form.data.template_kokurikuler}
-                                onChange={(event) => form.setData('template_kokurikuler', event.target.value)}
-                                maxLength="5000"
-                                className="block w-full rounded-xl border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                            />
-                            <p className="mt-2 text-xs text-slate-500">
-                                Gunakan placeholder {'{predikat}'} untuk mengisi predikat yang dipilih Wali Kelas.
-                            </p>
-                            <InputError message={form.errors.template_kokurikuler} className="mt-2" />
-                        </div>
                     </div>
 
                     <div className="mt-7 flex flex-col gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:items-center sm:justify-between">

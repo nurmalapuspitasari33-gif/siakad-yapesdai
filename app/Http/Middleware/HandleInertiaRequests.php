@@ -52,14 +52,13 @@ class HandleInertiaRequests extends Middleware
                     'alamat' => $settings->alamat,
                     'tempat_rapor' => $settings->tempat_rapor,
                     'tanggal_rapor' => $settings->tanggal_rapor?->toDateString(),
+                    'status_rilis_rapor' => $settings->status_rilis_rapor,
                     'telepon' => $settings->telepon,
                     'email' => $settings->email,
                     'kepala_sekolah' => $settings->kepala_sekolah,
                     'niky_kepala_sekolah' => $settings->niky_kepala_sekolah,
-                    'template_kokurikuler' => $settings->template_kokurikuler,
                     'tarif_spp_reguler' => $settings->tarif_spp_reguler,
                     'tarif_praktikum' => $settings->tarif_praktikum,
-                    'info_spmb' => $settings->info_spmb,
                 ];
             },
         ];

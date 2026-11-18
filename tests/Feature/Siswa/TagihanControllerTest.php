@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Siswa;
 
+use App\Models\KategoriBeasiswa;
 use App\Models\Siswa;
 use App\Models\Tagihan;
 use App\Models\User;
@@ -15,12 +16,20 @@ class TagihanControllerTest extends TestCase
 
     public function test_student_only_sees_their_own_bill_history(): void
     {
+        $beasiswa = KategoriBeasiswa::create([
+            'nama_beasiswa' => 'Beasiswa Afirmasi',
+            'jenis_potongan' => 'persen',
+            'nilai_potongan' => 50,
+            'is_afirmasi' => true,
+            'keterangan' => 'Potongan biaya untuk siswa afirmasi.',
+        ]);
         $studentUser = User::factory()->create(['role' => 'siswa']);
         $student = Siswa::create([
             'user_id' => $studentUser->id,
             'nisn' => '0000000001',
             'nama_lengkap' => 'Siswa Aktif',
             'status_siswa' => 'aktif',
+            'kategori_beasiswa_id' => $beasiswa->id,
         ]);
         $otherUser = User::factory()->create(['role' => 'siswa']);
         $otherStudent = Siswa::create([
@@ -37,6 +46,13 @@ class TagihanControllerTest extends TestCase
             'status_bayar' => 'belum_lunas',
         ]);
         Tagihan::create([
+            'siswa_id' => $student->id,
+            'judul_tagihan' => 'SPP Oktober 2026',
+            'nominal' => 250000,
+            'jatuh_tempo' => '2026-10-30',
+            'status_bayar' => 'lunas',
+        ]);
+        Tagihan::create([
             'siswa_id' => $otherStudent->id,
             'judul_tagihan' => 'Tagihan privat',
             'nominal' => 100000,
@@ -49,8 +65,14 @@ class TagihanControllerTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Siswa/Tagihan/Index')
-                ->has('tagihans', 1)
+                ->has('tagihans', 2)
                 ->where('tagihans.0.judul_tagihan', 'SPP November 2026')
+                ->where('tagihans.0.status_bayar', 'belum_lunas')
+                ->where('tagihans.1.status_bayar', 'lunas')
+                ->where('kategoriBeasiswa.nama_beasiswa', 'Beasiswa Afirmasi')
+                ->where('kategoriBeasiswa.nilai_potongan', '50.00')
+                ->where('kategoriBeasiswa.is_afirmasi', true)
+                ->where('kategoriBeasiswa.keterangan', 'Potongan biaya untuk siswa afirmasi.')
                 ->where('isCandidate', false));
     }
 

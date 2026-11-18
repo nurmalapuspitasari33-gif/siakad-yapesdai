@@ -9,6 +9,7 @@ export default function Edit({
     mustVerifyEmail,
     status,
     isWaliKelas = false,
+    waliKelasName = '',
     isCandidate = false,
 }) {
     const { auth = {} } = usePage().props;
@@ -26,6 +27,7 @@ export default function Edit({
             roleLabel={roleLabels[user.role] ?? 'Pengguna'}
             navigation={roleNavigationItems(user.role, null, {
                 isWaliKelas,
+                waliKelasName,
                 isCandidate,
             })}
         >

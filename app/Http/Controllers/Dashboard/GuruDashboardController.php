@@ -31,13 +31,14 @@ class GuruDashboardController extends Controller
                 'mata_pelajaran' => $jadwal->mataPelajaran?->nama_mapel,
             ]) ?? collect();
 
-        $kelasWalian = $guru?->is_wali_kelas
-            ? $guru->kelasWalian()->with('tahunAjaran:id,nama_tahun,semester')->get()
-                ->map(fn ($kelas): array => [
-                    'nama_kelas' => $kelas->nama_kelas,
-                    'tahun_ajaran' => $kelas->tahunAjaran?->nama_tahun,
-                ])
-            : collect();
+        $kelasWalianAktif = $guru?->kelasWalianAktif() ?? collect();
+        if ($kelasWalianAktif->isNotEmpty()) {
+            $kelasWalianAktif->load('tahunAjaran:id,nama_tahun,semester');
+        }
+        $kelasWalian = $kelasWalianAktif->map(fn ($kelas): array => [
+            'nama_kelas' => $kelas->nama_kelas,
+            'tahun_ajaran' => $kelas->tahunAjaran?->nama_tahun,
+        ]);
 
         return Inertia::render('Dashboard/Guru', [
             'tahunAjaranAktif' => $tahunAjaranAktif ? [
@@ -46,7 +47,8 @@ class GuruDashboardController extends Controller
             ] : null,
             'guru' => [
                 'nama_lengkap' => $guru?->nama_lengkap ?? $request->user()->name,
-                'is_wali_kelas' => (bool) $guru?->is_wali_kelas,
+                'is_wali_kelas' => $kelasWalianAktif->isNotEmpty(),
+                'wali_kelas_nama_kelas' => $kelasWalianAktif->pluck('nama_kelas')->implode(', '),
             ],
             'jadwals' => $jadwals,
             'kelasWalian' => $kelasWalian,

@@ -6,7 +6,15 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['ujian_id', 'siswa_id', 'jawaban_json', 'skor_akhir', 'status_pengerjaan'])]
+#[Fillable([
+    'ujian_id',
+    'siswa_id',
+    'jawaban_json',
+    'skor_akhir',
+    'status_pengerjaan',
+    'jumlah_pelanggaran',
+    'catatan_pelanggaran',
+])]
 class HasilUjian extends Model
 {
     protected function casts(): array
@@ -14,6 +22,7 @@ class HasilUjian extends Model
         return [
             'jawaban_json' => 'array',
             'skor_akhir' => 'decimal:2',
+            'jumlah_pelanggaran' => 'integer',
         ];
     }
 

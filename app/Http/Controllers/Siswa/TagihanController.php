@@ -14,6 +14,7 @@ class TagihanController extends Controller
     {
         $siswa = $request->user()->siswa;
         abort_unless($siswa, 404);
+        $siswa->loadMissing('kategoriBeasiswa');
 
         return Inertia::render('Siswa/Tagihan/Index', [
             'tagihans' => Tagihan::query()
@@ -21,6 +22,13 @@ class TagihanController extends Controller
                 ->orderByDesc('jatuh_tempo')
                 ->orderByDesc('id')
                 ->get(['id', 'judul_tagihan', 'nominal', 'jatuh_tempo', 'status_bayar']),
+            'kategoriBeasiswa' => $siswa->kategoriBeasiswa ? [
+                'nama_beasiswa' => $siswa->kategoriBeasiswa->nama_beasiswa,
+                'jenis_potongan' => $siswa->kategoriBeasiswa->jenis_potongan,
+                'nilai_potongan' => $siswa->kategoriBeasiswa->nilai_potongan,
+                'is_afirmasi' => $siswa->kategoriBeasiswa->is_afirmasi,
+                'keterangan' => $siswa->kategoriBeasiswa->keterangan,
+            ] : null,
             'isCandidate' => $siswa->status_siswa === 'calon_spmb',
         ]);
     }

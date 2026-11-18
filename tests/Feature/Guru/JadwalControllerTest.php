@@ -52,13 +52,37 @@ class JadwalControllerTest extends TestCase
     public function test_wali_kelas_receives_navigation_state_on_their_schedule_page(): void
     {
         $guru = $this->createGuru('19870003', 'Wali Kelas', true);
+        $tahunAjaran = TahunAjaran::create([
+            'nama_tahun' => '2026/2027',
+            'semester' => 'ganjil',
+            'is_aktif' => true,
+        ]);
+        Kelas::create([
+            'tahun_ajaran_id' => $tahunAjaran->id,
+            'wali_kelas_id' => $guru->id,
+            'nama_kelas' => 'X IPA 1',
+            'tingkat' => 10,
+        ]);
 
         $this->actingAs($guru->user)
             ->get(route('guru.jadwal.index'))
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Guru/Jadwal/Index')
-                ->where('isWaliKelas', true));
+                ->where('isWaliKelas', true)
+                ->where('waliKelasName', 'X IPA 1'));
+    }
+
+    public function test_teacher_without_an_active_wali_class_does_not_receive_wali_navigation_state(): void
+    {
+        $guru = $this->createGuru('19870004', 'Wali Kelas Nonaktif', true);
+
+        $this->actingAs($guru->user)
+            ->get(route('guru.jadwal.index'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('isWaliKelas', false)
+                ->where('waliKelasName', ''));
     }
 
     private function createGuru(string $nip, string $nama, bool $isWaliKelas = false): Guru

@@ -140,6 +140,9 @@ export default function ExamMonitoring({ examOptions, selectedExam, filters, sta
                         <p className="mt-1 text-sm text-slate-500">
                             {selectedExam ? `Kelas ${selectedExam.kelas} · ${students.length} siswa aktif` : 'Pilih jadwal ujian untuk melihat peserta.'}
                         </p>
+                        <p className="mt-1 text-xs text-slate-400">
+                            Tindakan hanya tersedia untuk mereset sesi siswa yang sedang mengerjakan.
+                        </p>
                     </div>
                     <div className="overflow-x-auto">
                         <table className="min-w-full divide-y divide-slate-100 text-left">
@@ -176,7 +179,12 @@ export default function ExamMonitoring({ examOptions, selectedExam, filters, sta
                                                     Reset Sesi Ujian
                                                 </button>
                                             ) : (
-                                                <span className="text-sm text-slate-300">—</span>
+                                                <span
+                                                    className="text-sm text-slate-300"
+                                                    title="Reset sesi hanya tersedia selama siswa masih mengerjakan."
+                                                >
+                                                    —
+                                                </span>
                                             )}
                                         </td>
                                     </tr>

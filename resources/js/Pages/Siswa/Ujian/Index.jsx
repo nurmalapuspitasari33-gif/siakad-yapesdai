@@ -1,6 +1,7 @@
 import DashboardLayout from '@/Layouts/DashboardLayout';
 import roleNavigationItems from '@/Components/RoleNavigationItems';
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
+import { useEffect, useRef, useState } from 'react';
 
 function formatDateTime(value) {
     const date = new Date(value);
@@ -16,6 +17,45 @@ function formatDateTime(value) {
 }
 
 export default function SiswaUjianIndex({ ujians = [] }) {
+    const [startingExamId, setStartingExamId] = useState(null);
+    const wakeLockRef = useRef(null);
+
+    useEffect(() => () => {
+        wakeLockRef.current?.release();
+    }, []);
+
+    const startExam = async (ujianId) => {
+        setStartingExamId(ujianId);
+        const root = document.documentElement;
+        const requestFullscreen = root.requestFullscreen ?? root.webkitRequestFullscreen;
+        const requests = [];
+
+        if (typeof requestFullscreen === 'function') {
+            try {
+                requests.push(Promise.resolve(requestFullscreen.call(root)).catch(() => undefined));
+            } catch {
+                requests.push(Promise.resolve());
+            }
+        }
+
+        if (navigator.wakeLock?.request) {
+            try {
+                requests.push(navigator.wakeLock.request('screen').then((wakeLock) => {
+                    wakeLockRef.current = wakeLock;
+                    return wakeLock;
+                }).catch(() => undefined));
+            } catch {
+                requests.push(Promise.resolve());
+            }
+        }
+
+        await Promise.all(requests);
+        router.post(route('siswa.ujian.start', ujianId), {}, {
+            onError: () => setStartingExamId(null),
+            onFinish: () => setStartingExamId(null),
+        });
+    };
+
     return (
         <DashboardLayout
             title="Ujian Online"
@@ -92,14 +132,18 @@ export default function SiswaUjianIndex({ ujians = [] }) {
                                             {completed ? 'Lihat Hasil' : 'Lihat Ringkasan'}
                                         </Link>
                                     ) : (
-                                        <Link
-                                            href={route('siswa.ujian.start', ujian.id)}
-                                            method="post"
-                                            as="button"
-                                            className="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700"
+                                        <button
+                                            type="button"
+                                            onClick={() => startExam(ujian.id)}
+                                            disabled={startingExamId === ujian.id}
+                                            className="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-wait disabled:opacity-60"
                                         >
-                                            {canResume ? 'Lanjutkan Ujian' : 'Mulai Ujian'}
-                                        </Link>
+                                            {startingExamId === ujian.id
+                                                ? 'Menyiapkan ujian...'
+                                                : canResume
+                                                  ? 'Lanjutkan Ujian'
+                                                  : 'Mulai Ujian'}
+                                        </button>
                                     )}
                                 </div>
                             </article>

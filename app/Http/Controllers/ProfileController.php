@@ -19,11 +19,15 @@ class ProfileController extends Controller
     public function edit(Request $request): Response
     {
         $user = $request->user();
+        $kelasWalianAktif = $user->role === 'guru'
+            ? $user->guru?->kelasWalianAktif() ?? collect()
+            : collect();
 
         return Inertia::render('Profile/Edit', [
             'mustVerifyEmail' => $user instanceof MustVerifyEmail,
             'status' => session('status'),
-            'isWaliKelas' => $user->role === 'guru' && (bool) ($user->guru?->is_wali_kelas ?? false),
+            'isWaliKelas' => $kelasWalianAktif->isNotEmpty(),
+            'waliKelasName' => $kelasWalianAktif->pluck('nama_kelas')->implode(', '),
             'isCandidate' => $user->role === 'siswa' && $user->siswa?->status_siswa === 'calon_spmb',
         ]);
     }

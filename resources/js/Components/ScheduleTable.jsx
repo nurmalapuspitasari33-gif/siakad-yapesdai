@@ -13,6 +13,7 @@ export default function ScheduleTable({
     emptyMessage = 'Jadwal belum tersedia.',
     showClass = true,
     showGuru = false,
+    renderActions = null,
 }) {
     if (jadwals.length === 0) {
         return (
@@ -28,7 +29,14 @@ export default function ScheduleTable({
             <table className="min-w-full divide-y divide-slate-100 text-left">
                 <thead className="bg-slate-50">
                     <tr>
-                        {['Hari', 'Waktu', 'Mata Pelajaran', ...(showClass ? ['Kelas'] : []), ...(showGuru ? ['Guru'] : [])].map((heading) => (
+                        {[
+                            'Hari',
+                            'Waktu',
+                            'Mata Pelajaran',
+                            ...(showClass ? ['Kelas'] : []),
+                            ...(showGuru ? ['Guru'] : []),
+                            ...(renderActions ? ['Aksi'] : []),
+                        ].map((heading) => (
                             <th
                                 key={heading}
                                 className="whitespace-nowrap px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500"
@@ -58,6 +66,11 @@ export default function ScheduleTable({
                             {showGuru && (
                                 <td className="whitespace-nowrap px-4 py-4 text-sm text-slate-600">
                                     {jadwal.guru}
+                                </td>
+                            )}
+                            {renderActions && (
+                                <td className="whitespace-nowrap px-4 py-4 text-sm">
+                                    {renderActions(jadwal)}
                                 </td>
                             )}
                         </tr>

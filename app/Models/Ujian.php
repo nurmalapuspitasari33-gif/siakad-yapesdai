@@ -7,7 +7,17 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['mapel_id', 'guru_id', 'kelas_id', 'judul_ujian', 'waktu_mulai', 'durasi_menit', 'acak_soal'])]
+#[Fillable([
+    'mapel_id',
+    'guru_id',
+    'kelas_id',
+    'judul_ujian',
+    'waktu_mulai',
+    'durasi_menit',
+    'acak_soal',
+    'mode_ujian',
+    'maks_pelanggaran',
+])]
 class Ujian extends Model
 {
     protected function casts(): array
@@ -16,6 +26,7 @@ class Ujian extends Model
             'waktu_mulai' => 'datetime',
             'durasi_menit' => 'integer',
             'acak_soal' => 'boolean',
+            'maks_pelanggaran' => 'integer',
         ];
     }
 

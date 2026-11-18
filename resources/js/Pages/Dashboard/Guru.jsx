@@ -18,7 +18,10 @@ const dayLabels = {
 
 export default function GuruDashboard({ guru = {}, jadwals = [], kelasWalian = [] }) {
     const isWaliKelas = Boolean(guru?.is_wali_kelas);
-    const navigation = roleNavigationItems('guru', 'dashboard', { isWaliKelas });
+    const navigation = roleNavigationItems('guru', 'dashboard', {
+        isWaliKelas,
+        waliKelasName: guru?.wali_kelas_nama_kelas ?? '',
+    });
     const mataPelajaranCount = new Set(jadwals.map((jadwal) => jadwal.mata_pelajaran).filter(Boolean)).size;
     const kelasCount = new Set(jadwals.map((jadwal) => jadwal.kelas).filter(Boolean)).size;
     const statisticCards = [

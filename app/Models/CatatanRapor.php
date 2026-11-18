@@ -22,6 +22,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'sakit',
     'izin',
     'tanpa_keterangan',
+    'presensi_manual_sakit',
+    'presensi_manual_izin',
+    'presensi_manual_tanpa_keterangan',
     'catatan_wali_kelas',
     'status_kenaikan',
     'naik_ke_kelas',
@@ -34,6 +37,9 @@ class CatatanRapor extends Model
             'sakit' => 'integer',
             'izin' => 'integer',
             'tanpa_keterangan' => 'integer',
+            'presensi_manual_sakit' => 'integer',
+            'presensi_manual_izin' => 'integer',
+            'presensi_manual_tanpa_keterangan' => 'integer',
         ];
     }
 

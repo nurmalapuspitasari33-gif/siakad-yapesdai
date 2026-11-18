@@ -6,6 +6,7 @@ use App\Models\Guru;
 use App\Models\Jadwal;
 use App\Models\Kelas;
 use App\Models\MataPelajaran;
+use App\Models\BankSoal;
 use App\Models\ProgramKeahlian;
 use App\Models\Siswa;
 use App\Models\TahunAjaran;
@@ -14,6 +15,7 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
+use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Tests\TestCase;
@@ -224,6 +226,122 @@ class SpreadsheetImportTest extends TestCase
             'opsi_e' => '7',
             'kunci_jawaban' => 'E',
         ]);
+    }
+
+    public function test_teacher_can_import_matching_questions_from_plain_language_columns(): void
+    {
+        $teacherUser = User::factory()->create(['role' => 'guru']);
+        [, , $exam] = $this->createExamForTeacher($teacherUser);
+        $exam->update(['mode_ujian' => 'akm']);
+
+        $headers = [
+            'Pertanyaan',
+            'Pilihan A',
+            'Pilihan B',
+            'Pilihan C',
+            'Pilihan D',
+            'Pilihan E',
+            'Kunci jawaban',
+            'Tipe soal',
+            'Bobot',
+            'Pasangan kiri 1',
+            'Pasangan kanan 1',
+            'Jawaban benar 1',
+            'Pasangan kiri 2',
+            'Pasangan kanan 2',
+            'Jawaban benar 2',
+            'Pasangan kiri 3',
+            'Pasangan kanan 3',
+            'Jawaban benar 3',
+        ];
+        $row = [
+            'Pasangkan negara dengan ibukotanya.',
+            '',
+            '',
+            '',
+            '',
+            '',
+            '',
+            'JODOH',
+            '2',
+            'Indonesia',
+            'Tokyo',
+            'Jakarta',
+            'Jepang',
+            'Jakarta',
+            'Tokyo',
+            'Thailand',
+            'Bangkok',
+            'Bangkok',
+        ];
+
+        $this->actingAs($teacherUser)
+            ->post(route('guru.ujian.soal.import', $exam), [
+                'file' => $this->xlsxUpload($headers, [$row]),
+            ])
+            ->assertRedirect(route('guru.ujian.index', absolute: false))
+            ->assertSessionHas('success', '1 soal berhasil diimpor.');
+
+        $question = BankSoal::query()->where('ujian_id', $exam->id)->firstOrFail();
+        $this->assertSame('menjodohkan', $question->tipe_soal);
+        $this->assertSame(['Indonesia', 'Jepang', 'Thailand'], $question->opsi_json['pasangan_kiri']);
+        $this->assertSame(['Tokyo', 'Jakarta', 'Bangkok'], $question->opsi_json['pasangan_kanan']);
+        $this->assertSame(['1', '0', '2'], $question->opsi_json['kunci_jawaban']);
+    }
+
+    public function test_teacher_can_download_templates_specific_to_each_exam_mode(): void
+    {
+        $teacherUser = User::factory()->create(['role' => 'guru']);
+        [, , $exam] = $this->createExamForTeacher($teacherUser);
+
+        $normalResponse = $this->actingAs($teacherUser)
+            ->get(route('guru.ujian.soal.template', $exam))
+            ->assertOk()
+            ->assertDownload("template-soal-normal-ujian-{$exam->id}.xlsx")
+            ->assertStreamed();
+        $normalTemporaryFile = tempnam(sys_get_temp_dir(), 'template-normal-');
+        file_put_contents($normalTemporaryFile, $normalResponse->streamedContent());
+
+        try {
+            $spreadsheet = IOFactory::load($normalTemporaryFile);
+            $normalDataSheet = $spreadsheet->getSheetByName('Data Soal');
+
+            $this->assertSame('Petunjuk', $spreadsheet->getSheet(0)->getTitle());
+            $this->assertSame('PANDUAN TEMPLATE SOAL NORMAL', $spreadsheet->getSheet(0)->getCell('A1')->getValue());
+            $this->assertNotNull($normalDataSheet);
+            $this->assertSame('Pertanyaan', $normalDataSheet->getCell('A1')->getValue());
+            $this->assertSame('Bobot', $normalDataSheet->getCell('I1')->getValue());
+            $this->assertNull($normalDataSheet->getCell('J1')->getValue());
+
+            $spreadsheet->disconnectWorksheets();
+        } finally {
+            unlink($normalTemporaryFile);
+        }
+
+        $exam->update(['mode_ujian' => 'akm']);
+        $akmResponse = $this->actingAs($teacherUser)
+            ->get(route('guru.ujian.soal.template', $exam))
+            ->assertOk()
+            ->assertDownload("template-soal-akm-ujian-{$exam->id}.xlsx")
+            ->assertStreamed();
+        $akmTemporaryFile = tempnam(sys_get_temp_dir(), 'template-akm-');
+        file_put_contents($akmTemporaryFile, $akmResponse->streamedContent());
+
+        try {
+            $spreadsheet = IOFactory::load($akmTemporaryFile);
+            $akmDataSheet = $spreadsheet->getSheetByName('Data Soal');
+
+            $this->assertSame('PANDUAN TEMPLATE SOAL UJIAN AKM', $spreadsheet->getSheet(0)->getCell('A1')->getValue());
+            $this->assertSame('Indonesia', $spreadsheet->getSheet(0)->getCell('A14')->getValue());
+            $this->assertNotNull($akmDataSheet);
+            $this->assertSame('Pasangan kiri 1', $akmDataSheet->getCell('J1')->getValue());
+            $this->assertSame('Jawaban benar 5', $akmDataSheet->getCell('X1')->getValue());
+            $this->assertNull($akmDataSheet->getCell('J2')->getValue());
+
+            $spreadsheet->disconnectWorksheets();
+        } finally {
+            unlink($akmTemporaryFile);
+        }
     }
 
     public function test_spreadsheet_import_rejects_an_extra_header_without_creating_accounts(): void

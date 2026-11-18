@@ -1,3 +1,5 @@
+import { Fragment } from 'react';
+
 function printValue(value) {
     return value === null || value === undefined || value === '' ? '' : String(value);
 }
@@ -55,7 +57,7 @@ function IdentityEntry({ number, label, value, isSubentry = false }) {
     );
 }
 
-function IdentityDocument({ student, settings }) {
+function IdentityDocument({ student, settings, isBatch = false, isLast = true }) {
     const nomorInduk = [student.nis, student.nisn].filter(Boolean).join(' / ');
     const identityEntries = [
         { number: '1', label: 'Nama Murid', value: student.nama_lengkap },
@@ -90,7 +92,12 @@ function IdentityDocument({ student, settings }) {
     ];
 
     return (
-        <article className="print-document identity-print-document hidden bg-white text-black print:block">
+        <article
+            className={isBatch
+                ? 'identity-print-document'
+                : 'print-document identity-print-document hidden bg-white text-black print:block'}
+            style={isBatch && !isLast ? { breakAfter: 'page', pageBreakAfter: 'always' } : undefined}
+        >
             <h1 className="identity-title">IDENTITAS MURID</h1>
             <div className="identity-fields">
                 {identityEntries.map((entry, index) => (
@@ -387,7 +394,7 @@ function ReportSignatures({ student, settings }) {
     );
 }
 
-function SemesterDocument({ student, settings, semester }) {
+function SemesterPages({ student, settings, semester }) {
     const subjects = semester.mata_pelajaran ?? [];
     const groupedSubjects = {
         umum: subjects.filter((subject) => subject.kelompok_mapel === 'umum'),
@@ -397,7 +404,7 @@ function SemesterDocument({ student, settings, semester }) {
     const notes = semester.catatan_rapor ?? {};
 
     return (
-        <div className="print-document report-print-document hidden bg-white text-black print:block">
+        <>
             <article className="report-print-page">
                 <StudentHeader student={student} settings={settings} semester={semester} />
                 <SubjectTable
@@ -430,12 +437,58 @@ function SemesterDocument({ student, settings, semester }) {
                 <ParentResponseTable />
                 <ReportSignatures student={student} settings={settings} />
             </article>
+        </>
+    );
+}
+
+function SemesterDocument({ student, settings, semester }) {
+    return (
+        <div className="print-document report-print-document hidden bg-white text-black print:block">
+            <SemesterPages student={student} settings={settings} semester={semester} />
         </div>
     );
 }
 
-export default function StudentReportDocument({ mode = 'identity', student = {}, settings = {}, semester = {} }) {
-    return mode === 'identity'
-        ? <IdentityDocument student={student} settings={settings} />
-        : <SemesterDocument student={student} settings={settings} semester={semester} />;
+export default function StudentReportDocument({
+    mode = 'identity',
+    student = {},
+    settings = {},
+    semester = {},
+    documents = [],
+}) {
+    const renderDocument = (document) => mode === 'identity'
+        ? <IdentityDocument student={document.student} settings={settings} />
+        : <SemesterDocument student={document.student} settings={settings} semester={document.semester} />;
+
+    if (documents.length === 0) {
+        return renderDocument({ student, semester });
+    }
+
+    if (documents.length === 1) {
+        return renderDocument(documents[0]);
+    }
+
+    return (
+        <div className="print-document hidden bg-white text-black print:block">
+            {mode === 'identity'
+                ? documents.map((document, index) => (
+                    <IdentityDocument
+                        key={document.student.id ?? index}
+                        student={document.student}
+                        settings={settings}
+                        isBatch
+                        isLast={index === documents.length - 1}
+                    />
+                ))
+                : documents.map((document, index) => (
+                    <Fragment key={document.student.id ?? index}>
+                        <SemesterPages
+                            student={document.student}
+                            settings={settings}
+                            semester={document.semester}
+                        />
+                    </Fragment>
+                ))}
+        </div>
+    );
 }

@@ -28,6 +28,7 @@ export default function MataPelajaranIndex({
     mataPelajarans,
     filters,
     ekstrakurikulers = [],
+    templateKokurikuler,
     activeTab: initialTab = 'mapel',
 }) {
     const [activeTab, setActiveTab] = useState(initialTab);
@@ -44,6 +45,9 @@ export default function MataPelajaranIndex({
     const ekstraForm = useForm({
         nama_ekstra: '',
         is_aktif: true,
+    });
+    const kokurikulerForm = useForm({
+        template_kokurikuler: templateKokurikuler ?? '',
     });
     const searchForm = useForm({
         search: filters.search ?? '',
@@ -160,10 +164,17 @@ export default function MataPelajaranIndex({
         ekstraForm.post(route('admin.ekstrakurikuler.store'), options);
     };
 
+    const submitKokurikulerTemplate = (event) => {
+        event.preventDefault();
+        kokurikulerForm.put(route('admin.mapel.template-kokurikuler.update'), {
+            preserveScroll: true,
+        });
+    };
+
     return (
         <DashboardLayout
             title="Manajemen Mata Pelajaran"
-            subtitle="Kelola kode dan nama mata pelajaran yang digunakan pada jadwal dan ujian."
+            subtitle="Kelola mata pelajaran, master ekstrakurikuler, dan templat deskripsi kokurikuler."
             roleLabel="Administrator"
             navigation={AdminNavigationItems('mata-pelajaran')}
         >
@@ -199,6 +210,19 @@ export default function MataPelajaranIndex({
                     }`}
                 >
                     Master Ekstrakurikuler
+                </button>
+                <button
+                    type="button"
+                    role="tab"
+                    aria-selected={activeTab === 'kokurikuler'}
+                    onClick={() => setActiveTab('kokurikuler')}
+                    className={`rounded-t-xl px-4 py-2.5 text-sm font-semibold transition ${
+                        activeTab === 'kokurikuler'
+                            ? 'border-b-2 border-indigo-600 bg-white text-indigo-700'
+                            : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'
+                    }`}
+                >
+                    Templat Kokurikuler
                 </button>
             </div>
 
@@ -521,6 +545,54 @@ export default function MataPelajaranIndex({
                             </tbody>
                         </table>
                     </div>
+                </section>
+            )}
+
+            {activeTab === 'kokurikuler' && (
+                <section
+                    role="tabpanel"
+                    className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
+                >
+                    <div className="border-b border-slate-100 px-5 py-5 sm:px-7">
+                        <h2 className="font-bold text-slate-900">Templat Deskripsi Kokurikuler</h2>
+                        <p className="mt-1 text-sm text-slate-500">
+                            Templat ini membantu wali kelas menyusun deskripsi kokurikuler pada rapor.
+                        </p>
+                    </div>
+
+                    <form onSubmit={submitKokurikulerTemplate} className="space-y-4 px-5 py-5 sm:px-7">
+                        <div>
+                            <label
+                                htmlFor="template-kokurikuler"
+                                className="mb-2 block text-sm font-semibold text-slate-700"
+                            >
+                                Isi templat
+                            </label>
+                            <textarea
+                                id="template-kokurikuler"
+                                value={kokurikulerForm.data.template_kokurikuler}
+                                onChange={(event) => kokurikulerForm.setData('template_kokurikuler', event.target.value)}
+                                rows="5"
+                                maxLength="5000"
+                                className="block w-full rounded-xl border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                            />
+                            <p className="mt-2 text-xs text-slate-500">
+                                Gunakan placeholder {'{predikat}'} untuk mengisi predikat pilihan wali kelas.
+                                Jika dikosongkan, sistem menggunakan templat bawaan.
+                            </p>
+                            <InputError message={kokurikulerForm.errors.template_kokurikuler} className="mt-2" />
+                        </div>
+
+                        <div className="flex justify-end border-t border-slate-100 pt-4">
+                            <button
+                                type="submit"
+                                disabled={kokurikulerForm.processing}
+                                className="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                                {kokurikulerForm.processing ? 'Menyimpan...' : 'Simpan Templat'}
+                            </button>
+                        </div>
+                    </form>
                 </section>
             )}
         </DashboardLayout>

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\KategoriBeasiswa;
 use App\Models\Kelas;
 use App\Models\PendaftaranSpmb;
 use App\Models\ProgramKeahlian;
@@ -12,6 +13,7 @@ use App\Support\StudentIdentity;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
@@ -92,6 +94,9 @@ class SpmbController extends Controller
                 ->with('konsentrasiKeahlians:id,program_keahlian_id,nama_konsentrasi')
                 ->orderBy('nama_jurusan')
                 ->get(['id', 'kode_jurusan', 'nama_jurusan']),
+            'kategoriBeasiswas' => KategoriBeasiswa::query()
+                ->orderBy('nama_beasiswa')
+                ->get(['id', 'nama_beasiswa']),
             'fotoSiswaUrls' => $pendaftarans->getCollection()->mapWithKeys(
                 fn (PendaftaranSpmb $pendaftaran): array => [
                     $pendaftaran->id => $pendaftaran->foto_siswa_path
@@ -111,6 +116,116 @@ class SpmbController extends Controller
                 ]
                 : null,
         ]);
+    }
+
+    public function update(Request $request, PendaftaranSpmb $spmb): RedirectResponse
+    {
+        if (! $request->filled('sekolah_asal') && $request->filled('asal_sekolah')) {
+            $request->merge(['sekolah_asal' => $request->input('asal_sekolah')]);
+        }
+
+        $siswa = $spmb->user?->siswa;
+        $validated = $request->validate([
+            ...StudentIdentity::rules($siswa),
+            'nama_lengkap' => ['required', 'string', 'max:255'],
+            'nisn' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('siswas', 'nisn')->ignore($siswa?->id),
+            ],
+            'sekolah_asal' => ['required', 'string', 'max:255'],
+            'no_wa_wali' => ['required', 'string', 'max:30'],
+            'program_keahlian_id' => [
+                'nullable',
+                'integer',
+                'required_with:konsentrasi_keahlian_id',
+                Rule::exists('program_keahlians', 'id'),
+            ],
+            'konsentrasi_keahlian_id' => [
+                'nullable',
+                'integer',
+                'required_with:program_keahlian_id',
+                Rule::exists('konsentrasi_keahlians', 'id')
+                    ->where('program_keahlian_id', $request->input('program_keahlian_id')),
+            ],
+            'sekolah_asal' => ['required', 'string', 'max:255'],
+        ], [
+            'nama_lengkap.required' => 'Nama lengkap wajib diisi.',
+            'nisn.required' => 'NISN wajib diisi.',
+            'nisn.unique' => 'NISN sudah digunakan.',
+            'sekolah_asal.required' => 'Asal sekolah wajib diisi.',
+            'no_wa_wali.required' => 'Nomor WhatsApp wali wajib diisi.',
+        ]);
+
+        DB::transaction(function () use ($spmb, $validated): void {
+            $pendaftaran = PendaftaranSpmb::query()->lockForUpdate()->findOrFail($spmb->id);
+            $user = $pendaftaran->user()->lockForUpdate()->firstOrFail();
+            $siswa = Siswa::query()
+                ->where('user_id', $user->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+            $profileAttributes = StudentIdentity::attributes($validated);
+            $programKeahlianId = $validated['program_keahlian_id'] ?? null;
+            $konsentrasiKeahlianId = $validated['konsentrasi_keahlian_id'] ?? null;
+
+            $pendaftaran->update([
+                'asal_sekolah' => $validated['sekolah_asal'],
+                'program_keahlian_id' => $programKeahlianId,
+                'konsentrasi_keahlian_id' => $konsentrasiKeahlianId,
+                ...$profileAttributes,
+            ]);
+            $siswa->update([
+                'nisn' => $validated['nisn'],
+                'nama_lengkap' => $validated['nama_lengkap'],
+                'no_wa_wali' => $validated['no_wa_wali'],
+                'program_keahlian_id' => $programKeahlianId,
+                'konsentrasi_keahlian_id' => $konsentrasiKeahlianId,
+                ...$profileAttributes,
+                'sekolah_asal' => $validated['sekolah_asal'],
+            ]);
+            $user->update(['name' => $validated['nama_lengkap']]);
+        });
+
+        return to_route('admin.spmb.index')->with('success', 'Data pendaftar SPMB berhasil diperbarui.');
+    }
+
+    public function destroy(PendaftaranSpmb $spmb): RedirectResponse
+    {
+        $filePaths = DB::transaction(function () use ($spmb): array {
+            $pendaftaran = PendaftaranSpmb::query()->lockForUpdate()->findOrFail($spmb->id);
+            $user = $pendaftaran->user()->lockForUpdate()->first();
+            $siswa = $user?->siswa()->lockForUpdate()->first();
+            $filePaths = array_values(array_unique(array_filter([
+                $pendaftaran->berkas_path,
+                $pendaftaran->foto_siswa_path,
+                $siswa?->foto_siswa_path,
+            ])));
+
+            if (! $user) {
+                $pendaftaran->delete();
+            } elseif (! $siswa || ($siswa->status_siswa === 'calon_spmb' && $siswa->kelas_id === null)) {
+                $user->delete();
+            } else {
+                $pendaftaran->delete();
+            }
+
+            return $filePaths;
+        });
+
+        foreach ($filePaths as $filePath) {
+            if (
+                Storage::disk('public')->exists($filePath)
+                && ! Storage::disk('public')->delete($filePath)
+            ) {
+                Log::warning('Berkas pendaftar SPMB gagal dihapus.', [
+                    'pendaftaran_spmb_id' => $spmb->id,
+                    'path' => $filePath,
+                ]);
+            }
+        }
+
+        return to_route('admin.spmb.index')->with('success', 'Data pendaftar SPMB berhasil dihapus.');
     }
 
     public function accept(Request $request, PendaftaranSpmb $spmb): RedirectResponse

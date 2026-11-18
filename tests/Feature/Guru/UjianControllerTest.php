@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Guru;
 
+use App\Models\BankSoal;
 use App\Models\Guru;
 use App\Models\Jadwal;
 use App\Models\Kelas;
@@ -11,6 +12,8 @@ use App\Models\TahunAjaran;
 use App\Models\Ujian;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia as Assert;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
 use PhpOffice\PhpSpreadsheet\IOFactory;
@@ -67,6 +70,176 @@ class UjianControllerTest extends TestCase
         ]);
     }
 
+    public function test_teacher_can_create_akm_exam_and_upload_question_image(): void
+    {
+        $this->travelTo('2026-11-15 01:00:00');
+        Storage::fake('public');
+        $teacherUser = User::factory()->create(['role' => 'guru']);
+        [$kelas, $mapel] = $this->createAssignment($teacherUser);
+
+        $this->actingAs($teacherUser)
+            ->post(route('guru.ujian.store'), [
+                'kelas_id' => $kelas->id,
+                'mapel_id' => $mapel->id,
+                'judul_ujian' => 'Asesmen AKM',
+                'waktu_mulai' => '2026-11-16T08:00',
+                'durasi_menit' => 60,
+                'acak_soal' => false,
+                'mode_ujian' => 'akm',
+                'maks_pelanggaran' => 2,
+            ])
+            ->assertRedirect(route('guru.ujian.index', absolute: false));
+
+        $exam = Ujian::query()->where('judul_ujian', 'Asesmen AKM')->firstOrFail();
+        $this->actingAs($teacherUser)
+            ->post(route('guru.ujian.soal.store', $exam), [
+                'tipe_soal' => 'pg_kompleks',
+                'bobot' => 3,
+                'pertanyaan' => 'Pilih pernyataan yang benar.',
+                'opsi_json' => [
+                    'opsi' => ['Pernyataan A', 'Pernyataan B', 'Pernyataan C'],
+                    'kunci_jawaban' => ['0', '2'],
+                ],
+                'gambar_soal' => UploadedFile::fake()->image('pertanyaan.png'),
+            ])
+            ->assertRedirect(route('guru.ujian.index', absolute: false));
+
+        $question = BankSoal::query()->where('ujian_id', $exam->id)->firstOrFail();
+        $this->assertSame('akm', $exam->mode_ujian);
+        $this->assertSame(2, $exam->maks_pelanggaran);
+        $this->assertSame('pg_kompleks', $question->tipe_soal);
+        $this->assertSame(3, $question->bobot);
+        $this->assertSame(['0', '2'], $question->opsi_json['kunci_jawaban']);
+        $this->assertTrue(Storage::disk('public')->exists($question->gambar_soal));
+    }
+
+    public function test_teacher_can_add_each_question_type_with_the_question_form_default_payload(): void
+    {
+        $this->travelTo('2026-11-15 01:00:00');
+        Storage::fake('public');
+        $teacherUser = User::factory()->create(['role' => 'guru']);
+        [$kelas, $mapel] = $this->createAssignment($teacherUser);
+        $exam = Ujian::create([
+            'mapel_id' => $mapel->id,
+            'guru_id' => $teacherUser->guru->id,
+            'kelas_id' => $kelas->id,
+            'judul_ujian' => 'Ujian Seluruh Tipe',
+            'waktu_mulai' => '2026-11-16 08:00:00',
+            'durasi_menit' => 60,
+            'acak_soal' => false,
+            'mode_ujian' => 'akm',
+        ]);
+        $formDefaults = [
+            'bobot' => '1',
+            'pertanyaan' => 'Pertanyaan',
+            'opsi_a' => '',
+            'opsi_b' => '',
+            'opsi_c' => '',
+            'opsi_d' => '',
+            'opsi_e' => '',
+            'kunci_jawaban' => 'A',
+            'opsi_json' => [
+                'opsi' => ['', '', '', '', ''],
+                'pasangan_kiri' => ['', '', ''],
+                'pasangan_kanan' => ['', '', ''],
+                'kunci_jawaban' => [],
+            ],
+        ];
+        $typeSpecificData = [
+            'pg' => [
+                'opsi_a' => 'A',
+                'opsi_b' => 'B',
+                'opsi_c' => 'C',
+                'opsi_d' => 'D',
+                'opsi_e' => 'E',
+            ],
+            'pg_kompleks' => [
+                'opsi_json' => [
+                    'opsi' => [
+                        'Pernyataan satu',
+                        'Pernyataan dua',
+                        'Pernyataan tiga',
+                        'Pernyataan empat',
+                        'Pernyataan lima',
+                    ],
+                    'kunci_jawaban' => ['0'],
+                ],
+            ],
+            'menjodohkan' => [
+                'opsi_json' => [
+                    'pasangan_kiri' => ['Kiri satu', 'Kiri dua', 'Kiri tiga'],
+                    'pasangan_kanan' => ['Kanan satu', 'Kanan dua', 'Kanan tiga'],
+                    'kunci_jawaban' => ['1', '0', '2'],
+                ],
+            ],
+            'isian_singkat' => [
+                'opsi_json' => ['kunci_jawaban' => ['jawaban benar']],
+            ],
+            'esai' => [
+                'gambar_soal' => UploadedFile::fake()->image('gambar-esai.png'),
+            ],
+        ];
+
+        foreach ($typeSpecificData as $type => $specificData) {
+            $payload = array_replace_recursive($formDefaults, [
+                'tipe_soal' => $type,
+                'pertanyaan' => "Pertanyaan {$type}",
+            ], $specificData);
+
+            $this->actingAs($teacherUser)
+                ->post(route('guru.ujian.soal.store', $exam), $payload)
+                ->assertRedirectToRoute('guru.ujian.index')
+                ->assertSessionHas('success');
+
+            $this->assertDatabaseHas('bank_soals', [
+                'ujian_id' => $exam->id,
+                'tipe_soal' => $type,
+                'pertanyaan' => "Pertanyaan {$type}",
+            ]);
+        }
+
+        $essay = BankSoal::query()->where('ujian_id', $exam->id)->where('tipe_soal', 'esai')->firstOrFail();
+        $this->assertTrue(Storage::disk('public')->exists($essay->gambar_soal));
+        $this->assertNull($essay->gambar_a);
+
+        $this->actingAs($teacherUser)
+            ->get(route('guru.ujian.index'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->has('ujians.0.bank_soals', 5)
+                ->where('ujians.0.bank_soals.4.tipe_soal', 'esai'));
+    }
+
+    public function test_matching_question_requires_at_least_three_pairs(): void
+    {
+        $teacherUser = User::factory()->create(['role' => 'guru']);
+        [$kelas, $mapel] = $this->createAssignment($teacherUser);
+        $exam = Ujian::create([
+            'mapel_id' => $mapel->id,
+            'guru_id' => $teacherUser->guru->id,
+            'kelas_id' => $kelas->id,
+            'judul_ujian' => 'Ujian Menjodohkan',
+            'waktu_mulai' => now()->addDay(),
+            'durasi_menit' => 60,
+            'acak_soal' => false,
+            'mode_ujian' => 'akm',
+        ]);
+
+        $this->actingAs($teacherUser)
+            ->post(route('guru.ujian.soal.store', $exam), [
+                'tipe_soal' => 'menjodohkan',
+                'pertanyaan' => 'Pasangkan item.',
+                'opsi_json' => [
+                    'pasangan_kiri' => ['Kiri satu', 'Kiri dua'],
+                    'pasangan_kanan' => ['Kanan satu', 'Kanan dua'],
+                    'kunci_jawaban' => ['0', '1'],
+                ],
+            ])
+            ->assertSessionHasErrors('opsi_json.pasangan_kiri');
+
+        $this->assertDatabaseCount('bank_soals', 0);
+    }
+
     public function test_teacher_cannot_schedule_an_exam_for_an_unassigned_class_and_subject(): void
     {
         $this->travelTo('2026-11-15 01:00:00');
@@ -92,6 +265,169 @@ class UjianControllerTest extends TestCase
             ]);
 
         $this->assertDatabaseCount('ujians', 0);
+    }
+
+    public function test_teacher_can_reschedule_an_exam_after_students_have_completed_it(): void
+    {
+        $this->travelTo('2026-11-15 00:00:00');
+        $teacherUser = User::factory()->create(['role' => 'guru']);
+        [$kelas, $mapel] = $this->createAssignment($teacherUser);
+        $exam = Ujian::create([
+            'mapel_id' => $mapel->id,
+            'guru_id' => $teacherUser->guru->id,
+            'kelas_id' => $kelas->id,
+            'judul_ujian' => 'Ujian Matematika',
+            'waktu_mulai' => '2026-11-15 01:00:00',
+            'durasi_menit' => 60,
+            'acak_soal' => false,
+        ]);
+        $student = $this->createStudent($kelas, '0000000015', 'Siswa Uji');
+        $attempt = $exam->hasilUjians()->create([
+            'siswa_id' => $student->id,
+            'jawaban_json' => ['1' => 'A'],
+            'skor_akhir' => 80,
+            'status_pengerjaan' => 'selesai',
+        ]);
+
+        $this->actingAs($teacherUser)
+            ->put(route('guru.ujian.update', $exam), [
+                'kelas_id' => $kelas->id,
+                'mapel_id' => $mapel->id,
+                'judul_ujian' => 'Ujian Matematika Susulan',
+                'waktu_mulai' => '2026-11-16T08:00',
+                'durasi_menit' => 90,
+                'acak_soal' => true,
+            ])
+            ->assertRedirectToRoute('guru.ujian.index')
+            ->assertSessionHas('success', 'Jadwal ujian berhasil diperbarui.');
+
+        $this->assertDatabaseHas('ujians', [
+            'id' => $exam->id,
+            'judul_ujian' => 'Ujian Matematika Susulan',
+            'waktu_mulai' => '2026-11-16 01:00:00',
+            'durasi_menit' => 90,
+            'acak_soal' => true,
+        ]);
+        $this->assertModelExists($attempt);
+    }
+
+    public function test_teacher_can_edit_a_past_exam_without_changing_its_start_time(): void
+    {
+        $this->travelTo('2026-11-18 21:00:00');
+        $teacherUser = User::factory()->create(['role' => 'guru']);
+        [$kelas, $mapel] = $this->createAssignment($teacherUser);
+        $exam = Ujian::create([
+            'mapel_id' => $mapel->id,
+            'guru_id' => $teacherUser->guru->id,
+            'kelas_id' => $kelas->id,
+            'judul_ujian' => 'Ujian Matematika',
+            'waktu_mulai' => '2026-11-15 01:00:00',
+            'durasi_menit' => 60,
+            'acak_soal' => false,
+        ]);
+
+        $this->actingAs($teacherUser)
+            ->put(route('guru.ujian.update', $exam), [
+                'kelas_id' => $kelas->id,
+                'mapel_id' => $mapel->id,
+                'judul_ujian' => 'Judul Diperbaiki',
+                'waktu_mulai' => $exam->waktu_mulai->copy()->setTimezone('Asia/Jakarta')->format('Y-m-d\TH:i'),
+                'durasi_menit' => 60,
+                'acak_soal' => false,
+            ])
+            ->assertRedirectToRoute('guru.ujian.index')
+            ->assertSessionHas('success', 'Jadwal ujian berhasil diperbarui.');
+
+        $this->assertDatabaseHas('ujians', [
+            'id' => $exam->id,
+            'judul_ujian' => 'Judul Diperbaiki',
+        ]);
+    }
+
+    public function test_teacher_cannot_change_exam_mode_after_questions_are_added(): void
+    {
+        $teacherUser = User::factory()->create(['role' => 'guru']);
+        [$kelas, $mapel] = $this->createAssignment($teacherUser);
+        $exam = Ujian::create([
+            'mapel_id' => $mapel->id,
+            'guru_id' => $teacherUser->guru->id,
+            'kelas_id' => $kelas->id,
+            'judul_ujian' => 'Ujian Matematika',
+            'waktu_mulai' => now()->addDay(),
+            'durasi_menit' => 60,
+            'acak_soal' => false,
+            'mode_ujian' => 'normal',
+        ]);
+        $exam->bankSoals()->create([
+            'pertanyaan' => 'Berapakah 2 + 2?',
+            'opsi_a' => '3',
+            'opsi_b' => '4',
+            'opsi_c' => '5',
+            'opsi_d' => '6',
+            'opsi_e' => '7',
+            'kunci_jawaban' => 'B',
+            'tipe_soal' => 'pg',
+            'bobot' => 1,
+        ]);
+
+        $this->actingAs($teacherUser)
+            ->put(route('guru.ujian.update', $exam), [
+                'kelas_id' => $kelas->id,
+                'mapel_id' => $mapel->id,
+                'judul_ujian' => $exam->judul_ujian,
+                'waktu_mulai' => $exam->waktu_mulai->copy()->setTimezone('Asia/Jakarta')->format('Y-m-d\TH:i'),
+                'durasi_menit' => $exam->durasi_menit,
+                'acak_soal' => false,
+                'mode_ujian' => 'akm',
+            ])
+            ->assertSessionHasErrors('mode_ujian');
+
+        $this->assertDatabaseHas('ujians', [
+            'id' => $exam->id,
+            'mode_ujian' => 'normal',
+        ]);
+    }
+
+    public function test_teacher_can_delete_an_exam_with_attempts_and_questions(): void
+    {
+        $teacherUser = User::factory()->create(['role' => 'guru']);
+        [$kelas, $mapel] = $this->createAssignment($teacherUser);
+        $exam = Ujian::create([
+            'mapel_id' => $mapel->id,
+            'guru_id' => $teacherUser->guru->id,
+            'kelas_id' => $kelas->id,
+            'judul_ujian' => 'Ujian Matematika',
+            'waktu_mulai' => '2026-11-15 01:00:00',
+            'durasi_menit' => 60,
+            'acak_soal' => false,
+        ]);
+        $student = $this->createStudent($kelas, '0000000016', 'Siswa Uji');
+
+        $question = BankSoal::create([
+            'ujian_id' => $exam->id,
+            'pertanyaan' => 'Berapakah 2 + 2?',
+            'opsi_a' => '3',
+            'opsi_b' => '4',
+            'opsi_c' => '5',
+            'opsi_d' => '6',
+            'opsi_e' => '7',
+            'kunci_jawaban' => 'B',
+        ]);
+        $attempt = $exam->hasilUjians()->create([
+            'siswa_id' => $student->id,
+            'jawaban_json' => ['1' => 'B'],
+            'skor_akhir' => 100,
+            'status_pengerjaan' => 'selesai',
+        ]);
+
+        $this->actingAs($teacherUser)
+            ->delete(route('guru.ujian.destroy', $exam))
+            ->assertRedirectToRoute('guru.ujian.index')
+            ->assertSessionHas('success', 'Ujian beserta bank soal dan riwayat pengerjaannya berhasil dihapus.');
+
+        $this->assertModelMissing($exam);
+        $this->assertDatabaseMissing('bank_soals', ['id' => $question->id]);
+        $this->assertDatabaseMissing('hasil_ujians', ['id' => $attempt->id]);
     }
 
     public function test_teacher_results_overview_lists_owned_exams_without_result_sessions(): void
@@ -211,6 +547,76 @@ class UjianControllerTest extends TestCase
         $this->assertModelExists($waitingStudent);
     }
 
+    public function test_teacher_can_grade_essays_and_the_final_score_includes_the_essay_score(): void
+    {
+        $teacherUser = User::factory()->create(['role' => 'guru']);
+        [$kelas, $mapel] = $this->createAssignment($teacherUser);
+        $exam = Ujian::create([
+            'mapel_id' => $mapel->id,
+            'guru_id' => $teacherUser->guru->id,
+            'kelas_id' => $kelas->id,
+            'judul_ujian' => 'Ujian Campuran',
+            'waktu_mulai' => '2026-11-16 08:00:00',
+            'durasi_menit' => 60,
+            'acak_soal' => false,
+        ]);
+        $multipleChoice = $exam->bankSoals()->create([
+            'pertanyaan' => 'Pilih jawaban.',
+            'opsi_a' => 'Benar',
+            'opsi_b' => 'Salah',
+            'opsi_c' => 'Pilihan C',
+            'opsi_d' => 'Pilihan D',
+            'opsi_e' => 'Pilihan E',
+            'kunci_jawaban' => 'A',
+        ]);
+        $essay = $exam->bankSoals()->create([
+            'pertanyaan' => 'Jelaskan alasan Anda.',
+            'opsi_a' => '',
+            'opsi_b' => '',
+            'opsi_c' => '',
+            'opsi_d' => '',
+            'opsi_e' => '',
+            'kunci_jawaban' => 'A',
+            'tipe_soal' => 'esai',
+            'bobot' => 2,
+        ]);
+        $student = $this->createStudent($kelas, '0000000020', 'Siswa Esai');
+        $attempt = $exam->hasilUjians()->create([
+            'siswa_id' => $student->id,
+            'jawaban_json' => [
+                (string) $multipleChoice->id => 'A',
+                (string) $essay->id => 'Jawaban siswa.',
+            ],
+            'skor_akhir' => 50,
+            'status_pengerjaan' => 'selesai',
+        ]);
+
+        $this->actingAs($teacherUser)
+            ->get(route('guru.ujian.hasil', $exam))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('students.0.jumlah_pelanggaran', 0)
+                ->where('students.0.esai.0.jawaban', 'Jawaban siswa.')
+                ->where('students.0.esai.0.bobot', 2));
+
+        $this->actingAs($teacherUser)
+            ->put(route('guru.ujian.hasil.esai', [$exam->id, $student->id]), [
+                'scores' => [(string) $essay->id => 2],
+            ])
+            ->assertRedirectToRoute('guru.ujian.hasil', $exam)
+            ->assertSessionHas('success');
+
+        $this->assertSame('100.00', $attempt->refresh()->skor_akhir);
+
+        $this->actingAs($teacherUser)
+            ->put(route('guru.ujian.hasil.esai', [$exam->id, $student->id]), [
+                'scores' => [(string) $essay->id => 3],
+            ])
+            ->assertSessionHasErrors(["scores.{$essay->id}"]);
+
+        $this->assertSame('100.00', $attempt->refresh()->skor_akhir);
+    }
+
     public function test_teacher_cannot_access_another_teachers_exam_results_or_reset_sessions(): void
     {
         $teacherUser = User::factory()->create(['role' => 'guru']);
@@ -235,6 +641,12 @@ class UjianControllerTest extends TestCase
         $this->actingAs($teacherUser)
             ->get(route('guru.ujian.hasil', $exam))
             ->assertNotFound();
+
+        $this->actingAs($teacherUser)
+            ->delete(route('guru.ujian.destroy', $exam))
+            ->assertNotFound();
+
+        $this->assertModelExists($exam);
 
         $this->actingAs($teacherUser)
             ->delete(route('guru.ujian.reset-session', [$exam->id, $student->id]))
