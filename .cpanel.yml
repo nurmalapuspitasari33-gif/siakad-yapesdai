@@ -1,0 +1,5 @@
+---
+deployment:
+  tasks:
+    - export DEPLOYPATH=/home/yaps5718/repos/siakad-yapesdai
+    - /bin/cp -R * $DEPLOYPATH
