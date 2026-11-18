@@ -1,5 +1,6 @@
 ---
 deployment:
   tasks:
-    - export DEPLOYPATH=/home/yaps5718/repos/siakad-yapesdai
-    - /usr/bin/rsync -av --exclude='.git' --exclude='.env' --exclude='vendor' --exclude='storage' ./ $DEPLOYPATH
+    - export DeploymentPath=/home/yaps5718/repos/siakad-yapesdai
+    - /bin/cp -R * $DeploymentPath
+    - /bin/cp -R .env $DeploymentPath
