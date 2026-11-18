@@ -72,6 +72,7 @@ function PasswordToggleIcon({ visible }) {
 export default function Login({ canResetPassword = true, status = null }) {
     const { props } = usePage();
     const pengaturanSekolah = props.pengaturanSekolah ?? {};
+    const googleError = props.errors?.google;
     const contactPhone = pengaturanSekolah.telepon || '0282695626';
     const contactHref = pengaturanSekolah.email
         ? `mailto:${pengaturanSekolah.email}`
@@ -251,6 +252,14 @@ export default function Login({ canResetPassword = true, status = null }) {
                                     label="Masuk dengan Google"
                                     className="min-h-12 border-slate-200/80 bg-white/90 py-3 text-slate-700 backdrop-blur-md hover:bg-white lg:min-h-9 lg:py-1.5"
                                 />
+                                {googleError && (
+                                    <p
+                                        className="mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+                                        role="alert"
+                                    >
+                                        {googleError}
+                                    </p>
+                                )}
 
                                 <a
                                     href={contactHref}

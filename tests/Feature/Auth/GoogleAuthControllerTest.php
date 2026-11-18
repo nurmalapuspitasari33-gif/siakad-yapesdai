@@ -44,7 +44,7 @@ class GoogleAuthControllerTest extends TestCase
         $this->get(route('google.redirect'))
             ->assertRedirect(route('login'))
             ->assertSessionHasErrors([
-                'email' => 'Login Google belum dikonfigurasi oleh administrator.',
+                'google' => 'Login Google belum dikonfigurasi oleh administrator.',
             ]);
     }
 
@@ -144,7 +144,7 @@ class GoogleAuthControllerTest extends TestCase
         $this->get(route('google.callback'))
             ->assertRedirect(route('login'))
             ->assertSessionHasErrors([
-                'email' => 'Gunakan akun Google dengan alamat email terverifikasi.',
+                'google' => 'Gunakan akun Google dengan alamat email terverifikasi.',
             ]);
 
         $this->assertGuest();
@@ -165,7 +165,7 @@ class GoogleAuthControllerTest extends TestCase
         $this->get(route('google.callback'))
             ->assertRedirect(route('login'))
             ->assertSessionHasErrors([
-                'email' => 'Akun Google ini sudah terhubung ke akun lain.',
+                'google' => 'Akun Google ini sudah terhubung ke akun lain.',
             ]);
 
         $this->assertGuest();

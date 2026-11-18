@@ -21,7 +21,7 @@ class GoogleAuthController extends Controller
             || ! config('services.google.client_secret')
         ) {
             return to_route('login')
-                ->withErrors(['email' => 'Login Google belum dikonfigurasi oleh administrator.']);
+                ->withErrors(['google' => 'Login Google belum dikonfigurasi oleh administrator.']);
         }
 
         $redirectUrl = config('services.google.redirect') ?: url('/auth/google/callback');
@@ -43,8 +43,10 @@ class GoogleAuthController extends Controller
                 ->stateless()
                 ->user();
         } catch (\Throwable $e) {
+            report($e);
+
             return to_route('login')
-                ->withErrors(['email' => 'Gagal memverifikasi akun Google: '.$e->getMessage()]);
+                ->withErrors(['google' => 'Login Google gagal diproses. Silakan coba lagi atau hubungi administrator.']);
         }
 
         $email = Str::lower(trim((string) $googleUser->getEmail()));
@@ -52,12 +54,12 @@ class GoogleAuthController extends Controller
 
         if (! filter_var($email, FILTER_VALIDATE_EMAIL) || $googleId === '') {
             return to_route('login')
-                ->withErrors(['email' => 'Gunakan akun Google dengan alamat email yang valid.']);
+                ->withErrors(['google' => 'Gunakan akun Google dengan alamat email yang valid.']);
         }
 
         if (! (bool) ($googleUser->user['verified_email'] ?? false)) {
             return to_route('login')
-                ->withErrors(['email' => 'Gunakan akun Google dengan alamat email terverifikasi.']);
+                ->withErrors(['google' => 'Gunakan akun Google dengan alamat email terverifikasi.']);
         }
 
         $userByGoogleId = User::query()->where('google_id', $googleId)->first();
@@ -69,7 +71,7 @@ class GoogleAuthController extends Controller
             && $userByGoogleId->getKey() !== $userByEmail->getKey()
         ) {
             return to_route('login')
-                ->withErrors(['email' => 'Akun Google ini sudah terhubung ke akun lain.']);
+                ->withErrors(['google' => 'Akun Google ini sudah terhubung ke akun lain.']);
         }
 
         $isNewCandidate = ! $userByGoogleId && ! $userByEmail;
