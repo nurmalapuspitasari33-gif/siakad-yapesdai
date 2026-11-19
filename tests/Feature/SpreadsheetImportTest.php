@@ -2,11 +2,11 @@
 
 namespace Tests\Feature;
 
+use App\Models\BankSoal;
 use App\Models\Guru;
 use App\Models\Jadwal;
 use App\Models\Kelas;
 use App\Models\MataPelajaran;
-use App\Models\BankSoal;
 use App\Models\ProgramKeahlian;
 use App\Models\Siswa;
 use App\Models\TahunAjaran;
@@ -261,6 +261,98 @@ class SpreadsheetImportTest extends TestCase
         $this->assertNull($student->user->email);
         $this->assertNull($secondStudent->nisn);
         $this->assertNull($secondStudent->user->email);
+    }
+
+    public function test_admin_import_updates_students_by_identifiers_and_preserves_blank_cells(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $kelas = $this->createActiveClass();
+        $existingRecords = [
+            [
+                'nisn' => '1000000011',
+                'nis' => 'SMK-0011',
+                'email' => 'siswa.nisn@sekolah.sch.id',
+                'name' => 'Siswa Lama NISN',
+                'updated_name' => 'Siswa Update NISN',
+            ],
+            [
+                'nisn' => null,
+                'nis' => 'SMK-0012',
+                'email' => 'siswa.nis@sekolah.sch.id',
+                'name' => 'Siswa Lama NIS',
+                'updated_name' => 'Siswa Update NIS',
+            ],
+            [
+                'nisn' => null,
+                'nis' => null,
+                'email' => 'siswa.email@sekolah.sch.id',
+                'name' => 'Siswa Lama Email',
+                'updated_name' => 'Siswa Update Email',
+            ],
+        ];
+        $students = [];
+
+        foreach ($existingRecords as $record) {
+            $user = User::factory()->create([
+                'role' => 'siswa',
+                'email' => $record['email'],
+            ]);
+            $students[] = Siswa::create([
+                'user_id' => $user->id,
+                'kelas_id' => $kelas->id,
+                'nisn' => $record['nisn'],
+                'nis' => $record['nis'],
+                'nama_lengkap' => $record['name'],
+                'jenis_kelamin' => 'P',
+                'tempat_lahir' => 'Jakarta',
+                'tanggal_lahir' => '2010-01-02',
+                'agama' => 'Islam',
+                'alamat_murid' => 'Alamat Lama',
+                'nama_ayah' => 'Ayah Lama',
+                'nama_ibu' => 'Ibu Lama',
+                'sekolah_asal' => 'SMP Lama',
+                'no_wa_wali' => '081234567890',
+                'tipe_program' => 'santri_internal',
+                'ukuran_seragam' => 'M',
+                'status_siswa' => 'aktif',
+            ]);
+        }
+
+        $this->actingAs($admin)
+            ->post(route('admin.siswa.import'), [
+                'file' => $this->xlsxUpload(
+                    [
+                        'nisn', 'nis', 'nama_lengkap', 'email', 'nama_kelas', 'jenis_kelamin',
+                        'tempat_lahir', 'tanggal_lahir', 'agama', 'alamat_murid', 'nama_ayah',
+                        'nama_ibu', 'sekolah_asal', 'no_wa_wali', 'tipe_program', 'ukuran_seragam',
+                        'program_keahlian', 'konsentrasi_keahlian',
+                    ],
+                    [
+                        ['1000000011', '', 'Siswa Update NISN', '', '', '', '', '', '', '', '', '', '', '', '', '', '', ''],
+                        ['', 'SMK-0012', 'Siswa Update NIS', '', '', '', '', '', '', '', '', '', '', '', '', '', '', ''],
+                        ['', '', 'Siswa Update Email', 'siswa.email@sekolah.sch.id', '', '', '', '', '', '', '', '', '', '', '', '', '', ''],
+                    ],
+                ),
+            ])
+            ->assertRedirect(route('admin.siswa.index', absolute: false))
+            ->assertSessionHas('success', '0 siswa baru ditambahkan, 3 siswa diperbarui.');
+
+        $this->assertDatabaseCount('siswas', 3);
+        $this->assertDatabaseCount('users', 4);
+
+        foreach ($students as $index => $student) {
+            $student->refresh();
+
+            $this->assertSame($existingRecords[$index]['updated_name'], $student->nama_lengkap);
+            $this->assertSame('P', $student->jenis_kelamin);
+            $this->assertSame('2010-01-02', $student->tanggal_lahir->format('Y-m-d'));
+            $this->assertSame('Islam', $student->agama);
+            $this->assertSame('Ayah Lama', $student->nama_ayah);
+            $this->assertSame('SMP Lama', $student->sekolah_asal);
+            $this->assertSame($kelas->id, $student->kelas_id);
+            $this->assertSame($existingRecords[$index]['email'], $student->user->email);
+            $this->assertSame('santri_internal', $student->tipe_program);
+        }
     }
 
     public function test_admin_student_import_saves_a_matching_program_and_concentration(): void

@@ -12,6 +12,7 @@ use App\Models\TahunAjaran;
 use App\Models\User;
 use App\Support\SpreadsheetFile;
 use App\Support\StudentIdentity;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -155,6 +156,74 @@ class SiswaController extends Controller
                 ->get(['id', 'nama_kelas', 'program_keahlian_id', 'konsentrasi_keahlian_id'])
                 ->groupBy(fn (Kelas $kelas): string => mb_strtolower($kelas->nama_kelas))
             : collect();
+        $importNisns = collect($rows)
+            ->pluck('data.nisn')
+            ->filter(static fn (mixed $value): bool => is_string($value) && $value !== '')
+            ->map(static fn (string $value): string => mb_strtolower($value))
+            ->unique()
+            ->values();
+        $importNis = collect($rows)
+            ->pluck('data.nis')
+            ->filter(static fn (mixed $value): bool => is_string($value) && $value !== '')
+            ->map(static fn (string $value): string => mb_strtolower($value))
+            ->unique()
+            ->values();
+        $importEmails = collect($rows)
+            ->pluck('data.email')
+            ->filter(static fn (mixed $value): bool => is_string($value) && $value !== '')
+            ->map(static fn (string $value): string => mb_strtolower($value))
+            ->unique()
+            ->values();
+        $existingStudentRelations = [
+            'user:id,email',
+            'programKeahlian:id,kode_jurusan,nama_jurusan',
+            'konsentrasiKeahlian:id,program_keahlian_id,kode_konsentrasi,nama_konsentrasi',
+        ];
+        $existingStudents = collect();
+
+        if ($importNisns->isNotEmpty()) {
+            $existingStudents = $existingStudents->merge(
+                Siswa::query()
+                    ->with($existingStudentRelations)
+                    ->whereIn(DB::raw('LOWER(nisn)'), $importNisns->all())
+                    ->get(),
+            );
+        }
+
+        if ($importNis->isNotEmpty()) {
+            $existingStudents = $existingStudents->merge(
+                Siswa::query()
+                    ->with($existingStudentRelations)
+                    ->whereIn(DB::raw('LOWER(nis)'), $importNis->all())
+                    ->get(),
+            );
+        }
+
+        if ($importEmails->isNotEmpty()) {
+            $existingStudents = $existingStudents->merge(
+                Siswa::query()
+                    ->with($existingStudentRelations)
+                    ->whereHas(
+                        'user',
+                        fn (Builder $query): Builder => $query->whereIn(
+                            DB::raw('LOWER(email)'),
+                            $importEmails->all(),
+                        ),
+                    )
+                    ->get(),
+            );
+        }
+
+        $existingStudents = $existingStudents->unique('id')->values();
+        $existingStudentsByNisn = $existingStudents
+            ->filter(static fn (Siswa $student): bool => $student->nisn !== null)
+            ->keyBy(static fn (Siswa $student): string => mb_strtolower($student->nisn));
+        $existingStudentsByNis = $existingStudents
+            ->filter(static fn (Siswa $student): bool => $student->nis !== null)
+            ->keyBy(static fn (Siswa $student): string => mb_strtolower($student->nis));
+        $existingStudentsByEmail = $existingStudents
+            ->filter(static fn (Siswa $student): bool => $student->user?->email !== null)
+            ->keyBy(static fn (Siswa $student): string => mb_strtolower($student->user->email));
         $programsByIdentifier = collect();
 
         foreach (ProgramKeahlian::query()
@@ -168,13 +237,63 @@ class SiswaController extends Controller
         $seenNisns = [];
         $seenNis = [];
         $seenEmails = [];
+        $seenStudentIds = [];
         $students = [];
 
         foreach ($rows as $item) {
             $rowNumber = $item['row'];
             $data = $item['data'];
+            $nisnKey = $data['nisn'] !== null ? mb_strtolower($data['nisn']) : null;
+            $nisKey = $data['nis'] !== null ? mb_strtolower($data['nis']) : null;
+            $emailKey = $data['email'] !== null ? mb_strtolower($data['email']) : null;
+            $existingStudent = $nisnKey !== null ? $existingStudentsByNisn->get($nisnKey) : null;
+            $existingStudent ??= $nisKey !== null ? $existingStudentsByNis->get($nisKey) : null;
+            $existingStudent ??= $emailKey !== null ? $existingStudentsByEmail->get($emailKey) : null;
+
+            if ($existingStudent !== null) {
+                if (isset($seenStudentIds[$existingStudent->id])) {
+                    $errors[] = "Baris {$rowNumber}: Siswa yang sama dicantumkan lebih dari sekali di dalam file.";
+                }
+
+                $seenStudentIds[$existingStudent->id] = true;
+                $existingData = [
+                    'nisn' => $existingStudent->nisn,
+                    'nis' => $existingStudent->nis,
+                    'email' => $existingStudent->user?->email,
+                    'jenis_kelamin' => $existingStudent->jenis_kelamin,
+                    'tempat_lahir' => $existingStudent->tempat_lahir,
+                    'tanggal_lahir' => $existingStudent->tanggal_lahir?->format('Y-m-d'),
+                    'agama' => $existingStudent->agama,
+                    'alamat_murid' => $existingStudent->alamat_murid,
+                    'nama_ayah' => $existingStudent->nama_ayah,
+                    'nama_ibu' => $existingStudent->nama_ibu,
+                    'sekolah_asal' => $existingStudent->sekolah_asal,
+                    'no_wa_wali' => $existingStudent->no_wa_wali,
+                    'tipe_program' => $existingStudent->tipe_program,
+                    'ukuran_seragam' => $existingStudent->ukuran_seragam,
+                ];
+
+                foreach ($existingData as $field => $value) {
+                    if ($data[$field] === null) {
+                        $data[$field] = $value;
+                    }
+                }
+
+                if ($data['program_keahlian'] !== null || $data['konsentrasi_keahlian'] !== null) {
+                    if ($data['program_keahlian'] === null && $existingStudent->programKeahlian !== null) {
+                        $data['program_keahlian'] = $existingStudent->programKeahlian->kode_jurusan;
+                    }
+
+                    if ($data['konsentrasi_keahlian'] === null && $existingStudent->konsentrasiKeahlian !== null) {
+                        $data['konsentrasi_keahlian'] = $existingStudent->konsentrasiKeahlian->kode_konsentrasi;
+                    }
+                }
+            }
+
             $programType = trim((string) ($data['tipe_program'] ?? ''));
-            $data['tipe_program'] = $programType === '' ? 'reguler' : mb_strtolower($programType);
+            $data['tipe_program'] = $programType === ''
+                ? ($existingStudent?->tipe_program ?? 'reguler')
+                : mb_strtolower($programType);
             $gender = mb_strtolower(trim((string) ($data['jenis_kelamin'] ?? '')));
             $data['jenis_kelamin'] = match ($gender) {
                 'l', 'laki-laki', 'laki laki' => 'L',
@@ -182,11 +301,21 @@ class SiswaController extends Controller
                 default => $data['jenis_kelamin'] ?? null,
             };
             $data['tanggal_lahir'] = $this->normalizeStudentImportBirthDate($data['tanggal_lahir'] ?? null);
+            $nisnUniqueRule = Rule::unique('siswas', 'nisn');
+            $nisUniqueRule = Rule::unique('siswas', 'nis');
+            $emailUniqueRule = Rule::unique('users', 'email');
+
+            if ($existingStudent !== null) {
+                $nisnUniqueRule->ignore($existingStudent);
+                $nisUniqueRule->ignore($existingStudent);
+                $emailUniqueRule->ignore($existingStudent->user);
+            }
+
             $validator = Validator::make($data, [
-                'nisn' => ['nullable', 'string', 'max:255', Rule::unique('siswas', 'nisn')],
-                'nis' => ['nullable', 'string', 'max:255', Rule::unique('siswas', 'nis')],
+                'nisn' => ['nullable', 'string', 'max:255', $nisnUniqueRule],
+                'nis' => ['nullable', 'string', 'max:255', $nisUniqueRule],
                 'nama_lengkap' => ['required', 'string', 'max:255'],
-                'email' => ['nullable', 'email', 'max:255', Rule::unique('users', 'email')],
+                'email' => ['nullable', 'email', 'max:255', $emailUniqueRule],
                 'nama_kelas' => ['nullable', 'string', 'max:255'],
                 'jenis_kelamin' => ['nullable', Rule::in(['L', 'P'])],
                 'tempat_lahir' => ['nullable', 'string', 'max:100'],
@@ -304,9 +433,14 @@ class SiswaController extends Controller
 
             $students[] = [
                 'data' => $data,
-                'kelas_id' => $matchingClass?->id,
-                'program_keahlian_id' => $programKeahlian?->id ?? $matchingClass?->program_keahlian_id,
-                'konsentrasi_keahlian_id' => $konsentrasiKeahlian?->id ?? $matchingClass?->konsentrasi_keahlian_id,
+                'existing' => $existingStudent,
+                'kelas_id' => $matchingClass?->id ?? $existingStudent?->kelas_id,
+                'program_keahlian_id' => $programKeahlian?->id
+                    ?? $matchingClass?->program_keahlian_id
+                    ?? $existingStudent?->program_keahlian_id,
+                'konsentrasi_keahlian_id' => $konsentrasiKeahlian?->id
+                    ?? $matchingClass?->konsentrasi_keahlian_id
+                    ?? $existingStudent?->konsentrasi_keahlian_id,
             ];
         }
 
@@ -317,18 +451,7 @@ class SiswaController extends Controller
         DB::transaction(function () use ($students): void {
             foreach ($students as $student) {
                 $data = $student['data'];
-                $user = User::create([
-                    'name' => $data['nama_lengkap'],
-                    'email' => $data['email'],
-                    'password' => 'password',
-                    'role' => 'siswa',
-                ]);
-                if ($data['email'] !== null) {
-                    $user->forceFill(['email_verified_at' => now()])->save();
-                }
-
-                Siswa::create([
-                    'user_id' => $user->id,
+                $studentAttributes = [
                     'kelas_id' => $student['kelas_id'],
                     'program_keahlian_id' => $student['program_keahlian_id'],
                     'konsentrasi_keahlian_id' => $student['konsentrasi_keahlian_id'],
@@ -347,13 +470,56 @@ class SiswaController extends Controller
                     'sekolah_asal' => $data['sekolah_asal'] ?? null,
                     'tipe_program' => $data['tipe_program'],
                     'ukuran_seragam' => $data['ukuran_seragam'] ?? null,
+                ];
+
+                if ($student['existing'] instanceof Siswa) {
+                    $existingStudent = $student['existing'];
+                    $user = $existingStudent->user;
+                    $userAttributes = [
+                        'name' => $data['nama_lengkap'],
+                        'email' => $data['email'],
+                    ];
+
+                    if ($user->email !== $data['email']) {
+                        $userAttributes['email_verified_at'] = null;
+                    }
+
+                    $user->forceFill($userAttributes)->save();
+                    $existingStudent->update($studentAttributes);
+
+                    continue;
+                }
+
+                $user = User::create([
+                    'name' => $data['nama_lengkap'],
+                    'email' => $data['email'],
+                    'password' => 'password',
+                    'role' => 'siswa',
                 ]);
+
+                if ($data['email'] !== null) {
+                    $user->forceFill(['email_verified_at' => now()])->save();
+                }
+
+                $studentAttributes['user_id'] = $user->id;
+                $studentAttributes['status_siswa'] = 'aktif';
+                Siswa::create($studentAttributes);
             }
         });
 
+        $updatedCount = collect($students)
+            ->filter(static fn (array $student): bool => $student['existing'] instanceof Siswa)
+            ->count();
+        $createdCount = count($students) - $updatedCount;
+        $successMessage = "{$createdCount} siswa baru ditambahkan, {$updatedCount} siswa diperbarui.";
+
+        if ($createdCount > 0) {
+            $successMessage .= ' Kata sandi awal akun baru adalah password.';
+        }
+
         return to_route('admin.siswa.index')->with(
             'success',
-            count($students).' siswa berhasil diimpor. Kata sandi awal akun adalah password.',
+            $successMessage,
         );
     }
 
