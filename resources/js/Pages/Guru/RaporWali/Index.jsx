@@ -223,6 +223,7 @@ export default function GuruRaporWaliIndex({
                 student,
                 semester: mode === 'semester' && tahunAjaran ? {
                     ...tahunAjaran,
+                    tahun_ajaran: tahunAjaran.nama_tahun,
                     mata_pelajaran: mataPelajarans.map((mapel) => ({
                         ...mapel,
                         ...(student.nilai?.[mapel.id] ?? {}),

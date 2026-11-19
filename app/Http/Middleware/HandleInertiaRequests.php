@@ -39,6 +39,10 @@ class HandleInertiaRequests extends Middleware
                 'success' => fn () => $request->session()->get('success'),
                 'error' => fn () => $request->session()->get('error'),
             ],
+            'assetUrls' => [
+                'logoSekolah' => asset('logo.png'),
+                'logoYapesdai' => asset('yapesdai.png'),
+            ],
             'pengaturanSekolah' => function (): ?array {
                 $settings = PengaturanSekolah::query()->find(1);
 

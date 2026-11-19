@@ -1,3 +1,5 @@
+import { usePage } from '@inertiajs/react';
+
 function printValue(value) {
     return value === null || value === undefined || value === '' ? '—' : String(value);
 }
@@ -44,6 +46,7 @@ export default function SpmbApplicantReportDocument({
     settings = {},
     pendaftarans = [],
 }) {
+    const { assetUrls = {} } = usePage().props;
     const schoolSettings = settings ?? {};
     const placeAndDate = [
         schoolSettings.tempat_rapor,
@@ -53,7 +56,7 @@ export default function SpmbApplicantReportDocument({
     return (
         <section className="print-document spmb-print-document hidden bg-white text-black print:block">
             <header className="spmb-report-school-heading">
-                <img src="/logo.png" alt="" className="spmb-report-logo" />
+                <img src={assetUrls.logoSekolah} alt="" className="spmb-report-logo" />
                 <div>
                     <h1>{printValue(schoolSettings.nama_sekolah)}</h1>
                     <p>NPSN: {printValue(schoolSettings.npsn)}</p>

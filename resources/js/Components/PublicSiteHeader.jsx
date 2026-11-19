@@ -8,6 +8,7 @@ const navigationItems = [
 
 export default function PublicSiteHeader({ activePage }) {
     const { props } = usePage();
+    const assetUrls = props.assetUrls ?? {};
     const pengaturanSekolah = props.pengaturanSekolah ?? {};
     const contactHref = pengaturanSekolah.email
         ? `mailto:${pengaturanSekolah.email}`
@@ -24,7 +25,7 @@ export default function PublicSiteHeader({ activePage }) {
                 >
                     <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-slate-200/80 bg-white p-1.5 shadow-sm">
                         <img
-                            src="/yapesdai.png"
+                            src={assetUrls.logoYapesdai}
                             alt=""
                             className="h-full w-full object-contain"
                         />

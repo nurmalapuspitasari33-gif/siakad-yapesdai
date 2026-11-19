@@ -1,4 +1,4 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, usePage } from '@inertiajs/react';
 
 const educationUnits = [
     'Ponpes Al Fiel Kesugihan',
@@ -51,6 +51,8 @@ function ServiceCardIcon({ type }) {
 }
 
 export default function Home() {
+    const { assetUrls = {} } = usePage().props;
+
     return (
         <>
             <Head title="Beranda | YAPESDAI" />
@@ -139,7 +141,7 @@ export default function Home() {
                             </div>
 
                             <div className="flex min-h-48 flex-1 flex-col items-center justify-center gap-3 rounded-3xl border border-emerald-100 bg-emerald-50/70 p-5 text-center backdrop-blur-md">
-                                <img src="/yapesdai.png" alt="Logo YAPESDAI" className="h-28 w-full max-w-48 object-contain" />
+                                <img src={assetUrls.logoYapesdai} alt="Logo YAPESDAI" className="h-28 w-full max-w-48 object-contain" />
                                 <p className="text-sm font-semibold text-emerald-900">
                                     Pendidikan, akhlak, dan pengembangan insani
                                 </p>

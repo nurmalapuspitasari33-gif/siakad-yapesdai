@@ -1,3 +1,5 @@
+import { usePage } from '@inertiajs/react';
+
 function printValue(value) {
     return value === null || value === undefined || value === '' ? '—' : String(value);
 }
@@ -46,6 +48,7 @@ export default function ClassLedgerPrintDocument({
     mataPelajarans = [],
     siswas = [],
 }) {
+    const { assetUrls = {} } = usePage().props;
     const placeAndDate = [
         settings.tempat_rapor,
         formatLongDate(settings.tanggal_rapor),
@@ -63,7 +66,7 @@ export default function ClassLedgerPrintDocument({
             }`}
         >
             <header className="ledger-school-heading">
-                <img src="/logo.png" alt="" />
+                <img src={assetUrls.logoSekolah} alt="" />
                 <div>
                     <h1>{printValue(settings.nama_sekolah)}</h1>
                     <p>NPSN: {printValue(settings.npsn)}</p>

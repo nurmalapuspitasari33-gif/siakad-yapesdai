@@ -1,10 +1,13 @@
+import { usePage } from '@inertiajs/react';
+
 export function SchoolReportLetterhead({ settings = {}, title, subtitle }) {
+    const { assetUrls = {} } = usePage().props;
     const contact = [settings?.telepon, settings?.email].filter(Boolean).join(' · ');
 
     return (
         <header className="flex items-center justify-center gap-4 border-b-2 border-slate-900 pb-4 text-center">
             <img
-                src="/logo.png"
+                src={assetUrls.logoSekolah}
                 alt="Logo SMK Al Mu'allim Kesugihan"
                 className="h-16 w-16 shrink-0 object-contain print:h-16 print:w-16"
             />

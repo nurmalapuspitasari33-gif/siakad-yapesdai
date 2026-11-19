@@ -16,7 +16,9 @@ class WelcomePageTest extends TestCase
         $this->get('/')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->component('Home'));
+                ->component('Home')
+                ->where('assetUrls.logoSekolah', asset('logo.png'))
+                ->where('assetUrls.logoYapesdai', asset('yapesdai.png')));
     }
 
     public function test_spmb_landing_page_displays_spmb_information_and_registration_options(): void

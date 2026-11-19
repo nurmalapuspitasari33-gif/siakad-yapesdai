@@ -174,7 +174,7 @@ function DashboardFrame({
     navigation = [],
     children,
 }) {
-    const { auth = {}, flash = {}, pengaturanSekolah = {} } = usePage().props;
+    const { auth = {}, assetUrls = {}, flash = {}, pengaturanSekolah = {} } = usePage().props;
     const user = auth?.user;
     const userName = user?.name ?? 'Pengguna';
     const [isNavigationOpen, setIsNavigationOpen] = useState(false);
@@ -305,7 +305,7 @@ function DashboardFrame({
                                 aria-label={`${pengaturanSekolah?.nama_sekolah ?? 'SIAKAD Sekolah'}, beranda`}
                             >
                                 <img
-                                    src="/logo.png"
+                                    src={assetUrls.logoSekolah}
                                     alt=""
                                     className="h-10 w-10 shrink-0 rounded-xl border border-slate-200/70 bg-white object-contain p-1"
                                 />
