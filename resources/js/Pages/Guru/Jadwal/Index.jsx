@@ -1,5 +1,5 @@
 import DashboardLayout from '@/Layouts/DashboardLayout';
-import ScheduleTable from '@/Components/ScheduleTable';
+import ScheduleWeekGrid from '@/Components/ScheduleWeekGrid';
 import roleNavigationItems from '@/Components/RoleNavigationItems';
 import { Head, router } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
@@ -33,6 +33,7 @@ export default function GuruJadwalIndex({
     const [loadingAttendance, setLoadingAttendance] = useState(false);
     const [savingAttendance, setSavingAttendance] = useState(false);
     const [attendanceError, setAttendanceError] = useState('');
+    const activeDays = new Set(jadwals.map((jadwal) => jadwal.hari)).size;
 
     useEffect(() => {
         if (!selectedJadwal || !tanggal) {
@@ -115,19 +116,29 @@ export default function GuruJadwalIndex({
             navigation={roleNavigationItems('guru', 'jadwal', { isWaliKelas, waliKelasName })}
         >
             <Head title="Jadwal Mengajar" />
-            <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
-                <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                        <h2 className="font-bold text-slate-900">Jadwal pada tahun ajaran aktif</h2>
-                        <p className="mt-1 text-sm text-slate-500">{tahunAjaranAktif ?? 'Belum ada tahun ajaran aktif'}</p>
+            <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+                <div className="border-b border-slate-100 bg-gradient-to-r from-emerald-50 via-white to-sky-50 px-5 py-5 sm:px-7">
+                    <div className="flex flex-wrap items-center justify-between gap-4">
+                        <div>
+                            <p className="text-xs font-bold uppercase tracking-[0.16em] text-emerald-700">Agenda mengajar</p>
+                            <h2 className="mt-1 text-lg font-bold text-slate-900">Jadwal pada tahun ajaran aktif</h2>
+                            <p className="mt-1 text-sm text-slate-500">{tahunAjaranAktif ?? 'Belum ada tahun ajaran aktif'}</p>
+                        </div>
+                        <div className="flex gap-2">
+                            <div className="rounded-2xl border border-white bg-white/80 px-4 py-2 text-center shadow-sm">
+                                <p className="text-lg font-bold text-slate-900">{jadwals.length}</p>
+                                <p className="text-[11px] font-medium text-slate-500">Jadwal</p>
+                            </div>
+                            <div className="rounded-2xl border border-white bg-white/80 px-4 py-2 text-center shadow-sm">
+                                <p className="text-lg font-bold text-slate-900">{activeDays}</p>
+                                <p className="text-[11px] font-medium text-slate-500">Hari aktif</p>
+                            </div>
+                        </div>
                     </div>
-                    <span className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700">
-                        {jadwals.length} jadwal
-                    </span>
                 </div>
-                <ScheduleTable
+
+                <ScheduleWeekGrid
                     jadwals={jadwals}
-                    showClass
                     renderActions={(jadwal) => (
                         <button
                             type="button"
@@ -136,7 +147,7 @@ export default function GuruJadwalIndex({
                                 setSelectedJadwal(jadwal);
                             }}
                             disabled={jadwal.siswas.length === 0}
-                            className="rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
+                            className="mt-3 w-full rounded-lg bg-emerald-700 px-3 py-2 text-xs font-semibold text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-50"
                         >
                             Isi Presensi &amp; Jurnal
                         </button>
