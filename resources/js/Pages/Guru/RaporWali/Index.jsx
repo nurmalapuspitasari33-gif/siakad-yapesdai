@@ -473,6 +473,49 @@ export default function GuruRaporWaliIndex({
                                                                     <InputError message={form.errors[`catatan_rapor.${index}.kokurikuler_predikat`]} className="mt-1" />
                                                                 </div>
                                                                 )}
+                                                                {activeTab === 'absensi' && (
+                                                                <div>
+                                                                    <label htmlFor={`deskripsi-${siswa.id}`} className="mb-1.5 block text-xs font-semibold text-slate-700">Deskripsi Kokurikuler</label>
+                                                                    <textarea
+                                                                        id={`deskripsi-${siswa.id}`}
+                                                                        rows="3"
+                                                                        maxLength="5000"
+                                                                        value={note.kokurikuler_deskripsi}
+                                                                        onChange={(event) => updateNote(index, 'kokurikuler_deskripsi', event.target.value)}
+                                                                        className="block w-full rounded-lg border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                                                    />
+                                                                    <InputError message={form.errors[`catatan_rapor.${index}.kokurikuler_deskripsi`]} className="mt-1" />
+                                                                </div>
+                                                                )}
+                                                                {activeTab === 'absensi' && hasPromotionTerm && (
+                                                                    <div className="grid grid-cols-2 gap-3">
+                                                                        <div>
+                                                                            <label htmlFor={`kenaikan-${siswa.id}`} className="mb-1.5 block text-xs font-semibold text-slate-700">Kenaikan Kelas</label>
+                                                                            <select
+                                                                                id={`kenaikan-${siswa.id}`}
+                                                                                value={note.status_kenaikan}
+                                                                                onChange={(event) => updateNote(index, 'status_kenaikan', event.target.value)}
+                                                                                className="block w-full rounded-lg border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                                                            >
+                                                                                <option value="">Belum ditentukan</option>
+                                                                                <option value="naik">Naik</option>
+                                                                                <option value="tidak_naik">Tidak Naik</option>
+                                                                            </select>
+                                                                            <InputError message={form.errors[`catatan_rapor.${index}.status_kenaikan`]} className="mt-1" />
+                                                                        </div>
+                                                                        <div>
+                                                                            <label htmlFor={`kelas-tujuan-${siswa.id}`} className="mb-1.5 block text-xs font-semibold text-slate-700">Naik ke Kelas</label>
+                                                                            <input
+                                                                                id={`kelas-tujuan-${siswa.id}`}
+                                                                                value={note.naik_ke_kelas}
+                                                                                onChange={(event) => updateNote(index, 'naik_ke_kelas', event.target.value)}
+                                                                                disabled={note.status_kenaikan !== 'naik'}
+                                                                                className="block w-full rounded-lg border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 disabled:bg-slate-100"
+                                                                            />
+                                                                            <InputError message={form.errors[`catatan_rapor.${index}.naik_ke_kelas`]} className="mt-1" />
+                                                                        </div>
+                                                                    </div>
+                                                                )}
                                                                 {activeTab === 'ekstrakurikuler' && (
                                                                 <div className="space-y-2 rounded-lg bg-slate-50 p-3">
                                                                     {[1, 2, 3, 4].map((number) => (
@@ -534,18 +577,6 @@ export default function GuruRaporWaliIndex({
                                                                 {activeTab === 'absensi' && (
                                                                 <>
                                                                 <div>
-                                                                    <label htmlFor={`deskripsi-${siswa.id}`} className="mb-1.5 block text-xs font-semibold text-slate-700">Deskripsi Kokurikuler</label>
-                                                                    <textarea
-                                                                        id={`deskripsi-${siswa.id}`}
-                                                                        rows="3"
-                                                                        maxLength="5000"
-                                                                        value={note.kokurikuler_deskripsi}
-                                                                        onChange={(event) => updateNote(index, 'kokurikuler_deskripsi', event.target.value)}
-                                                                        className="block w-full rounded-lg border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                                                                    />
-                                                                    <InputError message={form.errors[`catatan_rapor.${index}.kokurikuler_deskripsi`]} className="mt-1" />
-                                                                </div>
-                                                                <div>
                                                                     <label htmlFor={`catatan-wali-${siswa.id}`} className="mb-1.5 block text-xs font-semibold text-slate-700">Catatan Wali Kelas</label>
                                                                     <textarea
                                                                         id={`catatan-wali-${siswa.id}`}
@@ -580,35 +611,6 @@ export default function GuruRaporWaliIndex({
                                                                         ))}
                                                                     </div>
                                                                 </div>
-                                                                {hasPromotionTerm && (
-                                                                    <div className="grid grid-cols-2 gap-3">
-                                                                        <div>
-                                                                            <label htmlFor={`kenaikan-${siswa.id}`} className="mb-1.5 block text-xs font-semibold text-slate-700">Kenaikan Kelas</label>
-                                                                            <select
-                                                                                id={`kenaikan-${siswa.id}`}
-                                                                                value={note.status_kenaikan}
-                                                                                onChange={(event) => updateNote(index, 'status_kenaikan', event.target.value)}
-                                                                                className="block w-full rounded-lg border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                                                                            >
-                                                                                <option value="">Belum ditentukan</option>
-                                                                                <option value="naik">Naik</option>
-                                                                                <option value="tidak_naik">Tidak Naik</option>
-                                                                            </select>
-                                                                            <InputError message={form.errors[`catatan_rapor.${index}.status_kenaikan`]} className="mt-1" />
-                                                                        </div>
-                                                                        <div>
-                                                                            <label htmlFor={`kelas-tujuan-${siswa.id}`} className="mb-1.5 block text-xs font-semibold text-slate-700">Naik ke Kelas</label>
-                                                                            <input
-                                                                                id={`kelas-tujuan-${siswa.id}`}
-                                                                                value={note.naik_ke_kelas}
-                                                                                onChange={(event) => updateNote(index, 'naik_ke_kelas', event.target.value)}
-                                                                                disabled={note.status_kenaikan !== 'naik'}
-                                                                                className="block w-full rounded-lg border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 disabled:bg-slate-100"
-                                                                            />
-                                                                            <InputError message={form.errors[`catatan_rapor.${index}.naik_ke_kelas`]} className="mt-1" />
-                                                                        </div>
-                                                                    </div>
-                                                                )}
                                                                 </>
                                                                 )}
                                                             </div>
