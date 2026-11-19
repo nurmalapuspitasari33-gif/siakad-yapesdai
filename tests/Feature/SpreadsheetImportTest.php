@@ -147,6 +147,34 @@ class SpreadsheetImportTest extends TestCase
         $this->assertTrue(Hash::check('password', $student->user->password));
     }
 
+    public function test_admin_can_import_indonesian_gender_and_birth_date_values(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $kelas = $this->createActiveClass();
+
+        $this->actingAs($admin)
+            ->post(route('admin.siswa.import'), [
+                'file' => $this->xlsxUpload(
+                    [
+                        'nisn', 'nis', 'nama_lengkap', 'email', 'nama_kelas', 'jenis_kelamin',
+                        'tempat_lahir', 'tanggal_lahir', 'agama', 'alamat_murid', 'nama_ayah',
+                        'nama_ibu', 'no_wa_wali', 'tipe_program', 'ukuran_seragam',
+                        'program_keahlian', 'konsentrasi_keahlian',
+                    ],
+                    [[
+                        '', '2593', 'Siswa Contoh', '', $kelas->nama_kelas, 'Laki-laki',
+                        'Cilacap', '01 februari 2011', 'Islam', '', '', '', '', '', '', '', '',
+                    ]],
+                ),
+            ])
+            ->assertRedirect(route('admin.siswa.index', absolute: false));
+
+        $student = Siswa::query()->where('nis', '2593')->firstOrFail();
+
+        $this->assertSame('L', $student->jenis_kelamin);
+        $this->assertSame('2011-02-01', $student->tanggal_lahir->format('Y-m-d'));
+    }
+
     public function test_admin_can_import_a_student_with_blank_optional_fields(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
