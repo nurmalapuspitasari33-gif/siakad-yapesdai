@@ -1,6 +1,0 @@
----
-deployment:
-  tasks:
-    - export DeploymentPath=/home/yaps5718/repos/siakad-yapesdai
-    - /bin/cp -R * $DeploymentPath
-    - /bin/cp -R .env $DeploymentPath
