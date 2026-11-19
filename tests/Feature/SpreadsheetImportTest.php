@@ -24,6 +24,28 @@ class SpreadsheetImportTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_admin_can_download_student_template_with_school_origin_column(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $response = $this->actingAs($admin)
+            ->get(route('admin.siswa.template'))
+            ->assertOk()
+            ->assertDownload('template-siswa.xlsx')
+            ->assertStreamed();
+        $temporaryFile = tempnam(sys_get_temp_dir(), 'template-siswa-');
+        file_put_contents($temporaryFile, $response->streamedContent());
+
+        try {
+            $spreadsheet = IOFactory::load($temporaryFile);
+
+            $this->assertSame('sekolah_asal', $spreadsheet->getActiveSheet()->getCell('M1')->getValue());
+
+            $spreadsheet->disconnectWorksheets();
+        } finally {
+            unlink($temporaryFile);
+        }
+    }
+
     public function test_admin_can_import_teachers_and_assign_a_homeroom_class(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
@@ -128,12 +150,12 @@ class SpreadsheetImportTest extends TestCase
                     [
                         'nisn', 'nis', 'nama_lengkap', 'email', 'nama_kelas', 'jenis_kelamin',
                         'tempat_lahir', 'tanggal_lahir', 'agama', 'alamat_murid', 'nama_ayah',
-                        'nama_ibu', 'no_wa_wali', 'tipe_program', 'ukuran_seragam',
+                        'nama_ibu', 'sekolah_asal', 'no_wa_wali', 'tipe_program', 'ukuran_seragam',
                     ],
                     [[
                         '1000000001', 'SMK-1001', 'Siswa Contoh', 'siswa@sekolah.sch.id',
                         'X IPA 1', 'L', 'Cilacap', '2010-01-15', 'Islam', 'Jl. Pendidikan',
-                        'Ayah', 'Ibu', '081234567890', 'santri_internal', 'L',
+                        'Ayah', 'Ibu', 'SMP Asal', '081234567890', 'santri_internal', 'L',
                     ]],
                 ),
             ])
@@ -143,6 +165,7 @@ class SpreadsheetImportTest extends TestCase
 
         $this->assertSame($kelas->id, $student->kelas_id);
         $this->assertSame('SMK-1001', $student->nis);
+        $this->assertSame('SMP Asal', $student->sekolah_asal);
         $this->assertSame('santri_internal', $student->tipe_program);
         $this->assertTrue(Hash::check('password', $student->user->password));
     }

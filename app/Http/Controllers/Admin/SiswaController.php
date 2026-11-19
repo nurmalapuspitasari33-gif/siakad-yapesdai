@@ -40,6 +40,7 @@ class SiswaController extends Controller
         'alamat_murid',
         'nama_ayah',
         'nama_ibu',
+        'sekolah_asal',
         'no_wa_wali',
         'tipe_program',
         'ukuran_seragam',
@@ -135,7 +136,7 @@ class SiswaController extends Controller
         $rows = SpreadsheetFile::readRows(
             $validated['file'],
             self::IMPORT_HEADERS,
-            optionalHeaders: ['program_keahlian', 'konsentrasi_keahlian'],
+            optionalHeaders: ['program_keahlian', 'konsentrasi_keahlian', 'sekolah_asal'],
         );
         $activeYearId = TahunAjaran::query()->where('is_aktif', true)->value('id');
         $hasClassAssignments = collect($rows)->contains(
@@ -194,6 +195,7 @@ class SiswaController extends Controller
                 'alamat_murid' => ['nullable', 'string', 'max:2000'],
                 'nama_ayah' => ['nullable', 'string', 'max:255'],
                 'nama_ibu' => ['nullable', 'string', 'max:255'],
+                'sekolah_asal' => ['nullable', 'string', 'max:255'],
                 'no_wa_wali' => ['nullable', 'string', 'max:30'],
                 'tipe_program' => ['required', Rule::in(['reguler', 'santri_internal', 'santri_eksternal'])],
                 'ukuran_seragam' => ['nullable', Rule::in(['S', 'M', 'L', 'XL', 'XXL'])],
@@ -342,6 +344,7 @@ class SiswaController extends Controller
                     'alamat_murid' => $data['alamat_murid'] ?? null,
                     'nama_ayah' => $data['nama_ayah'] ?? null,
                     'nama_ibu' => $data['nama_ibu'] ?? null,
+                    'sekolah_asal' => $data['sekolah_asal'] ?? null,
                     'tipe_program' => $data['tipe_program'],
                     'ukuran_seragam' => $data['ukuran_seragam'] ?? null,
                 ]);
