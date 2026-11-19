@@ -5,13 +5,15 @@ import { Head, router, useForm } from '@inertiajs/react';
 import { useEffect, useRef, useState } from 'react';
 
 function initialScores(siswas) {
+    const capaianKompetensi = siswas.find((siswa) => siswa.nilai?.capaian_kompetensi)?.nilai?.capaian_kompetensi ?? '';
+
     return siswas.map((siswa) => {
         const score = siswa.nilai?.nilai_akhir;
 
         return {
             siswa_id: siswa.id,
             nilai_akhir: score == null || score === '' ? '' : String(Math.round(Number(score))),
-            capaian_kompetensi: siswa.nilai?.capaian_kompetensi ?? '',
+            capaian_kompetensi: capaianKompetensi,
         };
     });
 }
@@ -35,6 +37,9 @@ export default function GuruNilaiIndex({
     const fillRangeRef = useRef(null);
     const finishFillRef = useRef(() => {});
     const extendFillRef = useRef(() => {});
+    const startAutoScrollRef = useRef(() => {});
+    const autoScrollFrameRef = useRef(null);
+    const pointerPositionRef = useRef({ x: 0, y: 0 });
     const filterForm = useForm({
         kelas_id: filters?.kelas_id ?? '',
         mapel_id: filters?.mapel_id ?? '',
@@ -81,6 +86,13 @@ export default function GuruNilaiIndex({
         ));
     };
 
+    const updateCompetency = (value) => {
+        form.setData('nilai', form.data.nilai.map((row) => ({
+            ...row,
+            capaian_kompetensi: value,
+        })));
+    };
+
     const copyScoreDown = (sourceIndex, targetIndex, key, value) => {
         if (targetIndex <= sourceIndex) {
             return;
@@ -95,6 +107,7 @@ export default function GuruNilaiIndex({
 
     const startFill = (event, index, key) => {
         event.preventDefault();
+        pointerPositionRef.current = { x: event.clientX, y: event.clientY };
 
         const fill = {
             sourceIndex: index,
@@ -105,6 +118,7 @@ export default function GuruNilaiIndex({
 
         fillRangeRef.current = fill;
         setFillRange(fill);
+        startAutoScrollRef.current();
     };
 
     const extendFill = (index, key) => {
@@ -150,29 +164,77 @@ export default function GuruNilaiIndex({
 
     useEffect(() => {
         const finishFill = () => finishFillRef.current();
-        const trackFillTarget = (event) => {
-            if (!fillRangeRef.current) {
-                return;
-            }
-
-            const target = document.elementFromPoint(event.clientX, event.clientY)
+        const trackFillAtPointer = () => {
+            const { x, y } = pointerPositionRef.current;
+            const target = document.elementFromPoint(x, y)
                 ?.closest('[data-fill-index][data-fill-key]');
 
             if (target) {
                 extendFillRef.current(Number(target.dataset.fillIndex), target.dataset.fillKey);
             }
         };
+        const trackFillTarget = (event) => {
+            if (!fillRangeRef.current) {
+                return;
+            }
+
+            pointerPositionRef.current = { x: event.clientX, y: event.clientY };
+            trackFillAtPointer();
+        };
+        const autoScroll = () => {
+            if (!fillRangeRef.current) {
+                autoScrollFrameRef.current = null;
+                return;
+            }
+
+            const { y } = pointerPositionRef.current;
+            const edgeSize = 64;
+            let scrollAmount = 0;
+
+            if (y > window.innerHeight - edgeSize) {
+                scrollAmount = Math.ceil(((y - (window.innerHeight - edgeSize)) / edgeSize) * 16);
+            } else if (y < edgeSize) {
+                scrollAmount = -Math.ceil(((edgeSize - y) / edgeSize) * 16);
+            }
+
+            if (scrollAmount !== 0) {
+                window.scrollBy(0, scrollAmount);
+            }
+
+            trackFillAtPointer();
+            autoScrollFrameRef.current = window.requestAnimationFrame(autoScroll);
+        };
+        const stopAutoScroll = () => {
+            finishFill();
+
+            if (autoScrollFrameRef.current !== null) {
+                window.cancelAnimationFrame(autoScrollFrameRef.current);
+                autoScrollFrameRef.current = null;
+            }
+        };
+
+        startAutoScrollRef.current = () => {
+            if (autoScrollFrameRef.current !== null) {
+                window.cancelAnimationFrame(autoScrollFrameRef.current);
+            }
+
+            autoScrollFrameRef.current = window.requestAnimationFrame(autoScroll);
+        };
 
         window.addEventListener('pointermove', trackFillTarget);
-        window.addEventListener('pointerup', finishFill);
-        window.addEventListener('pointercancel', finishFill);
-        window.addEventListener('blur', finishFill);
+        window.addEventListener('pointerup', stopAutoScroll);
+        window.addEventListener('pointercancel', stopAutoScroll);
+        window.addEventListener('blur', stopAutoScroll);
 
         return () => {
             window.removeEventListener('pointermove', trackFillTarget);
-            window.removeEventListener('pointerup', finishFill);
-            window.removeEventListener('pointercancel', finishFill);
-            window.removeEventListener('blur', finishFill);
+            window.removeEventListener('pointerup', stopAutoScroll);
+            window.removeEventListener('pointercancel', stopAutoScroll);
+            window.removeEventListener('blur', stopAutoScroll);
+
+            if (autoScrollFrameRef.current !== null) {
+                window.cancelAnimationFrame(autoScrollFrameRef.current);
+            }
         };
     }, []);
 
@@ -290,7 +352,7 @@ export default function GuruNilaiIndex({
                         </section>
 
                         <form onSubmit={saveGrades} className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-                            <div className="flex flex-col gap-3 border-b border-slate-100 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-7">
+                            <div className="flex flex-col gap-3 border-b border-slate-100 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-7">
                                 <div>
                                     <h2 className="font-bold text-slate-900">Daftar nilai siswa</h2>
                                     <p className="mt-1 text-sm text-slate-500">
@@ -305,11 +367,29 @@ export default function GuruNilaiIndex({
                                     {form.processing ? 'Menyimpan...' : 'Simpan Nilai'}
                                 </button>
                             </div>
+                            <div className="border-b border-slate-100 px-5 py-4 sm:px-7">
+                                <label htmlFor="capaian-kompetensi" className="mb-1.5 block text-sm font-semibold text-slate-700">
+                                    Capaian kompetensi
+                                </label>
+                                <textarea
+                                    id="capaian-kompetensi"
+                                    rows="2"
+                                    maxLength="5000"
+                                    aria-describedby="capaian-kompetensi-hint"
+                                    value={form.data.nilai[0]?.capaian_kompetensi ?? ''}
+                                    onChange={(event) => updateCompetency(event.target.value)}
+                                    className="block w-full max-w-3xl rounded-lg border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                />
+                                <p id="capaian-kompetensi-hint" className="mt-1 text-xs text-slate-500">
+                                    Capaian ini berlaku untuk seluruh siswa pada mata pelajaran yang dipilih.
+                                </p>
+                                <InputError message={form.errors['nilai.0.capaian_kompetensi']} className="mt-1" />
+                            </div>
                             <div className="overflow-x-auto">
                                 <table className="min-w-full divide-y divide-slate-100 text-left">
                                     <thead className="bg-slate-50">
                                         <tr>
-                                            <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 sm:px-7">
+                                            <th className="px-4 py-2 text-xs font-semibold uppercase tracking-wide text-slate-500 sm:px-7">
                                                 <button
                                                     type="button"
                                                     onClick={() => setSelectedStudentIds(
@@ -321,8 +401,8 @@ export default function GuruNilaiIndex({
                                                     Pilih
                                                 </button>
                                             </th>
-                                            {['Siswa', 'Nilai Akhir', 'Capaian Kompetensi'].map((heading) => (
-                                                <th key={heading} className="whitespace-nowrap px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 first:sm:px-7">
+                                            {['Siswa', 'Nilai Akhir'].map((heading) => (
+                                                <th key={heading} className="whitespace-nowrap px-4 py-2 text-xs font-semibold uppercase tracking-wide text-slate-500 first:sm:px-7">
                                                     {heading}
                                                 </th>
                                             ))}
@@ -334,7 +414,7 @@ export default function GuruNilaiIndex({
 
                                             return (
                                                 <tr key={siswa.id}>
-                                                    <td className="px-4 py-4 sm:px-7">
+                                                    <td className="px-4 py-2 sm:px-7">
                                                         <input
                                                             type="checkbox"
                                                             checked={selectedStudentIds.includes(siswa.id)}
@@ -345,11 +425,11 @@ export default function GuruNilaiIndex({
                                                             className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
                                                         />
                                                     </td>
-                                                    <td className="whitespace-nowrap px-4 py-4">
+                                                    <td className="whitespace-nowrap px-4 py-2">
                                                         <p className="text-sm font-semibold text-slate-900">{siswa.nama_lengkap}</p>
-                                                        <p className="mt-1 text-xs text-slate-500">{siswa.nisn}</p>
+                                                        <p className="mt-0.5 text-xs text-slate-500">{siswa.nisn}</p>
                                                     </td>
-                                                    <td className="px-4 py-4">
+                                                    <td className="px-4 py-2">
                                                         <div
                                                             className="group relative w-28"
                                                             data-fill-index={index}
@@ -390,46 +470,6 @@ export default function GuruNilaiIndex({
                                                             />
                                                         </div>
                                                         <InputError message={form.errors[`nilai.${index}.nilai_akhir`]} className="mt-1" />
-                                                    </td>
-                                                    <td className="min-w-72 px-4 py-4">
-                                                        <div
-                                                            className="group relative min-w-64"
-                                                            data-fill-index={index}
-                                                            data-fill-key="capaian_kompetensi"
-                                                        >
-                                                            <textarea
-                                                                rows="2"
-                                                                maxLength="5000"
-                                                                aria-label={`Capaian kompetensi ${siswa.nama_lengkap}`}
-                                                                value={row?.capaian_kompetensi ?? ''}
-                                                                onChange={(event) => updateScore(index, 'capaian_kompetensi', event.target.value)}
-                                                                className={`min-w-64 rounded-lg border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 ${
-                                                                    fillRange?.key === 'capaian_kompetensi'
-                                                                        && index > fillRange.sourceIndex
-                                                                        && index <= fillRange.targetIndex
-                                                                        ? 'border-indigo-500 bg-indigo-50'
-                                                                        : ''
-                                                                }`}
-                                                            />
-                                                            <button
-                                                                type="button"
-                                                                aria-label={`Tarik untuk menyalin capaian kompetensi dari ${siswa.nama_lengkap} ke bawah`}
-                                                                title="Tarik ke bawah untuk menyalin capaian ini"
-                                                                onPointerDown={(event) => startFill(event, index, 'capaian_kompetensi')}
-                                                                onClick={(event) => {
-                                                                    if (event.detail === 0) {
-                                                                        copyScoreDown(
-                                                                            index,
-                                                                            index + 1,
-                                                                            'capaian_kompetensi',
-                                                                            row?.capaian_kompetensi ?? '',
-                                                                        );
-                                                                    }
-                                                                }}
-                                                                className="absolute -bottom-1 -right-1 z-10 h-3 w-3 touch-none cursor-ns-resize rounded-sm border border-white bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                                            />
-                                                        </div>
-                                                        <InputError message={form.errors[`nilai.${index}.capaian_kompetensi`]} className="mt-1" />
                                                     </td>
                                                 </tr>
                                             );
