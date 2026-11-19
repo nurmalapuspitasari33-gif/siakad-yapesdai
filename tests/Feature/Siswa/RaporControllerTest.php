@@ -51,6 +51,20 @@ class RaporControllerTest extends TestCase
             'konsentrasi_keahlian_id' => $concentration->id,
             'nisn' => '0000000001',
             'nama_lengkap' => 'Siswa Aktif',
+            'jenis_kelamin' => 'L',
+            'status_keluarga' => 'Anak Kandung',
+            'anak_ke' => 2,
+            'telepon_rumah' => '0282-123456',
+            'diterima_di_kelas' => 'X IPA 1',
+            'tanggal_diterima' => '2026-07-15',
+            'alamat_ortu' => 'Jl. Orang Tua',
+            'telepon_ortu' => '081111111111',
+            'pekerjaan_ayah' => 'Petani',
+            'pekerjaan_ibu' => 'Guru',
+            'nama_wali' => 'Wali Murid',
+            'alamat_wali' => 'Jl. Wali',
+            'telepon_wali' => '082222222222',
+            'pekerjaan_wali' => 'Wiraswasta',
             'status_siswa' => 'aktif',
         ]);
         $otherUser = User::factory()->create(['role' => 'siswa']);
@@ -91,6 +105,20 @@ class RaporControllerTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Siswa/Rapor/Index')
                 ->where('siswa.nama_lengkap', 'Siswa Aktif')
+                ->where('siswa.jenis_kelamin', 'Laki-laki')
+                ->where('siswa.status_keluarga', 'Anak Kandung')
+                ->where('siswa.anak_ke', 2)
+                ->where('siswa.telepon_rumah', '0282-123456')
+                ->where('siswa.diterima_di_kelas', 'X IPA 1')
+                ->where('siswa.tanggal_diterima', '2026-07-15')
+                ->where('siswa.alamat_ortu', 'Jl. Orang Tua')
+                ->where('siswa.telepon_ortu', '081111111111')
+                ->where('siswa.pekerjaan_ayah', 'Petani')
+                ->where('siswa.pekerjaan_ibu', 'Guru')
+                ->where('siswa.nama_wali', 'Wali Murid')
+                ->where('siswa.alamat_wali', 'Jl. Wali')
+                ->where('siswa.telepon_wali', '082222222222')
+                ->where('siswa.pekerjaan_wali', 'Wiraswasta')
                 ->where('siswa.program_keahlian', 'Teknologi Farmasi')
                 ->where('siswa.konsentrasi_keahlian', 'Farmasi Industri')
                 ->where('selectedTahunAjaran', '2026/2027')

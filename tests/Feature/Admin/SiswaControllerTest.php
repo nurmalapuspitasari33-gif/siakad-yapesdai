@@ -66,6 +66,19 @@ class SiswaControllerTest extends TestCase
                 'no_wa_wali' => '081234567891',
                 'nis' => 'SMK-1002',
                 'alamat_murid' => 'Jl. Pendidikan',
+                'status_keluarga' => 'Anak Kandung',
+                'anak_ke' => '2',
+                'telepon_rumah' => '0282-123456',
+                'diterima_di_kelas' => 'X IPA 2',
+                'tanggal_diterima' => '2026-07-15',
+                'alamat_ortu' => 'Jl. Orang Tua',
+                'telepon_ortu' => '081111111111',
+                'pekerjaan_ayah' => 'Petani',
+                'pekerjaan_ibu' => 'Guru',
+                'nama_wali' => 'Wali Murid',
+                'alamat_wali' => 'Jl. Wali',
+                'telepon_wali' => '082222222222',
+                'pekerjaan_wali' => 'Wiraswasta',
                 'foto_siswa' => UploadedFile::fake()->image('foto.jpg', 300, 400),
             ])
             ->assertRedirect(route('admin.siswa.index', absolute: false));
@@ -77,6 +90,19 @@ class SiswaControllerTest extends TestCase
         $this->assertSame('081234567891', $siswa->no_wa_wali);
         $this->assertSame('SMK-1002', $siswa->nis);
         $this->assertSame('Jl. Pendidikan', $siswa->alamat_murid);
+        $this->assertSame('Anak Kandung', $siswa->status_keluarga);
+        $this->assertSame(2, $siswa->anak_ke);
+        $this->assertSame('0282-123456', $siswa->telepon_rumah);
+        $this->assertSame('X IPA 2', $siswa->diterima_di_kelas);
+        $this->assertSame('2026-07-15', $siswa->tanggal_diterima->format('Y-m-d'));
+        $this->assertSame('Jl. Orang Tua', $siswa->alamat_ortu);
+        $this->assertSame('081111111111', $siswa->telepon_ortu);
+        $this->assertSame('Petani', $siswa->pekerjaan_ayah);
+        $this->assertSame('Guru', $siswa->pekerjaan_ibu);
+        $this->assertSame('Wali Murid', $siswa->nama_wali);
+        $this->assertSame('Jl. Wali', $siswa->alamat_wali);
+        $this->assertSame('082222222222', $siswa->telepon_wali);
+        $this->assertSame('Wiraswasta', $siswa->pekerjaan_wali);
         $this->assertNotNull($siswa->foto_siswa_path);
         Storage::disk('public')->assertExists($siswa->foto_siswa_path);
 

@@ -36,6 +36,19 @@ const emptyFormData = {
     nama_ayah: '',
     nama_ibu: '',
     sekolah_asal: '',
+    status_keluarga: '',
+    anak_ke: '',
+    telepon_rumah: '',
+    diterima_di_kelas: '',
+    tanggal_diterima: '',
+    alamat_ortu: '',
+    telepon_ortu: '',
+    pekerjaan_ayah: '',
+    pekerjaan_ibu: '',
+    nama_wali: '',
+    alamat_wali: '',
+    telepon_wali: '',
+    pekerjaan_wali: '',
 };
 
 export default function SiswaIndex({
@@ -138,6 +151,19 @@ export default function SiswaIndex({
             nama_ayah: siswa.nama_ayah ?? '',
             nama_ibu: siswa.nama_ibu ?? '',
             sekolah_asal: siswa.sekolah_asal ?? '',
+            status_keluarga: siswa.status_keluarga ?? '',
+            anak_ke: siswa.anak_ke === null || siswa.anak_ke === undefined ? '' : String(siswa.anak_ke),
+            telepon_rumah: siswa.telepon_rumah ?? '',
+            diterima_di_kelas: siswa.diterima_di_kelas ?? '',
+            tanggal_diterima: dateInputValue(siswa.tanggal_diterima),
+            alamat_ortu: siswa.alamat_ortu ?? '',
+            telepon_ortu: siswa.telepon_ortu ?? '',
+            pekerjaan_ayah: siswa.pekerjaan_ayah ?? '',
+            pekerjaan_ibu: siswa.pekerjaan_ibu ?? '',
+            nama_wali: siswa.nama_wali ?? '',
+            alamat_wali: siswa.alamat_wali ?? '',
+            telepon_wali: siswa.telepon_wali ?? '',
+            pekerjaan_wali: siswa.pekerjaan_wali ?? '',
         });
         form.clearErrors();
         setIsFormOpen(true);
@@ -894,10 +920,10 @@ export default function SiswaIndex({
                     <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4">
                         <div className="mb-3">
                             <h3 className="text-sm font-bold text-slate-800">
-                                2. Biodata Singkat Rapor
+                                2. Biodata Rapor & Identitas Cetak
                             </h3>
                             <p className="text-xs text-slate-500">
-                                Informasi pelengkap yang tercantum pada buku induk dan rapor. Dapat dilengkapi kemudian.
+                                Lengkapi data yang ditampilkan pada buku induk, rapor, dan cetak identitas.
                             </p>
                         </div>
 
@@ -1026,9 +1052,213 @@ export default function SiswaIndex({
                                 />
                                 <InputError message={form.errors.alamat_murid} className="mt-1" />
                             </div>
+
+                                <div className="sm:col-span-2 border-t border-slate-200 pt-4">
+                                    <h4 className="text-sm font-bold text-slate-800">
+                                        Data Tambahan Identitas Cetak
+                                    </h4>
+                                    <p className="mt-1 text-xs text-slate-500">
+                                        Semua isian berikut opsional dan akan ditampilkan pada cetak identitas siswa.
+                                    </p>
+                                </div>
+
+                                <div>
+                                    <label htmlFor="status-keluarga" className="mb-1 block text-xs font-semibold text-slate-700">
+                                        Status dalam Keluarga
+                                    </label>
+                                    <input
+                                        id="status-keluarga"
+                                        type="text"
+                                        maxLength="50"
+                                        value={form.data.status_keluarga}
+                                        onChange={(event) => form.setData('status_keluarga', event.target.value)}
+                                        className="block w-full rounded-xl border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                    />
+                                    <InputError message={form.errors.status_keluarga} className="mt-1" />
+                                </div>
+
+                                <div>
+                                    <label htmlFor="anak-ke" className="mb-1 block text-xs font-semibold text-slate-700">
+                                        Anak Ke-
+                                    </label>
+                                    <input
+                                        id="anak-ke"
+                                        type="number"
+                                        min="1"
+                                        max="30"
+                                        value={form.data.anak_ke}
+                                        onChange={(event) => form.setData('anak_ke', event.target.value)}
+                                        className="block w-full rounded-xl border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                    />
+                                    <InputError message={form.errors.anak_ke} className="mt-1" />
+                                </div>
+
+                                <div>
+                                    <label htmlFor="telepon-rumah" className="mb-1 block text-xs font-semibold text-slate-700">
+                                        Nomor Telepon Rumah Murid
+                                    </label>
+                                    <input
+                                        id="telepon-rumah"
+                                        type="tel"
+                                        maxLength="30"
+                                        value={form.data.telepon_rumah}
+                                        onChange={(event) => form.setData('telepon_rumah', event.target.value)}
+                                        className="block w-full rounded-xl border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                    />
+                                    <InputError message={form.errors.telepon_rumah} className="mt-1" />
+                                </div>
+
+                                <div>
+                                    <label htmlFor="diterima-di-kelas" className="mb-1 block text-xs font-semibold text-slate-700">
+                                        Diterima di Kelas
+                                    </label>
+                                    <input
+                                        id="diterima-di-kelas"
+                                        type="text"
+                                        maxLength="255"
+                                        value={form.data.diterima_di_kelas}
+                                        onChange={(event) => form.setData('diterima_di_kelas', event.target.value)}
+                                        className="block w-full rounded-xl border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                    />
+                                    <InputError message={form.errors.diterima_di_kelas} className="mt-1" />
+                                </div>
+
+                                <div>
+                                    <label htmlFor="tanggal-diterima" className="mb-1 block text-xs font-semibold text-slate-700">
+                                        Tanggal Diterima
+                                    </label>
+                                    <input
+                                        id="tanggal-diterima"
+                                        type="date"
+                                        value={form.data.tanggal_diterima}
+                                        onChange={(event) => form.setData('tanggal_diterima', event.target.value)}
+                                        className="block w-full rounded-xl border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                    />
+                                    <InputError message={form.errors.tanggal_diterima} className="mt-1" />
+                                </div>
+
+                                <div>
+                                    <label htmlFor="pekerjaan-ayah" className="mb-1 block text-xs font-semibold text-slate-700">
+                                        Pekerjaan Ayah
+                                    </label>
+                                    <input
+                                        id="pekerjaan-ayah"
+                                        type="text"
+                                        maxLength="255"
+                                        value={form.data.pekerjaan_ayah}
+                                        onChange={(event) => form.setData('pekerjaan_ayah', event.target.value)}
+                                        className="block w-full rounded-xl border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                    />
+                                    <InputError message={form.errors.pekerjaan_ayah} className="mt-1" />
+                                </div>
+
+                                <div>
+                                    <label htmlFor="pekerjaan-ibu" className="mb-1 block text-xs font-semibold text-slate-700">
+                                        Pekerjaan Ibu
+                                    </label>
+                                    <input
+                                        id="pekerjaan-ibu"
+                                        type="text"
+                                        maxLength="255"
+                                        value={form.data.pekerjaan_ibu}
+                                        onChange={(event) => form.setData('pekerjaan_ibu', event.target.value)}
+                                        className="block w-full rounded-xl border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                    />
+                                    <InputError message={form.errors.pekerjaan_ibu} className="mt-1" />
+                                </div>
+
+                                <div>
+                                    <label htmlFor="telepon-ortu" className="mb-1 block text-xs font-semibold text-slate-700">
+                                        Nomor Telepon Orang Tua
+                                    </label>
+                                    <input
+                                        id="telepon-ortu"
+                                        type="tel"
+                                        maxLength="30"
+                                        value={form.data.telepon_ortu}
+                                        onChange={(event) => form.setData('telepon_ortu', event.target.value)}
+                                        className="block w-full rounded-xl border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                    />
+                                    <InputError message={form.errors.telepon_ortu} className="mt-1" />
+                                </div>
+
+                                <div className="sm:col-span-2">
+                                    <label htmlFor="alamat-ortu" className="mb-1 block text-xs font-semibold text-slate-700">
+                                        Alamat Orang Tua
+                                    </label>
+                                    <textarea
+                                        id="alamat-ortu"
+                                        rows="2"
+                                        maxLength="2000"
+                                        value={form.data.alamat_ortu}
+                                        onChange={(event) => form.setData('alamat_ortu', event.target.value)}
+                                        className="block w-full rounded-xl border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                    />
+                                    <InputError message={form.errors.alamat_ortu} className="mt-1" />
+                                </div>
+
+                                <div>
+                                    <label htmlFor="nama-wali" className="mb-1 block text-xs font-semibold text-slate-700">
+                                        Nama Wali Murid
+                                    </label>
+                                    <input
+                                        id="nama-wali"
+                                        type="text"
+                                        maxLength="255"
+                                        value={form.data.nama_wali}
+                                        onChange={(event) => form.setData('nama_wali', event.target.value)}
+                                        className="block w-full rounded-xl border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                    />
+                                    <InputError message={form.errors.nama_wali} className="mt-1" />
+                                </div>
+
+                                <div>
+                                    <label htmlFor="pekerjaan-wali" className="mb-1 block text-xs font-semibold text-slate-700">
+                                        Pekerjaan Wali Murid
+                                    </label>
+                                    <input
+                                        id="pekerjaan-wali"
+                                        type="text"
+                                        maxLength="255"
+                                        value={form.data.pekerjaan_wali}
+                                        onChange={(event) => form.setData('pekerjaan_wali', event.target.value)}
+                                        className="block w-full rounded-xl border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                    />
+                                    <InputError message={form.errors.pekerjaan_wali} className="mt-1" />
+                                </div>
+
+                                <div>
+                                    <label htmlFor="telepon-wali" className="mb-1 block text-xs font-semibold text-slate-700">
+                                        Nomor Telepon Wali Murid
+                                    </label>
+                                    <input
+                                        id="telepon-wali"
+                                        type="tel"
+                                        maxLength="30"
+                                        value={form.data.telepon_wali}
+                                        onChange={(event) => form.setData('telepon_wali', event.target.value)}
+                                        className="block w-full rounded-xl border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                    />
+                                    <InputError message={form.errors.telepon_wali} className="mt-1" />
+                                </div>
+
+                                <div className="sm:col-span-2">
+                                    <label htmlFor="alamat-wali" className="mb-1 block text-xs font-semibold text-slate-700">
+                                        Alamat Wali Murid
+                                    </label>
+                                    <textarea
+                                        id="alamat-wali"
+                                        rows="2"
+                                        maxLength="2000"
+                                        value={form.data.alamat_wali}
+                                        onChange={(event) => form.setData('alamat_wali', event.target.value)}
+                                        className="block w-full rounded-xl border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                    />
+                                    <InputError message={form.errors.alamat_wali} className="mt-1" />
+                                </div>
+                            </div>
                         </div>
                     </div>
-                </div>
             </AdminResourceModal>
 
             {/* Modal: Atur / Pindah Kelas (Single Siswa) */}

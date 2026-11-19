@@ -2,7 +2,7 @@ import InputError from '@/Components/InputError';
 import DashboardLayout from '@/Layouts/DashboardLayout';
 import roleNavigationItems from '@/Components/RoleNavigationItems';
 import { Head, router, useForm } from '@inertiajs/react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 function initialScores(siswas) {
     return siswas.map((siswa) => ({
@@ -27,6 +27,10 @@ export default function GuruNilaiIndex({
     const [selectedStudentIds, setSelectedStudentIds] = useState([]);
     const [isImporting, setIsImporting] = useState(false);
     const [importError, setImportError] = useState('');
+    const [fillRange, setFillRange] = useState(null);
+    const fillRangeRef = useRef(null);
+    const finishFillRef = useRef(() => {});
+    const extendFillRef = useRef(() => {});
     const filterForm = useForm({
         kelas_id: filters?.kelas_id ?? '',
         mapel_id: filters?.mapel_id ?? '',
@@ -72,6 +76,101 @@ export default function GuruNilaiIndex({
             rowIndex === index ? { ...row, [key]: value } : row,
         ));
     };
+
+    const copyScoreDown = (sourceIndex, targetIndex, key, value) => {
+        if (targetIndex <= sourceIndex) {
+            return;
+        }
+
+        form.setData('nilai', form.data.nilai.map((row, rowIndex) =>
+            rowIndex > sourceIndex && rowIndex <= targetIndex
+                ? { ...row, [key]: value }
+                : row,
+        ));
+    };
+
+    const startFill = (event, index, key) => {
+        event.preventDefault();
+
+        const fill = {
+            sourceIndex: index,
+            targetIndex: index,
+            key,
+            value: form.data.nilai[index]?.[key] ?? '',
+        };
+
+        fillRangeRef.current = fill;
+        setFillRange(fill);
+    };
+
+    const extendFill = (index, key) => {
+        const currentFill = fillRangeRef.current;
+
+        if (!currentFill || currentFill.key !== key) {
+            return;
+        }
+
+        const targetIndex = Math.max(currentFill.sourceIndex, index);
+
+        if (currentFill.targetIndex === targetIndex) {
+            return;
+        }
+
+        const fill = {
+            ...currentFill,
+            targetIndex,
+        };
+
+        fillRangeRef.current = fill;
+        setFillRange(fill);
+    };
+
+    extendFillRef.current = extendFill;
+
+    finishFillRef.current = () => {
+        const currentFill = fillRangeRef.current;
+
+        if (!currentFill) {
+            return;
+        }
+
+        copyScoreDown(
+            currentFill.sourceIndex,
+            currentFill.targetIndex,
+            currentFill.key,
+            currentFill.value,
+        );
+        fillRangeRef.current = null;
+        setFillRange(null);
+    };
+
+    useEffect(() => {
+        const finishFill = () => finishFillRef.current();
+        const trackFillTarget = (event) => {
+            if (!fillRangeRef.current) {
+                return;
+            }
+
+            const target = document.elementFromPoint(event.clientX, event.clientY)
+                ?.closest('[data-fill-index][data-fill-key]');
+
+            if (target) {
+                extendFillRef.current(Number(target.dataset.fillIndex), target.dataset.fillKey);
+            }
+        };
+
+        window.addEventListener('pointermove', trackFillTarget);
+        window.addEventListener('pointerup', finishFill);
+        window.addEventListener('pointercancel', finishFill);
+        window.addEventListener('blur', finishFill);
+
+        return () => {
+            window.removeEventListener('pointermove', trackFillTarget);
+            window.removeEventListener('pointerup', finishFill);
+            window.removeEventListener('pointercancel', finishFill);
+            window.removeEventListener('blur', finishFill);
+        };
+    }, []);
 
     const saveGrades = (event) => {
         event.preventDefault();
@@ -245,27 +344,85 @@ export default function GuruNilaiIndex({
                                                         <p className="mt-1 text-xs text-slate-500">{siswa.nisn}</p>
                                                     </td>
                                                     <td className="px-4 py-4">
-                                                        <input
-                                                            type="number"
-                                                            min="0"
-                                                            max="100"
-                                                            step="0.01"
-                                                            aria-label={`Nilai akhir ${siswa.nama_lengkap}`}
-                                                            value={row?.nilai_akhir ?? ''}
-                                                            onChange={(event) => updateScore(index, 'nilai_akhir', event.target.value)}
-                                                            className="w-28 rounded-lg border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                                                        />
+                                                        <div
+                                                            className="group relative w-28"
+                                                            data-fill-index={index}
+                                                            data-fill-key="nilai_akhir"
+                                                        >
+                                                            <input
+                                                                type="number"
+                                                                min="0"
+                                                                max="100"
+                                                                step="0.01"
+                                                                aria-label={`Nilai akhir ${siswa.nama_lengkap}`}
+                                                                value={row?.nilai_akhir ?? ''}
+                                                                onChange={(event) => updateScore(index, 'nilai_akhir', event.target.value)}
+                                                                className={`w-full rounded-lg border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 ${
+                                                                    fillRange?.key === 'nilai_akhir'
+                                                                        && index > fillRange.sourceIndex
+                                                                        && index <= fillRange.targetIndex
+                                                                        ? 'border-indigo-500 bg-indigo-50'
+                                                                        : ''
+                                                                }`}
+                                                            />
+                                                            <button
+                                                                type="button"
+                                                                aria-label={`Tarik untuk menyalin nilai akhir dari ${siswa.nama_lengkap} ke bawah`}
+                                                                title="Tarik ke bawah untuk menyalin nilai ini"
+                                                                onPointerDown={(event) => startFill(event, index, 'nilai_akhir')}
+                                                                onClick={(event) => {
+                                                                    if (event.detail === 0) {
+                                                                        copyScoreDown(
+                                                                            index,
+                                                                            index + 1,
+                                                                            'nilai_akhir',
+                                                                            row?.nilai_akhir ?? '',
+                                                                        );
+                                                                    }
+                                                                }}
+                                                                className="absolute -bottom-1 -right-1 z-10 h-3 w-3 touch-none cursor-ns-resize rounded-sm border border-white bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                                            />
+                                                        </div>
                                                         <InputError message={form.errors[`nilai.${index}.nilai_akhir`]} className="mt-1" />
                                                     </td>
                                                     <td className="min-w-72 px-4 py-4">
-                                                        <textarea
-                                                            rows="2"
-                                                            maxLength="5000"
-                                                            aria-label={`Capaian kompetensi ${siswa.nama_lengkap}`}
-                                                            value={row?.capaian_kompetensi ?? ''}
-                                                            onChange={(event) => updateScore(index, 'capaian_kompetensi', event.target.value)}
-                                                            className="min-w-64 rounded-lg border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                                                        />
+                                                        <div
+                                                            className="group relative min-w-64"
+                                                            data-fill-index={index}
+                                                            data-fill-key="capaian_kompetensi"
+                                                        >
+                                                            <textarea
+                                                                rows="2"
+                                                                maxLength="5000"
+                                                                aria-label={`Capaian kompetensi ${siswa.nama_lengkap}`}
+                                                                value={row?.capaian_kompetensi ?? ''}
+                                                                onChange={(event) => updateScore(index, 'capaian_kompetensi', event.target.value)}
+                                                                className={`min-w-64 rounded-lg border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 ${
+                                                                    fillRange?.key === 'capaian_kompetensi'
+                                                                        && index > fillRange.sourceIndex
+                                                                        && index <= fillRange.targetIndex
+                                                                        ? 'border-indigo-500 bg-indigo-50'
+                                                                        : ''
+                                                                }`}
+                                                            />
+                                                            <button
+                                                                type="button"
+                                                                aria-label={`Tarik untuk menyalin capaian kompetensi dari ${siswa.nama_lengkap} ke bawah`}
+                                                                title="Tarik ke bawah untuk menyalin capaian ini"
+                                                                onPointerDown={(event) => startFill(event, index, 'capaian_kompetensi')}
+                                                                onClick={(event) => {
+                                                                    if (event.detail === 0) {
+                                                                        copyScoreDown(
+                                                                            index,
+                                                                            index + 1,
+                                                                            'capaian_kompetensi',
+                                                                            row?.capaian_kompetensi ?? '',
+                                                                        );
+                                                                    }
+                                                                }}
+                                                                className="absolute -bottom-1 -right-1 z-10 h-3 w-3 touch-none cursor-ns-resize rounded-sm border border-white bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                                            />
+                                                        </div>
                                                         <InputError message={form.errors[`nilai.${index}.capaian_kompetensi`]} className="mt-1" />
                                                     </td>
                                                 </tr>

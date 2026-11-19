@@ -25,7 +25,10 @@ class SpreadsheetFile
         $sheet->fromArray($headers, null, 'A1');
         $sheet->getStyle('A1:'.$sheet->getHighestColumn().'1')->getFont()->setBold(true);
 
-        foreach (range('A', $sheet->getHighestColumn()) as $column) {
+        $lastColumnIndex = Coordinate::columnIndexFromString($sheet->getHighestColumn());
+
+        for ($columnIndex = 1; $columnIndex <= $lastColumnIndex; $columnIndex++) {
+            $column = Coordinate::stringFromColumnIndex($columnIndex);
             $sheet->getColumnDimension($column)->setAutoSize(true);
         }
 

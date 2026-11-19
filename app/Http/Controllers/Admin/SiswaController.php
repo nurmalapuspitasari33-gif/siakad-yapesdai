@@ -47,6 +47,19 @@ class SiswaController extends Controller
         'ukuran_seragam',
         'program_keahlian',
         'konsentrasi_keahlian',
+        'status_keluarga',
+        'anak_ke',
+        'telepon_rumah',
+        'diterima_di_kelas',
+        'tanggal_diterima',
+        'alamat_ortu',
+        'telepon_ortu',
+        'pekerjaan_ayah',
+        'pekerjaan_ibu',
+        'nama_wali',
+        'alamat_wali',
+        'telepon_wali',
+        'pekerjaan_wali',
     ];
 
     private const INDONESIAN_MONTH_NUMBERS = [
@@ -137,7 +150,24 @@ class SiswaController extends Controller
         $rows = SpreadsheetFile::readRows(
             $validated['file'],
             self::IMPORT_HEADERS,
-            optionalHeaders: ['program_keahlian', 'konsentrasi_keahlian', 'sekolah_asal'],
+            optionalHeaders: [
+                'program_keahlian',
+                'konsentrasi_keahlian',
+                'sekolah_asal',
+                'status_keluarga',
+                'anak_ke',
+                'telepon_rumah',
+                'diterima_di_kelas',
+                'tanggal_diterima',
+                'alamat_ortu',
+                'telepon_ortu',
+                'pekerjaan_ayah',
+                'pekerjaan_ibu',
+                'nama_wali',
+                'alamat_wali',
+                'telepon_wali',
+                'pekerjaan_wali',
+            ],
         );
         $activeYearId = TahunAjaran::query()->where('is_aktif', true)->value('id');
         $hasClassAssignments = collect($rows)->contains(
@@ -268,6 +298,19 @@ class SiswaController extends Controller
                     'nama_ayah' => $existingStudent->nama_ayah,
                     'nama_ibu' => $existingStudent->nama_ibu,
                     'sekolah_asal' => $existingStudent->sekolah_asal,
+                    'status_keluarga' => $existingStudent->status_keluarga,
+                    'anak_ke' => $existingStudent->anak_ke,
+                    'telepon_rumah' => $existingStudent->telepon_rumah,
+                    'diterima_di_kelas' => $existingStudent->diterima_di_kelas,
+                    'tanggal_diterima' => $existingStudent->tanggal_diterima?->format('Y-m-d'),
+                    'alamat_ortu' => $existingStudent->alamat_ortu,
+                    'telepon_ortu' => $existingStudent->telepon_ortu,
+                    'pekerjaan_ayah' => $existingStudent->pekerjaan_ayah,
+                    'pekerjaan_ibu' => $existingStudent->pekerjaan_ibu,
+                    'nama_wali' => $existingStudent->nama_wali,
+                    'alamat_wali' => $existingStudent->alamat_wali,
+                    'telepon_wali' => $existingStudent->telepon_wali,
+                    'pekerjaan_wali' => $existingStudent->pekerjaan_wali,
                     'no_wa_wali' => $existingStudent->no_wa_wali,
                     'tipe_program' => $existingStudent->tipe_program,
                     'ukuran_seragam' => $existingStudent->ukuran_seragam,
@@ -300,7 +343,8 @@ class SiswaController extends Controller
                 'p', 'perempuan' => 'P',
                 default => $data['jenis_kelamin'] ?? null,
             };
-            $data['tanggal_lahir'] = $this->normalizeStudentImportBirthDate($data['tanggal_lahir'] ?? null);
+            $data['tanggal_lahir'] = $this->normalizeStudentImportDate($data['tanggal_lahir'] ?? null);
+            $data['tanggal_diterima'] = $this->normalizeStudentImportDate($data['tanggal_diterima'] ?? null);
             $nisnUniqueRule = Rule::unique('siswas', 'nisn');
             $nisUniqueRule = Rule::unique('siswas', 'nis');
             $emailUniqueRule = Rule::unique('users', 'email');
@@ -325,6 +369,19 @@ class SiswaController extends Controller
                 'nama_ayah' => ['nullable', 'string', 'max:255'],
                 'nama_ibu' => ['nullable', 'string', 'max:255'],
                 'sekolah_asal' => ['nullable', 'string', 'max:255'],
+                'status_keluarga' => ['nullable', 'string', 'max:50'],
+                'anak_ke' => ['nullable', 'integer', 'between:1,30'],
+                'telepon_rumah' => ['nullable', 'string', 'max:30'],
+                'diterima_di_kelas' => ['nullable', 'string', 'max:255'],
+                'tanggal_diterima' => ['nullable', 'date_format:Y-m-d'],
+                'alamat_ortu' => ['nullable', 'string', 'max:2000'],
+                'telepon_ortu' => ['nullable', 'string', 'max:30'],
+                'pekerjaan_ayah' => ['nullable', 'string', 'max:255'],
+                'pekerjaan_ibu' => ['nullable', 'string', 'max:255'],
+                'nama_wali' => ['nullable', 'string', 'max:255'],
+                'alamat_wali' => ['nullable', 'string', 'max:2000'],
+                'telepon_wali' => ['nullable', 'string', 'max:30'],
+                'pekerjaan_wali' => ['nullable', 'string', 'max:255'],
                 'no_wa_wali' => ['nullable', 'string', 'max:30'],
                 'tipe_program' => ['required', Rule::in(['reguler', 'santri_internal', 'santri_eksternal'])],
                 'ukuran_seragam' => ['nullable', Rule::in(['S', 'M', 'L', 'XL', 'XXL'])],
@@ -468,6 +525,19 @@ class SiswaController extends Controller
                     'nama_ayah' => $data['nama_ayah'] ?? null,
                     'nama_ibu' => $data['nama_ibu'] ?? null,
                     'sekolah_asal' => $data['sekolah_asal'] ?? null,
+                    'status_keluarga' => $data['status_keluarga'] ?? null,
+                    'anak_ke' => $data['anak_ke'] ?? null,
+                    'telepon_rumah' => $data['telepon_rumah'] ?? null,
+                    'diterima_di_kelas' => $data['diterima_di_kelas'] ?? null,
+                    'tanggal_diterima' => $data['tanggal_diterima'] ?? null,
+                    'alamat_ortu' => $data['alamat_ortu'] ?? null,
+                    'telepon_ortu' => $data['telepon_ortu'] ?? null,
+                    'pekerjaan_ayah' => $data['pekerjaan_ayah'] ?? null,
+                    'pekerjaan_ibu' => $data['pekerjaan_ibu'] ?? null,
+                    'nama_wali' => $data['nama_wali'] ?? null,
+                    'alamat_wali' => $data['alamat_wali'] ?? null,
+                    'telepon_wali' => $data['telepon_wali'] ?? null,
+                    'pekerjaan_wali' => $data['pekerjaan_wali'] ?? null,
                     'tipe_program' => $data['tipe_program'],
                     'ukuran_seragam' => $data['ukuran_seragam'] ?? null,
                 ];
@@ -730,7 +800,7 @@ class SiswaController extends Controller
             ->with('success', 'Kata sandi akun siswa berhasil direset menjadi password.');
     }
 
-    private function normalizeStudentImportBirthDate(mixed $value): mixed
+    private function normalizeStudentImportDate(mixed $value): mixed
     {
         if (! is_string($value)) {
             return $value;

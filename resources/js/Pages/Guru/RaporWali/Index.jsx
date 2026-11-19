@@ -119,6 +119,7 @@ export default function GuruRaporWaliIndex({
     const [ledgerOrientation, setLedgerOrientation] = useState('landscape');
     const [selectedPrintStudentId, setSelectedPrintStudentId] = useState('all');
     const [isLedgerTableExpanded, setIsLedgerTableExpanded] = useState(true);
+    const [expandedStudentIds, setExpandedStudentIds] = useState(() => new Set());
     const form = useForm({
         kelas_id: selectedKelasId,
         catatan_rapor: initialNotes(siswas, templateKokurikuler),
@@ -141,6 +142,10 @@ export default function GuruRaporWaliIndex({
         });
         form.clearErrors();
     }, [siswas, selectedKelasId, templateKokurikuler]);
+
+    useEffect(() => {
+        setExpandedStudentIds(new Set());
+    }, [selectedKelasId]);
 
     useEffect(() => {
         if (!printTarget && !isLedgerPrinting) {
@@ -183,6 +188,20 @@ export default function GuruRaporWaliIndex({
         ));
     };
 
+    const toggleStudentCard = (studentId) => {
+        setExpandedStudentIds((current) => {
+            const next = new Set(current);
+
+            if (next.has(studentId)) {
+                next.delete(studentId);
+            } else {
+                next.add(studentId);
+            }
+
+            return next;
+        });
+    };
+
     const updatePredicate = (index, predicate) => {
         form.setData('catatan_rapor', form.data.catatan_rapor.map((note, noteIndex) =>
             noteIndex === index ? {
@@ -206,6 +225,15 @@ export default function GuruRaporWaliIndex({
         form.post(route('guru.rapor-wali.store'), {
             preserveScroll: true,
             onError: (errors) => {
+                const erroredStudentIds = Object.keys(errors)
+                    .map((key) => key.match(/^catatan_rapor\.(\d+)\./))
+                    .map((match) => match ? siswas[Number(match[1])]?.id : null)
+                    .filter((studentId) => studentId !== null && studentId !== undefined);
+
+                if (erroredStudentIds.length > 0) {
+                    setExpandedStudentIds(new Set(erroredStudentIds));
+                }
+
                 if (Object.keys(errors).some((key) => key.includes('.ekstra_'))) {
                     setActiveTab('ekstrakurikuler');
                 } else {
@@ -386,13 +414,21 @@ export default function GuruRaporWaliIndex({
                                     {siswas.map((siswa, index) => {
                                         const note = form.data.catatan_rapor[index] ?? {};
                                         const isComplete = noteIsComplete(note);
+                                        const isExpanded = expandedStudentIds.has(siswa.id);
 
                                         return (
                                             <article key={siswa.id} className="rounded-xl border border-slate-200">
-                                                <div className="flex flex-col gap-3 p-4 lg:flex-row lg:items-center lg:justify-between">
-                                                    <div className="min-w-0">
-                                                        <div className="flex flex-wrap items-center gap-2">
-                                                            <h3 className="text-sm font-bold text-slate-900">{siswa.nama_lengkap}</h3>
+                                                <button
+                                                    type="button"
+                                                    aria-expanded={isExpanded}
+                                                    aria-controls={`catatan-siswa-${siswa.id}`}
+                                                    aria-label={`${isExpanded ? 'Tutup' : 'Buka'} data ${siswa.nama_lengkap}`}
+                                                    onClick={() => toggleStudentCard(siswa.id)}
+                                                    className="flex w-full flex-col gap-3 rounded-xl p-4 text-left hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500 lg:flex-row lg:items-center lg:justify-between"
+                                                >
+                                                    <span className="min-w-0 flex-1">
+                                                        <span className="flex flex-wrap items-center gap-2">
+                                                            <span className="text-sm font-bold text-slate-900">{siswa.nama_lengkap}</span>
                                                             <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${
                                                                 isComplete
                                                                     ? 'bg-emerald-50 text-emerald-700'
@@ -400,14 +436,20 @@ export default function GuruRaporWaliIndex({
                                                             }`}>
                                                                 {isComplete ? 'Sudah Diisi' : 'Belum Diisi'}
                                                             </span>
-                                                        </div>
-                                                        <p className="mt-1 text-xs text-slate-500">
+                                                        </span>
+                                                        <span className="mt-1 block text-xs text-slate-500">
                                                             NISN {siswa.nisn || '—'} · Total Nilai {siswa.has_nilai ? siswa.jumlah_nilai : '—'} · Ranking {siswa.ranking ?? '—'}
-                                                        </p>
-                                                    </div>
-                                                </div>
+                                                        </span>
+                                                    </span>
+                                                    <span className="inline-flex shrink-0 items-center gap-2 text-xs font-semibold text-slate-600">
+                                                        {isExpanded ? 'Tutup' : 'Buka'}
+                                                        <span aria-hidden="true" className="text-lg leading-none">
+                                                            {isExpanded ? '−' : '+'}
+                                                        </span>
+                                                    </span>
+                                                </button>
 
-                                                <div id={`catatan-siswa-${siswa.id}`} className="border-t border-slate-100 p-4">
+                                                <div id={`catatan-siswa-${siswa.id}`} hidden={!isExpanded} className="border-t border-slate-100 p-4">
                                                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
                                                             <div className="space-y-4">
                                                                 {activeTab === 'absensi' && (

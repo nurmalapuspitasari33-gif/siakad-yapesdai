@@ -25,7 +25,11 @@ class StudentReportData
                 : null,
             'tempat_lahir' => $siswa->tempat_lahir,
             'tanggal_lahir' => $siswa->tanggal_lahir?->toDateString(),
-            'jenis_kelamin' => $siswa->jenis_kelamin,
+            'jenis_kelamin' => match ($siswa->jenis_kelamin) {
+                'L' => 'Laki-laki',
+                'P' => 'Perempuan',
+                default => $siswa->jenis_kelamin,
+            },
             'agama' => $siswa->agama,
             'status_keluarga' => $siswa->status_keluarga,
             'anak_ke' => $siswa->anak_ke,

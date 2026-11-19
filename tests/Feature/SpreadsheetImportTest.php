@@ -39,6 +39,21 @@ class SpreadsheetImportTest extends TestCase
             $spreadsheet = IOFactory::load($temporaryFile);
 
             $this->assertSame('sekolah_asal', $spreadsheet->getActiveSheet()->getCell('M1')->getValue());
+            $this->assertSame([
+                'status_keluarga',
+                'anak_ke',
+                'telepon_rumah',
+                'diterima_di_kelas',
+                'tanggal_diterima',
+                'alamat_ortu',
+                'telepon_ortu',
+                'pekerjaan_ayah',
+                'pekerjaan_ibu',
+                'nama_wali',
+                'alamat_wali',
+                'telepon_wali',
+                'pekerjaan_wali',
+            ], array_slice($spreadsheet->getActiveSheet()->toArray()[0], 18));
 
             $spreadsheet->disconnectWorksheets();
         } finally {
@@ -151,11 +166,17 @@ class SpreadsheetImportTest extends TestCase
                         'nisn', 'nis', 'nama_lengkap', 'email', 'nama_kelas', 'jenis_kelamin',
                         'tempat_lahir', 'tanggal_lahir', 'agama', 'alamat_murid', 'nama_ayah',
                         'nama_ibu', 'sekolah_asal', 'no_wa_wali', 'tipe_program', 'ukuran_seragam',
+                        'status_keluarga', 'anak_ke', 'telepon_rumah', 'diterima_di_kelas',
+                        'tanggal_diterima', 'alamat_ortu', 'telepon_ortu', 'pekerjaan_ayah',
+                        'pekerjaan_ibu', 'nama_wali', 'alamat_wali', 'telepon_wali', 'pekerjaan_wali',
                     ],
                     [[
                         '1000000001', 'SMK-1001', 'Siswa Contoh', 'siswa@sekolah.sch.id',
                         'X IPA 1', 'L', 'Cilacap', '2010-01-15', 'Islam', 'Jl. Pendidikan',
                         'Ayah', 'Ibu', 'SMP Asal', '081234567890', 'santri_internal', 'L',
+                        'Anak Kandung', '2', '0282-123456', 'X IPA 1', '15 februari 2025',
+                        'Jl. Orang Tua', '081111111111', 'Petani', 'Guru', 'Wali Murid',
+                        'Jl. Wali', '082222222222', 'Wiraswasta',
                     ]],
                 ),
             ])
@@ -167,6 +188,19 @@ class SpreadsheetImportTest extends TestCase
         $this->assertSame('SMK-1001', $student->nis);
         $this->assertSame('SMP Asal', $student->sekolah_asal);
         $this->assertSame('santri_internal', $student->tipe_program);
+        $this->assertSame('Anak Kandung', $student->status_keluarga);
+        $this->assertSame(2, $student->anak_ke);
+        $this->assertSame('0282-123456', $student->telepon_rumah);
+        $this->assertSame('X IPA 1', $student->diterima_di_kelas);
+        $this->assertSame('2025-02-15', $student->tanggal_diterima->format('Y-m-d'));
+        $this->assertSame('Jl. Orang Tua', $student->alamat_ortu);
+        $this->assertSame('081111111111', $student->telepon_ortu);
+        $this->assertSame('Petani', $student->pekerjaan_ayah);
+        $this->assertSame('Guru', $student->pekerjaan_ibu);
+        $this->assertSame('Wali Murid', $student->nama_wali);
+        $this->assertSame('Jl. Wali', $student->alamat_wali);
+        $this->assertSame('082222222222', $student->telepon_wali);
+        $this->assertSame('Wiraswasta', $student->pekerjaan_wali);
         $this->assertTrue(Hash::check('password', $student->user->password));
     }
 
@@ -311,6 +345,19 @@ class SpreadsheetImportTest extends TestCase
                 'nama_ayah' => 'Ayah Lama',
                 'nama_ibu' => 'Ibu Lama',
                 'sekolah_asal' => 'SMP Lama',
+                'status_keluarga' => 'Anak Kandung',
+                'anak_ke' => 2,
+                'telepon_rumah' => '0282-123456',
+                'diterima_di_kelas' => 'X IPA 1',
+                'tanggal_diterima' => '2025-07-14',
+                'alamat_ortu' => 'Alamat Orang Tua Lama',
+                'telepon_ortu' => '081111111111',
+                'pekerjaan_ayah' => 'Petani',
+                'pekerjaan_ibu' => 'Guru',
+                'nama_wali' => 'Wali Lama',
+                'alamat_wali' => 'Alamat Wali Lama',
+                'telepon_wali' => '082222222222',
+                'pekerjaan_wali' => 'Wiraswasta',
                 'no_wa_wali' => '081234567890',
                 'tipe_program' => 'santri_internal',
                 'ukuran_seragam' => 'M',
@@ -349,6 +396,19 @@ class SpreadsheetImportTest extends TestCase
             $this->assertSame('Islam', $student->agama);
             $this->assertSame('Ayah Lama', $student->nama_ayah);
             $this->assertSame('SMP Lama', $student->sekolah_asal);
+            $this->assertSame('Anak Kandung', $student->status_keluarga);
+            $this->assertSame(2, $student->anak_ke);
+            $this->assertSame('0282-123456', $student->telepon_rumah);
+            $this->assertSame('X IPA 1', $student->diterima_di_kelas);
+            $this->assertSame('2025-07-14', $student->tanggal_diterima->format('Y-m-d'));
+            $this->assertSame('Alamat Orang Tua Lama', $student->alamat_ortu);
+            $this->assertSame('081111111111', $student->telepon_ortu);
+            $this->assertSame('Petani', $student->pekerjaan_ayah);
+            $this->assertSame('Guru', $student->pekerjaan_ibu);
+            $this->assertSame('Wali Lama', $student->nama_wali);
+            $this->assertSame('Alamat Wali Lama', $student->alamat_wali);
+            $this->assertSame('082222222222', $student->telepon_wali);
+            $this->assertSame('Wiraswasta', $student->pekerjaan_wali);
             $this->assertSame($kelas->id, $student->kelas_id);
             $this->assertSame($existingRecords[$index]['email'], $student->user->email);
             $this->assertSame('santri_internal', $student->tipe_program);
