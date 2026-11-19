@@ -9,6 +9,12 @@ const subjectGroups = [
     { key: 'muatan_lokal', title: 'C. Muatan Lokal' },
 ];
 
+function formatScore(value) {
+    return value === null || value === undefined || value === ''
+        ? '—'
+        : String(Math.round(Number(value)));
+}
+
 function SubjectTable({ title, subjects = [] }) {
     return (
         <section className="overflow-hidden rounded-xl border border-slate-200">
@@ -33,7 +39,7 @@ function SubjectTable({ title, subjects = [] }) {
                             <tr key={`${nilai.kode_mapel}-${index}`}>
                                 <td className="border border-slate-300 px-3 py-2 text-center">{index + 1}</td>
                                 <td className="border border-slate-300 px-3 py-2">{nilai.nama_mapel}</td>
-                                <td className="border border-slate-300 px-3 py-2 text-center font-semibold">{nilai.nilai_akhir ?? '—'}</td>
+                                <td className="border border-slate-300 px-3 py-2 text-center font-semibold">{formatScore(nilai.nilai_akhir)}</td>
                                 <td className="min-w-64 border border-slate-300 px-3 py-2 whitespace-pre-line">{nilai.capaian_kompetensi || '—'}</td>
                             </tr>
                         ))}

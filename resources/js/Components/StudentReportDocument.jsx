@@ -4,6 +4,12 @@ function printValue(value) {
     return value === null || value === undefined || value === '' ? '' : String(value);
 }
 
+function formatScore(value) {
+    return value === null || value === undefined || value === ''
+        ? '—'
+        : String(Math.round(Number(value)));
+}
+
 function formatLongDate(value) {
     if (!value) {
         return '';
@@ -217,7 +223,7 @@ function SubjectTable({ groups, showColumnHeadings = false, startingNumber = 1 }
                     <tr key={row.key}>
                         <td className="report-subject-number align-top">{row.number}</td>
                         <td className="align-top">{printValue(row.subject.nama_mapel) || '—'}</td>
-                        <td className="report-subject-score align-top">{printValue(row.subject.nilai_akhir) || '—'}</td>
+                        <td className="report-subject-score align-top">{formatScore(row.subject.nilai_akhir)}</td>
                         <td className={`align-top ${competencyFontClass(row.subject.capaian_kompetensi)}`}>
                             {printValue(row.subject.capaian_kompetensi) || '—'}
                         </td>

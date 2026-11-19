@@ -4,6 +4,12 @@ function printValue(value) {
     return value === null || value === undefined || value === '' ? '—' : String(value);
 }
 
+function formatScore(value) {
+    return value === null || value === undefined || value === ''
+        ? '—'
+        : String(Math.round(Number(value)));
+}
+
 function formatLongDate(value) {
     if (!value) {
         return '';
@@ -128,7 +134,7 @@ export default function ClassLedgerPrintDocument({
                                         key={`${group.key}-${mapel.id}`}
                                         className="ledger-center"
                                     >
-                                        {printValue(siswa.nilai?.[mapel.id]?.nilai_akhir)}
+                                        {formatScore(siswa.nilai?.[mapel.id]?.nilai_akhir)}
                                     </td>
                                 ))
                                 : [(
@@ -138,7 +144,7 @@ export default function ClassLedgerPrintDocument({
                             <td className="ledger-center">
                                 {siswa.rata_rata === null || siswa.rata_rata === undefined
                                     ? '—'
-                                    : Number(siswa.rata_rata).toFixed(2)}
+                                    : formatScore(siswa.rata_rata)}
                             </td>
                             <td className="ledger-center">{printValue(siswa.ranking)}</td>
                         </tr>

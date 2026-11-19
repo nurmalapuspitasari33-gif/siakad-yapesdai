@@ -84,6 +84,12 @@ function noteIsComplete(note) {
         || ['sakit', 'izin', 'tanpa_keterangan'].some((key) => Number(note[key]) > 0);
 }
 
+function formatScore(value) {
+    return value === null || value === undefined || value === ''
+        ? '—'
+        : String(Math.round(Number(value)));
+}
+
 function LegendGroup({ group }) {
     return (
         <th
@@ -762,7 +768,7 @@ export default function GuruRaporWaliIndex({
                                                         <td key={group.key} className="border border-slate-400 px-2 py-2 text-center">—</td>
                                                     ) : group.subjects.flatMap((mapel) => (
                                                         [
-                                                            <td key={`${mapel.id}-na`} className="border border-slate-400 px-2 py-2 text-center">{siswa.nilai?.[mapel.id]?.nilai_akhir ?? '—'}</td>,
+                                                            <td key={`${mapel.id}-na`} className="border border-slate-400 px-2 py-2 text-center">{formatScore(siswa.nilai?.[mapel.id]?.nilai_akhir)}</td>,
                                                             <td key={`${mapel.id}-capaian`} className="min-w-36 border border-slate-400 px-2 py-2">{siswa.nilai?.[mapel.id]?.capaian_kompetensi ?? '—'}</td>,
                                                         ]
                                                     )))}
