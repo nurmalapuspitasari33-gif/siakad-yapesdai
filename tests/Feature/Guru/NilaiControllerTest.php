@@ -57,6 +57,27 @@ class NilaiControllerTest extends TestCase
         ]);
     }
 
+    public function test_teacher_cannot_save_decimal_scores(): void
+    {
+        $teacherUser = User::factory()->create(['role' => 'guru']);
+        [, , $kelas, $mapel, $student] = $this->createAssignment($teacherUser);
+
+        $this->actingAs($teacherUser)
+            ->post(route('guru.nilai.store'), [
+                'kelas_id' => $kelas->id,
+                'mapel_id' => $mapel->id,
+                'nilai' => [[
+                    'siswa_id' => $student->id,
+                    'nilai_akhir' => 80.5,
+                ]],
+            ])
+            ->assertSessionHasErrors([
+                'nilai.0.nilai_akhir' => 'Nilai akhir harus berupa bilangan bulat tanpa desimal.',
+            ]);
+
+        $this->assertDatabaseCount('nilais', 0);
+    }
+
     public function test_teacher_cannot_save_scores_for_an_unassigned_subject(): void
     {
         $teacherUser = User::factory()->create(['role' => 'guru']);
@@ -154,7 +175,7 @@ class NilaiControllerTest extends TestCase
         ]);
         foreach ([
             [$student, 95, 'selesai'],
-            [$secondStudent, 80, 'selesai'],
+            [$secondStudent, 80.6, 'selesai'],
             [$thirdStudent, 100, 'sedang_mengerjakan'],
         ] as [$siswa, $score, $status]) {
             HasilUjian::create([
@@ -199,7 +220,7 @@ class NilaiControllerTest extends TestCase
             'tahun_ajaran_id' => $tahunAjaran->id,
             'siswa_id' => $secondStudent->id,
             'mapel_id' => $mapel->id,
-            'nilai_akhir' => 80,
+            'nilai_akhir' => 81,
         ]);
         $this->assertDatabaseMissing('nilais', [
             'siswa_id' => $thirdStudent->id,

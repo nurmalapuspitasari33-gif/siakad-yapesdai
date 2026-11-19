@@ -117,13 +117,14 @@ class NilaiController extends Controller
                     ->where('kelas_id', $request->input('kelas_id'))
                     ->where('status_siswa', 'aktif'),
             ],
-            'nilai.*.nilai_akhir' => ['required', 'numeric', 'between:0,100'],
+            'nilai.*.nilai_akhir' => ['required', 'integer', 'between:0,100'],
             'nilai.*.capaian_kompetensi' => ['nullable', 'string', 'max:5000'],
         ], [
             'kelas_id.required' => 'Kelas wajib dipilih.',
             'mapel_id.required' => 'Mata pelajaran wajib dipilih.',
             'nilai.*.siswa_id.exists' => 'Daftar siswa berubah. Muat ulang halaman sebelum menyimpan nilai.',
             'nilai.*.nilai_akhir.required' => 'Nilai akhir wajib diisi.',
+            'nilai.*.nilai_akhir.integer' => 'Nilai akhir harus berupa bilangan bulat tanpa desimal.',
             'nilai.*.nilai_akhir.between' => 'Nilai akhir harus berada pada rentang 0 sampai 100.',
         ]);
 
@@ -241,7 +242,7 @@ class NilaiController extends Controller
                 'tahun_ajaran_id' => $tahunAjaranAktif->id,
                 'siswa_id' => $hasil->siswa_id,
                 'mapel_id' => $validated['mapel_id'],
-                'nilai_akhir' => $hasil->skor_akhir,
+                'nilai_akhir' => round((float) $hasil->skor_akhir),
                 'created_at' => $now,
                 'updated_at' => $now,
             ])

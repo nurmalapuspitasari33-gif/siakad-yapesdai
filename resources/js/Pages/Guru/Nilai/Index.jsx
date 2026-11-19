@@ -5,11 +5,15 @@ import { Head, router, useForm } from '@inertiajs/react';
 import { useEffect, useRef, useState } from 'react';
 
 function initialScores(siswas) {
-    return siswas.map((siswa) => ({
-        siswa_id: siswa.id,
-        nilai_akhir: siswa.nilai?.nilai_akhir ?? '',
-        capaian_kompetensi: siswa.nilai?.capaian_kompetensi ?? '',
-    }));
+    return siswas.map((siswa) => {
+        const score = siswa.nilai?.nilai_akhir;
+
+        return {
+            siswa_id: siswa.id,
+            nilai_akhir: score == null || score === '' ? '' : String(Math.round(Number(score))),
+            capaian_kompetensi: siswa.nilai?.capaian_kompetensi ?? '',
+        };
+    });
 }
 
 export default function GuruNilaiIndex({
@@ -289,7 +293,9 @@ export default function GuruNilaiIndex({
                             <div className="flex flex-col gap-3 border-b border-slate-100 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-7">
                                 <div>
                                     <h2 className="font-bold text-slate-900">Daftar nilai siswa</h2>
-                                    <p className="mt-1 text-sm text-slate-500">{siswas.length} siswa</p>
+                                    <p className="mt-1 text-sm text-slate-500">
+                                        {siswas.length} siswa · Nilai akhir bilangan bulat 0–100
+                                    </p>
                                 </div>
                                 <button
                                     type="submit"
@@ -353,7 +359,7 @@ export default function GuruNilaiIndex({
                                                                 type="number"
                                                                 min="0"
                                                                 max="100"
-                                                                step="0.01"
+                                                                step="1"
                                                                 aria-label={`Nilai akhir ${siswa.nama_lengkap}`}
                                                                 value={row?.nilai_akhir ?? ''}
                                                                 onChange={(event) => updateScore(index, 'nilai_akhir', event.target.value)}
