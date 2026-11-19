@@ -147,6 +147,64 @@ class SpreadsheetImportTest extends TestCase
         $this->assertTrue(Hash::check('password', $student->user->password));
     }
 
+    public function test_admin_can_import_a_student_with_blank_optional_fields(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $kelas = $this->createActiveClass();
+
+        $this->actingAs($admin)
+            ->post(route('admin.siswa.import'), [
+                'file' => $this->xlsxUpload(
+                    [
+                        'nisn', 'nis', 'nama_lengkap', 'email', 'nama_kelas', 'jenis_kelamin',
+                        'tempat_lahir', 'tanggal_lahir', 'agama', 'alamat_murid', 'nama_ayah',
+                        'nama_ibu', 'no_wa_wali', 'tipe_program', 'ukuran_seragam',
+                        'program_keahlian', 'konsentrasi_keahlian',
+                    ],
+                    [[
+                        '1000000005', '', 'Siswa Baru', 'siswa.baru@sekolah.sch.id', $kelas->nama_kelas,
+                        'L', '', '', '', '', '', '', '', '', '', '', '',
+                    ]],
+                ),
+            ])
+            ->assertRedirect(route('admin.siswa.index', absolute: false));
+
+        $student = Siswa::query()->where('nisn', '1000000005')->firstOrFail();
+
+        $this->assertSame('reguler', $student->tipe_program);
+        $this->assertNull($student->alamat_murid);
+        $this->assertNull($student->nama_ayah);
+        $this->assertNull($student->nama_ibu);
+        $this->assertNull($student->no_wa_wali);
+        $this->assertNull($student->ukuran_seragam);
+        $this->assertSame($kelas->id, $student->kelas_id);
+    }
+
+    public function test_admin_can_import_a_student_without_a_class_when_no_active_year_is_configured(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $this->actingAs($admin)
+            ->post(route('admin.siswa.import'), [
+                'file' => $this->xlsxUpload(
+                    [
+                        'nisn', 'nis', 'nama_lengkap', 'email', 'nama_kelas', 'jenis_kelamin',
+                        'tempat_lahir', 'tanggal_lahir', 'agama', 'alamat_murid', 'nama_ayah',
+                        'nama_ibu', 'no_wa_wali', 'tipe_program', 'ukuran_seragam',
+                    ],
+                    [[
+                        '1000000006', '', 'Siswa Kelas XI', 'kelas.xi@sekolah.sch.id', '',
+                        'L', '', '', '', '', '', '', '', 'reguler', '',
+                    ]],
+                ),
+            ])
+            ->assertRedirect(route('admin.siswa.index', absolute: false));
+
+        $student = Siswa::query()->where('nisn', '1000000006')->firstOrFail();
+
+        $this->assertNull($student->kelas_id);
+    }
+
     public function test_admin_student_import_saves_a_matching_program_and_concentration(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);

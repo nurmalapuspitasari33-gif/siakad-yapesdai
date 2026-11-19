@@ -123,17 +123,22 @@ class SiswaController extends Controller
             optionalHeaders: ['program_keahlian', 'konsentrasi_keahlian'],
         );
         $activeYearId = TahunAjaran::query()->where('is_aktif', true)->value('id');
+        $hasClassAssignments = collect($rows)->contains(
+            static fn (array $item): bool => ($item['data']['nama_kelas'] ?? null) !== null,
+        );
 
-        if (! $activeYearId) {
+        if (! $activeYearId && $hasClassAssignments) {
             throw ValidationException::withMessages([
                 'file' => 'Tahun ajaran aktif belum ditetapkan untuk menentukan kelas siswa.',
             ]);
         }
 
-        $classesByName = Kelas::query()
-            ->where('tahun_ajaran_id', $activeYearId)
-            ->get(['id', 'nama_kelas', 'program_keahlian_id', 'konsentrasi_keahlian_id'])
-            ->groupBy(fn (Kelas $kelas): string => mb_strtolower($kelas->nama_kelas));
+        $classesByName = $activeYearId
+            ? Kelas::query()
+                ->where('tahun_ajaran_id', $activeYearId)
+                ->get(['id', 'nama_kelas', 'program_keahlian_id', 'konsentrasi_keahlian_id'])
+                ->groupBy(fn (Kelas $kelas): string => mb_strtolower($kelas->nama_kelas))
+            : collect();
         $programsByIdentifier = collect();
 
         foreach (ProgramKeahlian::query()
@@ -152,12 +157,14 @@ class SiswaController extends Controller
         foreach ($rows as $item) {
             $rowNumber = $item['row'];
             $data = $item['data'];
+            $programType = trim((string) ($data['tipe_program'] ?? ''));
+            $data['tipe_program'] = $programType === '' ? 'reguler' : mb_strtolower($programType);
             $validator = Validator::make($data, [
                 'nisn' => ['required', 'string', 'max:255', Rule::unique('siswas', 'nisn')],
                 'nis' => ['nullable', 'string', 'max:255', Rule::unique('siswas', 'nis')],
                 'nama_lengkap' => ['required', 'string', 'max:255'],
                 'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')],
-                'nama_kelas' => ['required', 'string', 'max:255'],
+                'nama_kelas' => ['nullable', 'string', 'max:255'],
                 'jenis_kelamin' => ['nullable', Rule::in(['L', 'P'])],
                 'tempat_lahir' => ['nullable', 'string', 'max:100'],
                 'tanggal_lahir' => ['nullable', 'date_format:Y-m-d'],
@@ -238,18 +245,23 @@ class SiswaController extends Controller
                 $seenNis[$nisKey] = true;
             }
 
-            $matchingClasses = $classesByName->get(mb_strtolower($data['nama_kelas']), collect());
+            $matchingClass = null;
 
-            if ($matchingClasses->count() !== 1) {
-                $errors[] = "Baris {$rowNumber}: Nama kelas tidak ditemukan secara unik pada tahun ajaran aktif.";
+            if ($data['nama_kelas'] !== null) {
+                $matchingClasses = $classesByName->get(mb_strtolower($data['nama_kelas']), collect());
 
-                continue;
+                if ($matchingClasses->count() !== 1) {
+                    $errors[] = "Baris {$rowNumber}: Nama kelas tidak ditemukan secara unik pada tahun ajaran aktif.";
+
+                    continue;
+                }
+
+                $matchingClass = $matchingClasses->first();
             }
-
-            $matchingClass = $matchingClasses->first();
 
             if (
                 $programKeahlian
+                && $matchingClass
                 && (
                     (int) $matchingClass->program_keahlian_id !== $programKeahlian->id
                     || (int) $matchingClass->konsentrasi_keahlian_id !== $konsentrasiKeahlian?->id
@@ -262,9 +274,9 @@ class SiswaController extends Controller
 
             $students[] = [
                 'data' => $data,
-                'kelas_id' => $matchingClass->id,
-                'program_keahlian_id' => $programKeahlian?->id ?? $matchingClass->program_keahlian_id,
-                'konsentrasi_keahlian_id' => $konsentrasiKeahlian?->id ?? $matchingClass->konsentrasi_keahlian_id,
+                'kelas_id' => $matchingClass?->id,
+                'program_keahlian_id' => $programKeahlian?->id ?? $matchingClass?->program_keahlian_id,
+                'konsentrasi_keahlian_id' => $konsentrasiKeahlian?->id ?? $matchingClass?->konsentrasi_keahlian_id,
             ];
         }
 
