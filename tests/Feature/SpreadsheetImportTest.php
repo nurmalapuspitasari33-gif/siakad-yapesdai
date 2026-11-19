@@ -45,6 +45,26 @@ class SpreadsheetImportTest extends TestCase
         $this->assertTrue(Hash::check('password', $guru->user->password));
     }
 
+    public function test_admin_can_import_a_teacher_with_blank_homeroom_fields(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $kelas = $this->createActiveClass();
+
+        $this->actingAs($admin)
+            ->post(route('admin.guru.import'), [
+                'file' => $this->xlsxUpload(
+                    ['niky', 'nama_lengkap', 'email', 'no_wa', 'is_wali_kelas', 'nama_kelas_wali'],
+                    [['19870003', 'Guru Biasa', 'guru.biasa@sekolah.sch.id', '', '', '']],
+                ),
+            ])
+            ->assertRedirect(route('admin.guru.index', absolute: false));
+
+        $guru = Guru::query()->where('nip', '19870003')->firstOrFail();
+
+        $this->assertFalse($guru->is_wali_kelas);
+        $this->assertNull($kelas->fresh()->wali_kelas_id);
+    }
+
     public function test_admin_teacher_import_still_accepts_the_legacy_nip_column(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);

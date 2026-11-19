@@ -74,7 +74,8 @@ class GuruController extends Controller
         foreach ($rows as $item) {
             $rowNumber = $item['row'];
             $data = $item['data'];
-            $data['is_wali_kelas'] = mb_strtolower((string) ($data['is_wali_kelas'] ?? ''));
+            $isHomeroomTeacher = trim((string) ($data['is_wali_kelas'] ?? ''));
+            $data['is_wali_kelas'] = $isHomeroomTeacher === '' ? 'tidak' : mb_strtolower($isHomeroomTeacher);
             $validator = Validator::make($data, [
                 'niky' => ['required', 'string', 'max:255', Rule::unique('gurus', 'nip')],
                 'nama_lengkap' => ['required', 'string', 'max:255'],
