@@ -739,7 +739,7 @@
     .ledger-print-table {
         width: 100%;
         border-collapse: collapse;
-        table-layout: fixed;
+        table-layout: auto;
     }
 
     .ledger-print-table th,
