@@ -180,7 +180,7 @@ class SpreadsheetImportTest extends TestCase
         $this->assertSame($kelas->id, $student->kelas_id);
     }
 
-    public function test_admin_can_import_a_student_without_a_class_when_no_active_year_is_configured(): void
+    public function test_admin_can_import_students_with_only_names(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
 
@@ -191,18 +191,25 @@ class SpreadsheetImportTest extends TestCase
                         'nisn', 'nis', 'nama_lengkap', 'email', 'nama_kelas', 'jenis_kelamin',
                         'tempat_lahir', 'tanggal_lahir', 'agama', 'alamat_murid', 'nama_ayah',
                         'nama_ibu', 'no_wa_wali', 'tipe_program', 'ukuran_seragam',
+                        'program_keahlian', 'konsentrasi_keahlian',
                     ],
-                    [[
-                        '1000000006', '', 'Siswa Kelas XI', 'kelas.xi@sekolah.sch.id', '',
-                        'L', '', '', '', '', '', '', '', 'reguler', '',
-                    ]],
+                    [
+                        ['', '', 'Siswa Kelas XI', '', '', '', '', '', '', '', '', '', '', '', '', '', ''],
+                        ['', '', 'Siswa Kelas XII', '', '', '', '', '', '', '', '', '', '', '', '', '', ''],
+                    ],
                 ),
             ])
             ->assertRedirect(route('admin.siswa.index', absolute: false));
 
-        $student = Siswa::query()->where('nisn', '1000000006')->firstOrFail();
+        $student = Siswa::query()->where('nama_lengkap', 'Siswa Kelas XI')->firstOrFail();
+        $secondStudent = Siswa::query()->where('nama_lengkap', 'Siswa Kelas XII')->firstOrFail();
 
+        $this->assertNull($student->nisn);
         $this->assertNull($student->kelas_id);
+        $this->assertSame('reguler', $student->tipe_program);
+        $this->assertNull($student->user->email);
+        $this->assertNull($secondStudent->nisn);
+        $this->assertNull($secondStudent->user->email);
     }
 
     public function test_admin_student_import_saves_a_matching_program_and_concentration(): void

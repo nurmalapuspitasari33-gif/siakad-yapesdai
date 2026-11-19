@@ -160,10 +160,10 @@ class SiswaController extends Controller
             $programType = trim((string) ($data['tipe_program'] ?? ''));
             $data['tipe_program'] = $programType === '' ? 'reguler' : mb_strtolower($programType);
             $validator = Validator::make($data, [
-                'nisn' => ['required', 'string', 'max:255', Rule::unique('siswas', 'nisn')],
+                'nisn' => ['nullable', 'string', 'max:255', Rule::unique('siswas', 'nisn')],
                 'nis' => ['nullable', 'string', 'max:255', Rule::unique('siswas', 'nis')],
                 'nama_lengkap' => ['required', 'string', 'max:255'],
-                'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')],
+                'email' => ['nullable', 'email', 'max:255', Rule::unique('users', 'email')],
                 'nama_kelas' => ['nullable', 'string', 'max:255'],
                 'jenis_kelamin' => ['nullable', Rule::in(['L', 'P'])],
                 'tempat_lahir' => ['nullable', 'string', 'max:100'],
@@ -221,19 +221,25 @@ class SiswaController extends Controller
                 continue;
             }
 
-            $nisnKey = mb_strtolower($data['nisn']);
-            $emailKey = mb_strtolower($data['email']);
+            if ($data['nisn'] !== null) {
+                $nisnKey = mb_strtolower($data['nisn']);
 
-            if (isset($seenNisns[$nisnKey])) {
-                $errors[] = "Baris {$rowNumber}: NISN duplikat di dalam file.";
+                if (isset($seenNisns[$nisnKey])) {
+                    $errors[] = "Baris {$rowNumber}: NISN duplikat di dalam file.";
+                }
+
+                $seenNisns[$nisnKey] = true;
             }
 
-            if (isset($seenEmails[$emailKey])) {
-                $errors[] = "Baris {$rowNumber}: Email duplikat di dalam file.";
-            }
+            if ($data['email'] !== null) {
+                $emailKey = mb_strtolower($data['email']);
 
-            $seenNisns[$nisnKey] = true;
-            $seenEmails[$emailKey] = true;
+                if (isset($seenEmails[$emailKey])) {
+                    $errors[] = "Baris {$rowNumber}: Email duplikat di dalam file.";
+                }
+
+                $seenEmails[$emailKey] = true;
+            }
 
             if ($data['nis'] !== null) {
                 $nisKey = mb_strtolower($data['nis']);
@@ -293,7 +299,9 @@ class SiswaController extends Controller
                     'password' => 'password',
                     'role' => 'siswa',
                 ]);
-                $user->forceFill(['email_verified_at' => now()])->save();
+                if ($data['email'] !== null) {
+                    $user->forceFill(['email_verified_at' => now()])->save();
+                }
 
                 Siswa::create([
                     'user_id' => $user->id,
