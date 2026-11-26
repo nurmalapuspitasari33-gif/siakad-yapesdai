@@ -9,7 +9,7 @@ const selectionLabels = {
 
 function PrintField({ label, value }) {
     return (
-        <div className="spmb-print-field grid grid-cols-[36mm_minmax(0,1fr)] gap-1 border-b border-slate-200 py-1 print:text-[11px] print:leading-tight">
+        <div className="spmb-print-field grid grid-cols-[minmax(32mm,38%)_minmax(0,1fr)] gap-2 border-b border-slate-200 py-1 print:text-[12pt] print:leading-[1.35]">
             <dt className="font-semibold">{label}</dt>
             <dd className="break-words">{value || '—'}</dd>
         </div>
@@ -36,12 +36,12 @@ export default function SiswaSpmbPrint({ pendaftaran = {} }) {
                 </button>
             </div>
 
-            <article className="print-document spmb-registration-print mx-auto max-w-4xl border border-slate-300 bg-white p-5 shadow-sm print:max-w-full print:border-0 print:p-0 print:shadow-none print:text-[11px] print:leading-tight sm:p-8">
+            <article className="print-document spmb-registration-print mx-auto max-w-4xl border border-slate-300 bg-white p-5 shadow-sm print:mx-auto print:w-full print:max-w-[182mm] print:border-0 print:p-0 print:shadow-none print:text-[12pt] print:leading-[1.35] print:font-serif sm:p-8">
                 <header className="spmb-form-heading flex items-center justify-center gap-3 border-b-4 border-double border-slate-900 pb-2 text-center">
                     <img src="/logo.png" alt="" className="h-[18mm] w-[18mm] shrink-0 object-contain" />
                     <div>
                         <p className="font-bold uppercase tracking-wide">Panitia Sistem Penerimaan Murid Baru</p>
-                        <h1 className="mt-0.5 font-display font-extrabold uppercase">
+                        <h1 className="spmb-form-school-name mt-0.5 font-display font-extrabold uppercase">
                             SMK Al Mu'allim Kesugihan
                         </h1>
                         <p className="mt-0.5 font-semibold">
@@ -54,7 +54,7 @@ export default function SiswaSpmbPrint({ pendaftaran = {} }) {
                     Formulir Pendaftaran Murid Baru
                 </h2>
 
-                <div className="spmb-registration-meta-row mt-2 grid grid-cols-1 items-start gap-3 sm:grid-cols-[minmax(0,1fr)_26mm]">
+                <div className="spmb-registration-meta-row mt-2 grid grid-cols-1 items-start gap-3 sm:grid-cols-[minmax(0,1fr)_30mm]">
                     <div className="grid grid-cols-2 gap-x-3 gap-y-1">
                         <dl className="spmb-registration-meta">
                             <dt className="font-semibold">Nomor Pendaftaran</dt>
@@ -73,7 +73,7 @@ export default function SiswaSpmbPrint({ pendaftaran = {} }) {
                             <dd className="break-words">{selectionLabels[pendaftaran.status_seleksi] ?? '—'}</dd>
                         </dl>
                     </div>
-                    <div className="spmb-registration-photo flex h-[34mm] w-[26mm] shrink-0 items-center justify-center justify-self-center overflow-hidden border border-dashed border-slate-500 text-center">
+                    <div className="spmb-registration-photo flex h-[40mm] w-[30mm] shrink-0 items-center justify-center justify-self-center overflow-hidden border border-dashed border-slate-500 text-center">
                         {pendaftaran.foto_siswa_url ? (
                             <img src={pendaftaran.foto_siswa_url} alt="Pas foto calon siswa" className="h-full w-full object-cover" />
                         ) : (
@@ -82,7 +82,7 @@ export default function SiswaSpmbPrint({ pendaftaran = {} }) {
                     </div>
                 </div>
 
-                <div className="spmb-registration-columns mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
+                <div className="spmb-registration-columns mt-3 grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2 print:grid-cols-2 print:gap-x-6 print:gap-y-3">
                     <section>
                         <h3 className="spmb-registration-section-heading border-b border-slate-700 pb-1 font-bold uppercase">
                             A. Identitas Calon Siswa
@@ -116,7 +116,7 @@ export default function SiswaSpmbPrint({ pendaftaran = {} }) {
                             <ul className="spmb-registration-documents mt-1 grid grid-cols-2 gap-x-2 gap-y-1">
                                 {(pendaftaran.berkas ?? []).length > 0 ? pendaftaran.berkas.map((berkas, index) => (
                                     <li key={`${berkas.caption}-${index}`} className="flex items-start gap-1">
-                                        <span className="inline-flex h-3 w-3 shrink-0 items-center justify-center border border-slate-700 text-[9px]">
+                                        <span className="inline-flex h-[5mm] w-[5mm] shrink-0 items-center justify-center border border-slate-700">
                                             {berkas.uploaded ? '✓' : ''}
                                         </span>
                                         <span className="break-words">{berkas.caption || `Foto berkas ${index + 1}`}</span>
@@ -133,7 +133,7 @@ export default function SiswaSpmbPrint({ pendaftaran = {} }) {
                     <h3 className="spmb-registration-section-heading border-b border-slate-700 pb-1 font-bold uppercase">
                         C. Data Orang Tua / Wali
                     </h3>
-                    <div className="mt-1 grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
+                    <div className="mt-1 grid grid-cols-1 gap-x-6 sm:grid-cols-2 print:grid-cols-2 print:gap-x-6">
                         <dl>
                             <PrintField label="Nama Ayah" value={pendaftaran.nama_ayah} />
                             <PrintField label="Pekerjaan Ayah" value={pendaftaran.pekerjaan_ayah} />
@@ -151,20 +151,20 @@ export default function SiswaSpmbPrint({ pendaftaran = {} }) {
                     </div>
                 </section>
 
-                <section className="spmb-registration-signatures mt-4 grid grid-cols-3 gap-3 text-center">
+                <section className="spmb-registration-signatures mt-4 grid grid-cols-3 gap-3 text-center print:text-[12pt]">
                     <div>
                         <p>Calon Murid,</p>
-                        <div className="spmb-registration-signature-space h-12" />
+                        <div className="spmb-registration-signature-space h-14" />
                         <p className="font-bold underline">{pendaftaran.nama_lengkap || '________________'}</p>
                     </div>
                     <div>
                         <p>Orang Tua / Wali,</p>
-                        <div className="spmb-registration-signature-space h-12" />
+                        <div className="spmb-registration-signature-space h-14" />
                         <p className="font-bold underline">{pendaftaran.nama_wali || pendaftaran.nama_ayah || pendaftaran.nama_ibu || '________________'}</p>
                     </div>
                     <div>
                         <p>Panitia Verifikator,</p>
-                        <div className="spmb-registration-signature-space h-12" />
+                        <div className="spmb-registration-signature-space h-14" />
                         <p className="font-bold underline">________________</p>
                     </div>
                 </section>

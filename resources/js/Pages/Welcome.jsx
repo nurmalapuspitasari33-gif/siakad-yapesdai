@@ -234,7 +234,7 @@ export default function Welcome({
 
         const intervalId = window.setInterval(() => {
             setActiveSlide((current) => (current + 1) % slides.length);
-        }, 1000);
+        }, 5000);
 
         return () => window.clearInterval(intervalId);
     }, [slides.length, autoSlideResetKey, isHeroPaused]);

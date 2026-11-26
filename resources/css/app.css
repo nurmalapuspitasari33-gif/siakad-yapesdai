@@ -259,7 +259,7 @@
 
 @page {
     size: A4 portrait;
-    margin: 10mm 12mm;
+    margin: 12mm 14mm;
 }
 
 @page spmb-report {
@@ -929,11 +929,17 @@
 
     .spmb-registration-print {
         box-sizing: border-box;
+        position: absolute;
+        top: 0;
+        right: 0;
+        left: 0;
         width: 100%;
-        max-width: 100%;
+        max-width: 182mm;
+        margin: 0 auto;
         padding: 0 !important;
-        font-size: 11px !important;
-        line-height: 1.15 !important;
+        font-size: 12pt !important;
+        line-height: 1.35 !important;
+        font-family: Cambria, "Times New Roman", serif !important;
         break-inside: auto !important;
         page-break-inside: auto !important;
     }
@@ -956,18 +962,22 @@
         height: 18mm;
     }
 
+    .spmb-form-school-name {
+        font-size: 14pt !important;
+    }
+
     .spmb-registration-print h1 {
-        font-size: 15px !important;
+        font-size: 14pt !important;
     }
 
     .spmb-form-title {
         margin-top: 2mm;
-        font-size: 13px !important;
+        font-size: 14pt !important;
     }
 
     .spmb-registration-meta-row {
-        grid-template-columns: minmax(0, 1fr) 26mm;
-        gap: 3mm;
+        grid-template-columns: minmax(0, 1fr) 30mm;
+        gap: 4mm;
     }
 
     .spmb-registration-meta {
@@ -978,14 +988,15 @@
     }
 
     .spmb-registration-photo {
-        width: 26mm;
-        height: 34mm;
+        width: 30mm;
+        height: 40mm;
     }
 
     .spmb-registration-columns,
     .spmb-registration-parents > div {
         grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 4mm;
+        column-gap: 6mm;
+        row-gap: 3mm;
     }
 
     .spmb-registration-columns {
@@ -999,12 +1010,12 @@
     .spmb-registration-section-heading {
         margin: 0 0 1mm;
         padding-bottom: 1mm;
-        font-size: 11px !important;
+        font-size: 12pt !important;
     }
 
     .spmb-print-field {
-        grid-template-columns: 34mm minmax(0, 1fr);
-        gap: 1mm;
+        grid-template-columns: minmax(32mm, 38%) minmax(0, 1fr);
+        gap: 2mm;
         padding: 1mm 0 !important;
         border-bottom: 0.2mm solid #d1d5db;
     }
@@ -1018,16 +1029,16 @@
     .spmb-registration-signatures {
         gap: 3mm;
         margin-top: 4mm;
-        font-size: 10px !important;
+        font-size: 12pt !important;
     }
 
     .spmb-registration-signature-space {
-        height: 12mm;
+        height: 14mm;
     }
 
     .spmb-registration-footnote {
         margin-top: 2mm;
-        font-size: 9px !important;
+        font-size: 10pt !important;
     }
 }
 
