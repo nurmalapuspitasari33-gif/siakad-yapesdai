@@ -1,6 +1,7 @@
 import { Link, usePage } from '@inertiajs/react';
 import Dropdown from '@/Components/Dropdown';
 import DashboardSidebar from '@/Components/DashboardSidebar';
+import MagneticItem from '@/Components/MagneticMenu';
 import formatDashboardUserName from '@/Components/formatDashboardUserName';
 import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useState } from 'react';
 
@@ -361,7 +362,8 @@ function DashboardFrame({
                 >
                     <div className="mx-auto grid max-w-xl grid-cols-4">
                         {mobileQuickLinks.map((item, index) => (
-                            <Link
+                            <MagneticItem
+                                component={Link}
                                 key={item.id}
                                 href={item.href}
                                 prefetch
@@ -390,7 +392,7 @@ function DashboardFrame({
                                 </span>
                                 <span className="block max-w-full truncate">{item.label}</span>
                                 {item.badge && <span className="block max-w-full truncate text-[8px] font-medium">{item.badge}</span>}
-                            </Link>
+                            </MagneticItem>
                         ))}
                     </div>
                 </nav>

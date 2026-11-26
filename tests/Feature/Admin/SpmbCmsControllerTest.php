@@ -4,7 +4,6 @@ namespace Tests\Feature\Admin;
 
 use App\Models\GelombangSpmb;
 use App\Models\SpmbBanner;
-use App\Models\SpmbContent;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -103,16 +102,35 @@ class SpmbCmsControllerTest extends TestCase
         $oldPath = $banner->gambar_path;
         Storage::disk('public')->assertExists($oldPath);
 
-        $payload['gambar'] = UploadedFile::fake()->image('hero-baru.png', 900, 400);
+        unset($payload['gambar']);
         $payload['judul'] = 'Vokasi Siap Kerja';
-        $payload['urutan'] = 2;
+        $payload['is_active'] = '1';
 
         $this->actingAs($admin)
-            ->put(route('admin.spmb-cms.banner.update', $banner), $payload)
+            ->post(route('admin.spmb-cms.banner.update', $banner), [
+                '_method' => 'put',
+                ...$payload,
+            ])
             ->assertRedirectToRoute('admin.spmb-cms.index');
 
         $banner->refresh();
         $this->assertSame('Vokasi Siap Kerja', $banner->judul);
+        $this->assertSame($oldPath, $banner->gambar_path);
+        Storage::disk('public')->assertExists($oldPath);
+
+        $payload['gambar'] = UploadedFile::fake()->image('hero-baru.png', 900, 400);
+        $payload['judul'] = 'Vokasi Siap Kerja dengan Gambar';
+        $payload['urutan'] = 2;
+
+        $this->actingAs($admin)
+            ->post(route('admin.spmb-cms.banner.update', $banner), [
+                '_method' => 'put',
+                ...$payload,
+            ])
+            ->assertRedirectToRoute('admin.spmb-cms.index');
+
+        $banner->refresh();
+        $this->assertSame('Vokasi Siap Kerja dengan Gambar', $banner->judul);
         $this->assertNotSame($oldPath, $banner->gambar_path);
         Storage::disk('public')->assertMissing($oldPath);
         Storage::disk('public')->assertExists($banner->gambar_path);
@@ -141,6 +159,19 @@ class SpmbCmsControllerTest extends TestCase
                 'is_active' => true,
             ])
             ->assertSessionHasErrors(['gambar', 'cta_url']);
+
+        $this->actingAs($admin)
+            ->post(route('admin.spmb-cms.banner.store'), [
+                'kicker' => 'Kicker',
+                'judul' => 'Judul',
+                'subjudul' => 'Subjudul',
+                'gambar' => UploadedFile::fake()->image('banner-besar.png')->size(5121),
+                'cta_label' => 'Daftar',
+                'cta_url' => '/register',
+                'urutan' => 1,
+                'is_active' => true,
+            ])
+            ->assertSessionHasErrors(['gambar']);
 
         $this->assertDatabaseCount('spmb_banners', 0);
     }

@@ -1,4 +1,5 @@
 import { Link } from '@inertiajs/react';
+import MagneticItem from '@/Components/MagneticMenu';
 
 export default function DashboardSidebar({
     navigation = [],
@@ -96,7 +97,8 @@ export default function DashboardSidebar({
                                     </p>
                                 )}
                                 {item.isRoute ? (
-                                    <Link
+                                    <MagneticItem
+                                        component={Link}
                                         href={item.href}
                                         prefetch
                                         onClick={onClick}
@@ -104,23 +106,25 @@ export default function DashboardSidebar({
                                         className={className}
                                     >
                                         {content}
-                                    </Link>
+                                    </MagneticItem>
                                 ) : (
-                                    <a
+                                    <MagneticItem
+                                        component="a"
                                         href={item.href}
                                         onClick={onClick}
                                         aria-current={isActive ? 'location' : undefined}
                                         className={className}
                                     >
                                         {content}
-                                    </a>
+                                    </MagneticItem>
                                 )}
                             </div>
                         );
                     })}
 
                     <div className="mt-4 border-t border-white/15 pt-4">
-                        <Link
+                        <MagneticItem
+                            component={Link}
                             href={route('profile.edit')}
                             prefetch
                             onClick={onClose}
@@ -138,9 +142,10 @@ export default function DashboardSidebar({
                                 aria-hidden="true"
                             />
                             Pengaturan Akun
-                        </Link>
+                        </MagneticItem>
                     </div>
-                    <Link
+                    <MagneticItem
+                        component={Link}
                         href={route('logout')}
                         method="post"
                         as="button"
@@ -149,7 +154,7 @@ export default function DashboardSidebar({
                     >
                         <span className="h-2 w-2 rounded-full bg-rose-400" aria-hidden="true" />
                         Keluar
-                    </Link>
+                    </MagneticItem>
                 </nav>
 
                 <div className="mt-8 rounded-2xl border border-white/15 bg-white/10 p-4 text-white/85 shadow-sm backdrop-blur-md">

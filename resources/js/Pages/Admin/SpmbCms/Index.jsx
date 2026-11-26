@@ -1,7 +1,7 @@
 import AdminNavigationItems from '@/Components/AdminNavigationItems';
 import InputError from '@/Components/InputError';
 import DashboardLayout from '@/Layouts/DashboardLayout';
-import { Head, useForm } from '@inertiajs/react';
+import { Head, router, useForm } from '@inertiajs/react';
 import { useState } from 'react';
 
 const tabs = [
@@ -81,6 +81,7 @@ export default function SpmbCmsIndex({ gelombangs = [], banners = [], contents =
     const [activeTab, setActiveTab] = useState('gelombang');
     const [editingWave, setEditingWave] = useState(null);
     const [editingBanner, setEditingBanner] = useState(null);
+    const [isBannerSubmitting, setIsBannerSubmitting] = useState(false);
     const waveForm = useForm(emptyWave);
     const bannerForm = useForm(emptyBanner);
     const contentsForm = useForm({
@@ -117,7 +118,6 @@ export default function SpmbCmsIndex({ gelombangs = [], banners = [], contents =
 
     const openBannerForm = (banner = null) => {
         setEditingBanner(banner);
-        bannerForm.transform((data) => data);
         bannerForm.clearErrors();
         bannerForm.setData(banner ? {
             kicker: banner.kicker,
@@ -133,21 +133,28 @@ export default function SpmbCmsIndex({ gelombangs = [], banners = [], contents =
 
     const submitBanner = (event) => {
         event.preventDefault();
-        const options = { preserveScroll: true, onSuccess: () => openBannerForm() };
+        const isEditing = Boolean(editingBanner);
+        const submitUrl = isEditing
+            ? route('admin.spmb-cms.banner.update', editingBanner.id)
+            : route('admin.spmb-cms.banner.store');
 
-        if (editingBanner) {
-            bannerForm
-                .transform((data) => ({ ...data, _method: 'put' }))
-                .post(route('admin.spmb-cms.banner.update', editingBanner.id), {
-                    ...options,
-                    forceFormData: true,
-                });
-        } else {
-            bannerForm.post(route('admin.spmb-cms.banner.store'), {
-                ...options,
+        bannerForm.clearErrors();
+        router.post(
+            submitUrl,
+            {
+                ...bannerForm.data,
+                is_active: bannerForm.data.is_active ? '1' : '0',
+                ...(isEditing ? { _method: 'put' } : {}),
+            },
+            {
+                preserveScroll: true,
                 forceFormData: true,
-            });
-        }
+                onStart: () => setIsBannerSubmitting(true),
+                onError: (errors) => bannerForm.setError(errors),
+                onSuccess: () => openBannerForm(),
+                onFinish: () => setIsBannerSubmitting(false),
+            },
+        );
     };
 
     const updateContentRow = (section, index, field, value) => {
@@ -320,7 +327,7 @@ export default function SpmbCmsIndex({ gelombangs = [], banners = [], contents =
                                 {editingBanner?.gambar_url && (
                                     <img src={editingBanner.gambar_url} alt="Gambar banner saat ini" className="h-36 w-full rounded-xl object-cover" />
                                 )}
-                                <Field id="banner-image" label={editingBanner ? 'Ganti Gambar (opsional)' : 'Gambar (opsional)'} error={bannerForm.errors.gambar}>
+                                <Field id="banner-image" label={editingBanner ? 'Ganti Gambar (opsional)' : 'Gambar (opsional)'} error={bannerForm.errors.gambar ?? bannerForm.errors.image}>
                                     <input
                                         id="banner-image"
                                         type="file"
@@ -347,8 +354,8 @@ export default function SpmbCmsIndex({ gelombangs = [], banners = [], contents =
                                     </label>
                                 </div>
                                 <div className="flex flex-wrap gap-2">
-                                    <button type="submit" disabled={bannerForm.processing} className="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-60">
-                                        {bannerForm.processing ? 'Menyimpan…' : editingBanner ? 'Simpan Perubahan' : 'Tambah Slide'}
+                                    <button type="submit" disabled={isBannerSubmitting} className="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-60">
+                                        {isBannerSubmitting ? 'Menyimpan...' : editingBanner ? 'Simpan Perubahan' : 'Tambah Slide'}
                                     </button>
                                     {editingBanner && <button type="button" onClick={() => openBannerForm()} className="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700">Batal</button>}
                                 </div>
