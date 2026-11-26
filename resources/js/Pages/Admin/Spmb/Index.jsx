@@ -101,10 +101,13 @@ export default function SpmbIndex({
     kategoriBeasiswas = [],
     printPendaftarans = [],
     filters = {},
+    openPendaftaranId = null,
 }) {
     const [acceptingPendaftaran, setAcceptingPendaftaran] = useState(null);
     const [rejectingPendaftaran, setRejectingPendaftaran] = useState(null);
-    const [viewingPendaftaran, setViewingPendaftaran] = useState(null);
+    const [viewingPendaftaran, setViewingPendaftaran] = useState(() =>
+        pendaftarans.data.find((pendaftaran) => String(pendaftaran.id) === String(openPendaftaranId)) ?? null,
+    );
     const [editingPendaftaran, setEditingPendaftaran] = useState(null);
     const form = useForm({ kelas_id: '' });
     const rejectForm = useForm({});
@@ -430,9 +433,13 @@ export default function SpmbIndex({
                                             {pendaftaran.user?.siswa?.nama_lengkap ?? pendaftaran.user?.name ?? '—'}
                                         </p>
                                         <p className="mt-1 text-xs text-slate-500">
-                                            {pendaftaran.user?.email ?? 'Akun tidak tersedia'}
-                                            {pendaftaran.user?.siswa?.nisn && ` · NISN ${pendaftaran.user.siswa.nisn}`}
+                                            NIK {pendaftaran.user?.nik ?? 'belum lengkap'}
                                         </p>
+                                        {pendaftaran.user?.email && (
+                                            <p className="mt-1 text-xs text-slate-500">
+                                                {pendaftaran.user.email}
+                                            </p>
+                                        )}
                                     </td>
                                     <td className="whitespace-nowrap px-5 py-4">
                                         <button
@@ -543,6 +550,7 @@ export default function SpmbIndex({
                     };
                     const details = [
                         ['Nama Lengkap', student?.nama_lengkap],
+                        ['NIK', viewingPendaftaran.user?.nik],
                         ['NIS', viewingPendaftaran.nis ?? student?.nis],
                         ['NISN', student?.nisn],
                         ['No. WhatsApp Wali', student?.no_wa_wali],

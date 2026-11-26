@@ -103,14 +103,24 @@ class DashboardAccessTest extends TestCase
             ->where('statistics.siswa', 2)
             ->where('statistics.guru', 2)
             ->where('statistics.pendaftarSpmb', 1)
+            ->where('statistics.pendaftarMenunggu', 1)
             ->where('statistics.totalTagihan', 250000)
             ->where('tahunAjaranAktif.nama_tahun', '2026/2027')
             ->where('tahunAjaranAktif.semester', 'ganjil')
-            ->has('modules', 11));
+            ->has('latestPendaftarans', 1)
+            ->where('latestPendaftarans.0.status', 'pending'));
+
+        $this->actingAs($admin)
+            ->get(route('admin.siswa.index', ['create' => 1]))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Admin/Siswa/Index')
+                ->where('openCreateForm', true));
     }
 
     public function test_teacher_dashboard_shows_own_schedule_and_class_advisory_menu(): void
     {
+        $this->travelTo('2026-11-24 09:00:00');
         $this->seed();
         $waliKelas = User::query()->where('email', 'walikelas@sekolah.sch.id')->firstOrFail();
 
@@ -122,8 +132,28 @@ class DashboardAccessTest extends TestCase
             ->where('tahunAjaranAktif.nama_tahun', '2026/2027')
             ->where('tahunAjaranAktif.semester', 'ganjil')
             ->has('jadwals', 1)
+            ->where('hariIni', 'Selasa')
+            ->has('jadwalHariIni', 1)
             ->has('kelasWalian', 1)
-            ->where('kelasWalian.0.nama_kelas', 'X IPA 1'));
+            ->where('kelasWalian.0.nama_kelas', 'X IPA 1')
+            ->where('kelasWalian.0.jumlah_siswa', 1)
+            ->where('guru.jumlah_siswa_walian', 1));
+    }
+
+    public function test_teacher_without_a_guru_profile_can_load_the_dashboard(): void
+    {
+        $teacher = User::factory()->create(['role' => 'guru']);
+
+        $this->actingAs($teacher)
+            ->get(route('guru.dashboard'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Dashboard/Guru')
+                ->where('guru.is_wali_kelas', false)
+                ->where('guru.jumlah_siswa_walian', 0)
+                ->has('jadwals', 0)
+                ->has('jadwalHariIni', 0)
+                ->has('kelasWalian', 0));
     }
 
     public function test_active_student_dashboard_shows_class_schedule_bills_and_upcoming_exams(): void

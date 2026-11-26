@@ -34,6 +34,7 @@ export default function JadwalIndex({
         kelas_id: '',
         mapel_id: '',
         guru_id: '',
+        ruang: '',
         hari: 'senin',
         jam_mulai: '',
         jam_selesai: '',
@@ -60,6 +61,7 @@ export default function JadwalIndex({
             kelas_id: '',
             mapel_id: '',
             guru_id: '',
+            ruang: '',
             hari: 'senin',
             jam_mulai: '',
             jam_selesai: '',
@@ -74,6 +76,7 @@ export default function JadwalIndex({
             kelas_id: String(jadwal.kelas_id),
             mapel_id: String(jadwal.mapel_id),
             guru_id: String(jadwal.guru_id),
+            ruang: jadwal.ruang ?? '',
             hari: jadwal.hari,
             jam_mulai: jadwal.jam_mulai.slice(0, 5),
             jam_selesai: jadwal.jam_selesai.slice(0, 5),
@@ -215,7 +218,7 @@ export default function JadwalIndex({
                     <table className="min-w-full divide-y divide-slate-100 text-left">
                         <thead className="bg-slate-50">
                             <tr>
-                                {['Hari & Waktu', 'Kelas', 'Mata Pelajaran', 'Guru', 'Aksi'].map((label) => (
+                                {['Hari & Waktu', 'Kelas', 'Mata Pelajaran', 'Guru', 'Ruang', 'Aksi'].map((label) => (
                                     <th
                                         key={label}
                                         className="whitespace-nowrap px-5 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 first:sm:px-7 last:sm:px-7"
@@ -241,6 +244,7 @@ export default function JadwalIndex({
                                     <td className="whitespace-nowrap px-5 py-4 text-sm text-slate-700">{jadwal.kelas?.nama_kelas}</td>
                                     <td className="whitespace-nowrap px-5 py-4 text-sm text-slate-700">{jadwal.mata_pelajaran?.nama_mapel}</td>
                                     <td className="whitespace-nowrap px-5 py-4 text-sm text-slate-700">{jadwal.guru?.nama_lengkap}</td>
+                                    <td className="whitespace-nowrap px-5 py-4 text-sm text-slate-700">{jadwal.ruang ?? 'Belum ditentukan'}</td>
                                     <td className="whitespace-nowrap px-5 py-4 sm:px-7">
                                         <div className="flex justify-end gap-2">
                                             <button
@@ -335,6 +339,18 @@ export default function JadwalIndex({
                             {days.map((day) => <option key={day.value} value={day.value}>{day.label}</option>)}
                         </select>
                         <InputError message={form.errors.hari} className="mt-2" />
+                    </div>
+                    <div>
+                        <label htmlFor="jadwal-ruang" className="mb-2 block text-sm font-semibold text-slate-700">Ruang</label>
+                        <input
+                            id="jadwal-ruang"
+                            type="text"
+                            maxLength="100"
+                            value={form.data.ruang}
+                            onChange={(event) => form.setData('ruang', event.target.value)}
+                            className="block w-full rounded-xl border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                        />
+                        <InputError message={form.errors.ruang} className="mt-2" />
                     </div>
                     <div>
                         <label htmlFor="jam-mulai" className="mb-2 block text-sm font-semibold text-slate-700">Jam Mulai</label>

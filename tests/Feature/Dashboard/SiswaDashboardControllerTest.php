@@ -2,10 +2,13 @@
 
 namespace Tests\Feature\Dashboard;
 
+use App\Models\BankSoal;
 use App\Models\Guru;
+use App\Models\HasilUjian;
 use App\Models\Jadwal;
 use App\Models\Kelas;
 use App\Models\MataPelajaran;
+use App\Models\Nilai;
 use App\Models\PresensiKelas;
 use App\Models\Siswa;
 use App\Models\Tagihan;
@@ -33,7 +36,11 @@ class SiswaDashboardControllerTest extends TestCase
             'nama_kelas' => 'X IPA 1',
             'tingkat' => 10,
         ]);
-        $siswaUser = User::factory()->create(['role' => 'siswa']);
+        $siswaUser = User::factory()->create([
+            'role' => 'siswa',
+            'email' => null,
+            'nik' => '1234567890123456',
+        ]);
         $siswa = Siswa::create([
             'user_id' => $siswaUser->id,
             'kelas_id' => $kelas->id,
@@ -71,6 +78,29 @@ class SiswaDashboardControllerTest extends TestCase
             'status' => 'A',
         ]);
         $todayExam = $this->createExam($kelas, $guru, $mapel, '2026-11-18 10:30:00');
+        HasilUjian::create([
+            'ujian_id' => $todayExam->id,
+            'siswa_id' => $siswa->id,
+            'skor_akhir' => 87.5,
+            'status_pengerjaan' => 'selesai',
+        ]);
+        $ongoingExam = $this->createExam($kelas, $guru, $mapel, '2026-11-18 09:30:00');
+        BankSoal::create([
+            'ujian_id' => $ongoingExam->id,
+            'pertanyaan' => 'Berapa hasil 2 + 2?',
+            'opsi_a' => '4',
+            'opsi_b' => '3',
+            'opsi_c' => '5',
+            'opsi_d' => '6',
+            'kunci_jawaban' => 'A',
+        ]);
+        $resumableExam = $this->createExam($kelas, $guru, $mapel, '2026-11-18 09:30:00');
+        HasilUjian::create([
+            'ujian_id' => $resumableExam->id,
+            'siswa_id' => $siswa->id,
+            'jawaban_json' => [],
+            'status_pengerjaan' => 'sedang_mengerjakan',
+        ]);
         $this->createExam($kelas, $guru, $mapel, '2026-11-18 08:00:00');
         $this->createExam($kelas, $guru, $mapel, '2026-11-19 10:30:00');
         Tagihan::create([
@@ -87,6 +117,12 @@ class SiswaDashboardControllerTest extends TestCase
             'jatuh_tempo' => '2026-10-30',
             'status_bayar' => 'lunas',
         ]);
+        Nilai::create([
+            'tahun_ajaran_id' => $tahunAjaran->id,
+            'siswa_id' => $siswa->id,
+            'mapel_id' => $mapel->id,
+            'nilai_akhir' => 88,
+        ]);
 
         $this->actingAs($siswaUser)
             ->get(route('siswa.dashboard'))
@@ -94,12 +130,22 @@ class SiswaDashboardControllerTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Dashboard/Siswa')
                 ->where('hariIni', 'Rabu')
+                ->where('siswa.nik', '1234567890123456')
                 ->has('jadwals', 1)
                 ->where('jadwals.0.mata_pelajaran', 'Matematika')
+                ->where('jadwals.0.ruang', 'Lab 1')
                 ->where('attendance.total_sesi', 2)
                 ->where('attendance.persentase_kehadiran', 50)
-                ->has('ujians', 1)
-                ->where('ujians.0.id', $todayExam->id)
+                ->has('ujians', 3)
+                ->where('ujians.2.id', $todayExam->id)
+                ->has('ujiansAktif', 2)
+                ->where('ujiansAktif.0.id', $ongoingExam->id)
+                ->where('ujiansAktif.0.dapat_dimulai', true)
+                ->where('ujiansAktif.1.id', $resumableExam->id)
+                ->where('ujiansAktif.1.dapat_dilanjutkan', true)
+                ->where('hasilUjianTerakhir.ujian_id', $todayExam->id)
+                ->where('hasilUjianTerakhir.judul', 'Ujian Harian')
+                ->where('nilaiRataRata', fn ($value): bool => (float) $value === 88.0)
                 ->where('tagihanSummary.belum_lunas', 1)
                 ->where('tagihanSummary.lunas', 1));
     }
@@ -119,6 +165,7 @@ class SiswaDashboardControllerTest extends TestCase
             'hari' => $hari,
             'jam_mulai' => '08:00',
             'jam_selesai' => '09:00',
+            'ruang' => 'Lab 1',
         ]);
     }
 

@@ -38,12 +38,13 @@ class JadwalControllerTest extends TestCase
         $this->createJadwal($tahunAjaran, $kelas, $guruLain, $mapel, 'selasa');
 
         $this->actingAs($guruSaya->user)
-            ->get(route('guru.jadwal.index'))
+            ->get(route('guru.jadwal.index', ['jadwal_id' => $jadwalSaya->id]))
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Guru/Jadwal/Index')
                 ->has('jadwals', 1)
                 ->where('jadwals.0.id', $jadwalSaya->id)
+                ->where('openJadwalId', $jadwalSaya->id)
                 ->where('jadwals.0.kelas', 'X IPA 1')
                 ->where('jadwals.0.mata_pelajaran', 'Matematika')
                 ->where('isWaliKelas', false));

@@ -87,7 +87,7 @@ export default function StatisticCard({ label, value, detail, icon = 'document',
             <p className="mt-1 break-words text-2xl font-bold tracking-tight text-slate-950">
                 {value}
             </p>
-            <p className="mt-1 text-xs leading-5 text-slate-500">{detail}</p>
+            <p className="mt-1 text-xs leading-5 text-slate-600">{detail}</p>
         </article>
     );
 }

@@ -34,6 +34,9 @@ class SiswaDashboardController extends Controller
         $jadwals = collect();
         $tagihans = collect();
         $ujians = collect();
+        $ujiansAktif = collect();
+        $hasilUjianTerakhir = null;
+        $nilaiRataRata = null;
         $attendance = $siswa
             ? $attendanceSummary->for($siswa, $tahunAjaranAktif)['ringkasan']
             : [
@@ -56,6 +59,7 @@ class SiswaDashboardController extends Controller
                     'id' => $jadwal->id,
                     'jam_mulai' => substr($jadwal->jam_mulai, 0, 5),
                     'jam_selesai' => substr($jadwal->jam_selesai, 0, 5),
+                    'ruang' => $jadwal->ruang,
                     'mata_pelajaran' => $jadwal->mataPelajaran?->nama_mapel,
                     'guru' => $jadwal->guru?->nama_lengkap,
                 ]) ?? collect();
@@ -72,10 +76,13 @@ class SiswaDashboardController extends Controller
                 ]);
 
             $ujians = $siswa->kelas?->ujians()
+                ->whereHas('kelas', fn ($query) => $query
+                    ->where('tahun_ajaran_id', $tahunAjaranAktif->id))
                 ->with('mataPelajaran:id,nama_mapel')
                 ->where('waktu_mulai', '>=', $startOfTodayUtc)
                 ->where('waktu_mulai', '<', $startOfTomorrowUtc)
                 ->orderBy('waktu_mulai')
+                ->orderBy('id')
                 ->get()
                 ->filter(fn ($ujian): bool => $ujian->waktu_mulai
                     ->copy()
@@ -89,6 +96,60 @@ class SiswaDashboardController extends Controller
                     'waktu_mulai' => $ujian->waktu_mulai->toIso8601String(),
                     'durasi_menit' => $ujian->durasi_menit,
                 ]) ?? collect();
+
+            $ujiansAktif = $siswa->kelas?->ujians()
+                ->whereHas('kelas', fn ($query) => $query
+                    ->where('tahun_ajaran_id', $tahunAjaranAktif->id))
+                ->where('waktu_mulai', '<=', now())
+                ->where('waktu_mulai', '>=', $startOfTodayUtc)
+                ->with([
+                    'mataPelajaran:id,nama_mapel',
+                    'hasilUjians' => fn ($query) => $query
+                        ->where('siswa_id', $siswa->id)
+                        ->select('id', 'ujian_id', 'siswa_id', 'status_pengerjaan', 'created_at'),
+                ])
+                ->withCount('bankSoals')
+                ->orderBy('waktu_mulai')
+                ->orderBy('id')
+                ->get()
+                ->filter(function ($ujian): bool {
+                    $attempt = $ujian->hasilUjians->first();
+
+                    return $ujian->waktu_mulai
+                        ->copy()
+                        ->addMinutes($ujian->durasi_menit)
+                        ->isFuture()
+                        && ($attempt === null || $attempt->status_pengerjaan === 'sedang_mengerjakan');
+                })
+                ->map(function ($ujian): array {
+                    $attempt = $ujian->hasilUjians->first();
+                    $scheduledEnd = $ujian->waktu_mulai->copy()->addMinutes($ujian->durasi_menit);
+                    $dapatDilanjutkan = $attempt?->status_pengerjaan === 'sedang_mengerjakan'
+                        && $scheduledEnd->isFuture()
+                        && $attempt->created_at?->copy()->addMinutes($ujian->durasi_menit)->isFuture();
+
+                    return [
+                        'id' => $ujian->id,
+                        'judul' => $ujian->judul_ujian,
+                        'mata_pelajaran' => $ujian->mataPelajaran?->nama_mapel,
+                        'waktu_mulai' => $ujian->waktu_mulai->toIso8601String(),
+                        'durasi_menit' => $ujian->durasi_menit,
+                        'status_pengerjaan' => $attempt?->status_pengerjaan,
+                        'dapat_dimulai' => $ujian->bank_soals_count > 0 && $attempt === null,
+                        'dapat_dilanjutkan' => $dapatDilanjutkan,
+                    ];
+                })
+                ->values() ?? collect();
+
+            $hasilUjianTerakhir = $siswa->hasilUjians()
+                ->where('status_pengerjaan', 'selesai')
+                ->with('ujian:id,judul_ujian')
+                ->latest('updated_at')
+                ->first(['id', 'ujian_id', 'skor_akhir', 'updated_at']);
+            $nilaiRataRata = $siswa->nilais()
+                ->where('tahun_ajaran_id', $tahunAjaranAktif->id)
+                ->whereNotNull('nilai_akhir')
+                ->avg('nilai_akhir');
         }
 
         return Inertia::render('Dashboard/Siswa', [
@@ -98,6 +159,7 @@ class SiswaDashboardController extends Controller
             ] : null,
             'siswa' => [
                 'nama_lengkap' => $siswa?->nama_lengkap ?? $request->user()->name,
+                'nik' => $request->user()->nik,
                 'status_siswa' => $siswa?->status_siswa ?? 'calon_spmb',
                 'kelas' => $siswa?->kelas?->nama_kelas,
             ],
@@ -114,6 +176,13 @@ class SiswaDashboardController extends Controller
             ],
             'attendance' => $attendance,
             'ujians' => $ujians,
+            'ujiansAktif' => $ujiansAktif,
+            'nilaiRataRata' => $nilaiRataRata,
+            'hasilUjianTerakhir' => $hasilUjianTerakhir ? [
+                'ujian_id' => $hasilUjianTerakhir->ujian_id,
+                'judul' => $hasilUjianTerakhir->ujian?->judul_ujian,
+                'nilai' => $hasilUjianTerakhir->skor_akhir,
+            ] : null,
             'hariIni' => ucfirst($hariIni),
         ]);
     }

@@ -36,6 +36,7 @@ class JadwalController extends Controller
                 'hari' => $jadwal->hari,
                 'jam_mulai' => substr($jadwal->jam_mulai, 0, 5),
                 'jam_selesai' => substr($jadwal->jam_selesai, 0, 5),
+                'ruang' => $jadwal->ruang,
                 'kelas' => $jadwal->kelas?->nama_kelas,
                 'mata_pelajaran' => $jadwal->mataPelajaran?->nama_mapel,
                 'guru' => null,
@@ -53,6 +54,7 @@ class JadwalController extends Controller
 
         return Inertia::render('Guru/Jadwal/Index', [
             'jadwals' => $jadwals,
+            'openJadwalId' => $request->integer('jadwal_id') ?: null,
             'isWaliKelas' => $kelasWalianAktif->isNotEmpty(),
             'waliKelasName' => $kelasWalianAktif->pluck('nama_kelas')->implode(', '),
             'tahunAjaranAktif' => $tahunAjaranAktif

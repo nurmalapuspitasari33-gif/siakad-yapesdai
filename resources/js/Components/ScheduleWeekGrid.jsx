@@ -70,10 +70,11 @@ export default function ScheduleWeekGrid({
                                         <h4 className="mt-2 font-semibold leading-snug text-slate-900">
                                             {jadwal.mata_pelajaran}
                                         </h4>
-                                        {(jadwal.kelas || jadwal.guru) && (
+                                        {(jadwal.kelas || jadwal.guru || jadwal.ruang) && (
                                             <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-slate-500">
                                                 {jadwal.kelas && <span>Kelas {jadwal.kelas}</span>}
                                                 {jadwal.guru && <span>Guru {jadwal.guru}</span>}
+                                                {jadwal.ruang && <span>Ruang {jadwal.ruang}</span>}
                                             </div>
                                         )}
                                         {renderActions?.(jadwal)}

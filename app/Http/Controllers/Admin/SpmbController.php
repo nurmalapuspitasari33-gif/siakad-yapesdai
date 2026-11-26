@@ -50,7 +50,7 @@ class SpmbController extends Controller
             );
         $pendaftarans = (clone $query)
             ->with([
-                'user:id,name,email',
+                'user:id,name,email,nik',
                 'user.siswa',
                 'user.siswa.kelas:id,nama_kelas',
                 'user.siswa.kategoriBeasiswa:id,nama_beasiswa,is_afirmasi',
@@ -61,6 +61,9 @@ class SpmbController extends Controller
             ->orderByDesc('created_at')
             ->paginate(10)
             ->withQueryString();
+        $pendaftarans->getCollection()->each(
+            static fn (PendaftaranSpmb $pendaftaran) => $pendaftaran->user?->makeVisible('nik'),
+        );
         $printPendaftarans = (clone $query)
             ->with([
                 'user:id,name',
@@ -84,6 +87,7 @@ class SpmbController extends Controller
 
         return Inertia::render('Admin/Spmb/Index', [
             'pendaftarans' => $pendaftarans,
+            'openPendaftaranId' => $request->integer('open') ?: null,
             'printPendaftarans' => $printPendaftarans,
             'filters' => [
                 'program_keahlian_id' => (string) ($filters['program_keahlian_id'] ?? ''),

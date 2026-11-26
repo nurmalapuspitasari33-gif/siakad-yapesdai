@@ -123,6 +123,7 @@ class SiswaController extends Controller
             ->count();
 
         return Inertia::render('Admin/Siswa/Index', [
+            'openCreateForm' => $request->query('create') === '1',
             'siswas' => $siswas,
             'kelasOptions' => Kelas::query()
                 ->with('tahunAjaran:id,nama_tahun,semester')

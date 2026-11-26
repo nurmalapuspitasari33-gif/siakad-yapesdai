@@ -132,6 +132,7 @@ class JadwalController extends Controller
             ],
             'mapel_id' => ['required', 'integer', Rule::exists('mata_pelajarans', 'id')],
             'guru_id' => ['required', 'integer', Rule::exists('gurus', 'id')],
+            'ruang' => ['nullable', 'string', 'max:100'],
             'hari' => ['required', Rule::in(self::HARI)],
             'jam_mulai' => ['required', 'date_format:H:i'],
             'jam_selesai' => ['required', 'date_format:H:i', 'after:jam_mulai'],

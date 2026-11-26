@@ -59,8 +59,9 @@ export default function SiswaIndex({
     kategoriBeasiswas = [],
     filters = {},
     tanpaKelasCount = 0,
+    openCreateForm = false,
 }) {
-    const [isFormOpen, setIsFormOpen] = useState(false);
+    const [isFormOpen, setIsFormOpen] = useState(openCreateForm);
     const [editingSiswa, setEditingSiswa] = useState(null);
     const [deletingSiswa, setDeletingSiswa] = useState(null);
     const [resettingSiswa, setResettingSiswa] = useState(null);
@@ -129,7 +130,7 @@ export default function SiswaIndex({
         form.clearErrors();
     };
 
-    const openCreateForm = () => {
+    const handleOpenCreateForm = () => {
         setEditingSiswa(null);
         form.setData({ ...emptyFormData });
         form.clearErrors();
@@ -378,7 +379,7 @@ export default function SiswaIndex({
                         </div>
                         <button
                             type="button"
-                            onClick={openCreateForm}
+                            onClick={handleOpenCreateForm}
                             className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700"
                         >
                             <span className="text-lg leading-none" aria-hidden="true">+</span>

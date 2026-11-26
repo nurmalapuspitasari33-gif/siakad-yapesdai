@@ -1,7 +1,7 @@
+import DashboardKpiStrip from '@/Components/DashboardKpiStrip';
+import DashboardWorkPanel from '@/Components/DashboardWorkPanel';
 import DashboardLayout from '@/Layouts/DashboardLayout';
-import DashboardWelcomeBanner from '@/Components/DashboardWelcomeBanner';
 import AdminNavigationItems from '@/Components/AdminNavigationItems';
-import StatisticCard from '@/Components/StatisticCard';
 import { Head, Link } from '@inertiajs/react';
 
 const numberFormatter = new Intl.NumberFormat('id-ID');
@@ -11,155 +11,201 @@ const currencyFormatter = new Intl.NumberFormat('id-ID', {
     maximumFractionDigits: 0,
 });
 
-export default function AdminDashboard({ statistics, modules }) {
-    const navigation = AdminNavigationItems('dashboard');
-    const moduleRoutes = {
-        siswa: 'admin.siswa.index',
-        guru: 'admin.guru.index',
-        kelas: 'admin.kelas.index',
-        'mata-pelajaran': 'admin.mapel.index',
-        'tahun-ajaran': 'admin.tahun-ajaran.index',
-        jadwal: 'admin.jadwal.index',
-        spmb: 'admin.spmb.index',
-        tagihan: 'admin.tagihan.index',
-        ujian: 'admin.ujian.index',
-        'hasil-ujian': 'admin.hasil-ujian.index',
-        laporan: 'admin.laporan.index',
-    };
-    const moduleIconTones = {
-        siswa: 'bg-blue-50 text-brand-blue',
-        guru: 'bg-blue-50 text-brand-blue',
-        kelas: 'bg-amber-50 text-amber-600',
-        'mata-pelajaran': 'bg-blue-50 text-brand-blue',
-        'tahun-ajaran': 'bg-blue-50 text-brand-blue',
-        jadwal: 'bg-blue-50 text-brand-blue',
-        spmb: 'bg-amber-50 text-amber-600',
-        tagihan: 'bg-blue-50 text-brand-blue',
-        ujian: 'bg-blue-50 text-brand-blue',
-        'hasil-ujian': 'bg-blue-50 text-brand-blue',
-        laporan: 'bg-amber-50 text-amber-600',
-    };
+const selectionLabels = {
+    pending: 'Menunggu verifikasi',
+    diterima: 'Diterima',
+    ditolak: 'Ditolak',
+};
 
-    const statisticCards = [
+const selectionTones = {
+    pending: 'border-amber-200 bg-amber-50 text-amber-800',
+    diterima: 'border-emerald-200 bg-emerald-50 text-emerald-800',
+    ditolak: 'border-rose-200 bg-rose-50 text-rose-800',
+};
+
+export default function AdminDashboard({
+    statistics = {},
+    latestPendaftarans = [],
+    hariIni = 'Hari ini',
+}) {
+    const navigation = AdminNavigationItems('dashboard');
+    const kpis = [
         {
-            label: 'Jumlah siswa',
-            value: numberFormatter.format(statistics.siswa),
-            detail: 'Seluruh status siswa',
+            label: 'Siswa Aktif',
+            value: numberFormatter.format(statistics.siswaAktif ?? 0),
+            detail: `${numberFormatter.format(statistics.siswaTanpaKelas ?? 0)} belum masuk kelas`,
             icon: 'users',
-            tone: 'emerald',
+            href: route('admin.siswa.index'),
+            tone: 'blue',
         },
         {
-            label: 'Jumlah guru',
-            value: numberFormatter.format(statistics.guru),
-            detail: 'Termasuk wali kelas',
+            label: 'Guru & Wali Kelas',
+            value: numberFormatter.format(statistics.guru ?? 0),
+            detail: `${numberFormatter.format(statistics.waliKelas ?? 0)} bertugas sebagai wali`,
             icon: 'school',
-            tone: 'sky',
+            href: route('admin.guru.index'),
+            tone: 'gold',
         },
         {
             label: 'Pendaftar SPMB',
-            value: numberFormatter.format(statistics.pendaftarSpmb),
-            detail: 'Semua status seleksi',
+            value: numberFormatter.format(statistics.pendaftarSpmb ?? 0),
+            detail: `${numberFormatter.format(statistics.pendaftarMenunggu ?? 0)} menunggu verifikasi`,
             icon: 'document',
+            href: route('admin.spmb.index'),
+            tone: 'blue',
+        },
+        {
+            label: 'Tagihan Berjalan',
+            value: numberFormatter.format(statistics.tagihanBelumLunas ?? 0),
+            detail: `${currencyFormatter.format(Number(statistics.nominalBelumLunas ?? 0))} belum lunas`,
+            icon: 'wallet',
+            href: route('admin.tagihan.index'),
+            tone: 'green',
+        },
+    ];
+    const followUps = [
+        {
+            label: 'Siswa aktif tanpa kelas',
+            count: statistics.siswaTanpaKelas ?? 0,
+            detail: 'Periksa penempatan rombel siswa.',
+            status: (statistics.siswaTanpaKelas ?? 0) > 0 ? 'Perlu tindak lanjut' : 'Terkendali',
+            href: route('admin.siswa.index', { kelas_id: 'tanpa_kelas' }),
             tone: 'amber',
         },
         {
-            label: 'Total tagihan',
-            value: currencyFormatter.format(statistics.totalTagihan),
-            detail: 'Akumulasi tagihan sekolah',
-            icon: 'wallet',
-            tone: 'emerald',
+            label: `Jadwal pelajaran hari ${hariIni.toLowerCase()}`,
+            count: statistics.jadwalHariIni ?? 0,
+            detail: 'Jadwal pada tahun ajaran aktif.',
+            status: 'Hari ini',
+            href: route('admin.jadwal.index', { hari: hariIni.toLowerCase() }),
+            tone: 'blue',
+        },
+        {
+            label: 'Ujian terjadwal hari ini',
+            count: statistics.ujianHariIni ?? 0,
+            detail: 'Pantau sesi ujian yang dimulai hari ini.',
+            status: 'Hari ini',
+            href: route('admin.ujian.index'),
+            tone: 'blue',
+        },
+        {
+            label: 'NIK siswa belum lengkap',
+            count: statistics.siswaTanpaNIK ?? 0,
+            detail: 'Identitas siswa menggunakan NIK 16 digit.',
+            status: (statistics.siswaTanpaNIK ?? 0) > 0 ? 'Perlu dilengkapi' : 'Terkendali',
+            href: route('admin.siswa.index'),
+            tone: (statistics.siswaTanpaNIK ?? 0) > 0 ? 'amber' : 'green',
         },
     ];
 
     return (
         <DashboardLayout
             title="Dasbor Administrator"
-            subtitle="Pantau aktivitas akademik dan akses modul utama sekolah dari satu tempat."
+            subtitle="Ringkasan operasional sekolah dan tindak lanjut akademik."
             roleLabel="Administrator"
             navigation={navigation}
         >
-            <Head title="Dasbor Admin" />
+            <Head title="Dasbor Administrator" />
 
-            <DashboardWelcomeBanner role="Administrator" context="Pengelola sistem akademik sekolah" />
+            <div className="flex flex-col gap-5">
+                <DashboardKpiStrip items={kpis} />
 
-            <section id="ringkasan" className="scroll-mt-24">
-                <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
-                    <div>
-                        <h2 className="text-lg font-bold text-slate-900">Ringkasan sekolah</h2>
-                        <p className="mt-1 text-sm text-slate-500">
-                            Gambaran singkat data akademik saat ini.
-                        </p>
-                    </div>
-                    <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
-                        Sistem aktif
-                    </span>
-                </div>
+                <div className="grid min-w-0 grid-cols-1 gap-5 xl:grid-cols-2">
+                    <DashboardWorkPanel
+                        title="Pendaftar SPMB terbaru"
+                        description="Lima pendaftaran paling baru untuk ditinjau."
+                        actionHref={route('admin.spmb.index')}
+                        actionLabel="Semua pendaftar"
+                    >
+                        <div className="overflow-x-auto">
+                            <table className="min-w-full text-left text-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Nama &amp; NIK</th>
+                                        <th>Pendaftaran</th>
+                                        <th>Status</th>
+                                        <th><span className="sr-only">Aksi</span></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {latestPendaftarans.length === 0 ? (
+                                        <tr>
+                                            <td colSpan="4" className="py-8 text-center text-sm text-slate-500">
+                                                Belum ada pendaftaran SPMB.
+                                            </td>
+                                        </tr>
+                                    ) : latestPendaftarans.map((pendaftar) => (
+                                        <tr key={pendaftar.id}>
+                                            <td className="min-w-52">
+                                                <p className="font-semibold text-slate-900">{pendaftar.nama}</p>
+                                                <p className="mt-1 font-mono text-xs text-slate-600">
+                                                    NIK {pendaftar.nik ?? 'belum lengkap'}
+                                                </p>
+                                            </td>
+                                            <td className="min-w-36">
+                                                <p className="font-mono text-xs font-semibold text-slate-800">
+                                                    {pendaftar.no_pendaftaran}
+                                                </p>
+                                                <p className="mt-1 text-xs text-slate-600">{pendaftar.created_at}</p>
+                                            </td>
+                                            <td>
+                                                <span className={`inline-flex whitespace-nowrap rounded-full border px-2.5 py-1 text-xs font-semibold ${
+                                                    selectionTones[pendaftar.status] ?? 'border-slate-200 bg-slate-50 text-slate-700'
+                                                }`}>
+                                                    {selectionLabels[pendaftar.status] ?? pendaftar.status}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <Link
+                                                    href={route('admin.spmb.index', { open: pendaftar.id })}
+                                                    className="whitespace-nowrap rounded-lg px-2 py-1 text-xs font-semibold text-brand-blue transition hover:bg-blue-50"
+                                                >
+                                                    Tinjau
+                                                </Link>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </DashboardWorkPanel>
 
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                    {statisticCards.map((card) => (
-                        <StatisticCard
-                            key={card.label}
-                            label={card.label}
-                            value={card.value}
-                            detail={card.detail}
-                            icon={card.icon}
-                            tone={card.tone}
-                        />
-                    ))}
+                    <DashboardWorkPanel
+                        title="Tindak lanjut akademik"
+                        description="Pemeriksaan rutin berdasarkan data sekolah."
+                    >
+                        <ul className="flex flex-col divide-y divide-slate-100">
+                            {followUps.map((item) => (
+                                <li key={item.label} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
+                                    <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-sm font-bold ${
+                                        item.tone === 'amber'
+                                            ? 'bg-amber-50 text-amber-800'
+                                            : item.tone === 'green'
+                                                ? 'bg-emerald-50 text-emerald-800'
+                                                : 'bg-blue-50 text-brand-blue'
+                                    }`}>
+                                        {numberFormatter.format(item.count)}
+                                    </span>
+                                    <span className="min-w-0 flex-1">
+                                        <span className="block text-sm font-semibold text-slate-900">{item.label}</span>
+                                        <span className="mt-0.5 block text-xs text-slate-600">{item.detail}</span>
+                                    </span>
+                                    <span className="hidden shrink-0 text-xs font-semibold text-slate-600 sm:block">
+                                        {item.status}
+                                    </span>
+                                    <Link
+                                        href={item.href}
+                                        aria-label={`Buka ${item.label}`}
+                                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-slate-200 text-brand-blue transition hover:bg-blue-50"
+                                    >
+                                        <span aria-hidden="true">→</span>
+                                    </Link>
+                                </li>
+                            ))}
+                        </ul>
+                    </DashboardWorkPanel>
                 </div>
-            </section>
-
-            <section className="mt-8" aria-labelledby="module-title">
-                <div className="mb-5">
-                    <h2 id="module-title" className="text-lg font-bold text-slate-900">
-                        Modul akademik
-                    </h2>
-                    <p className="mt-1 text-sm text-slate-500">
-                        Pilih menu untuk melihat ringkasan akses modul.
-                    </p>
-                </div>
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-                    {modules.map((module) => (
-                        <article
-                            id={`modul-${module.id}`}
-                            key={module.id}
-                            className="scroll-mt-24 rounded-3xl border border-white/80 bg-white/80 p-5 shadow-[0_8px_30px_rgb(0,0,0,0.04)] ring-1 ring-slate-900/5 backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:border-brand-gold hover:shadow-md"
-                        >
-                            <div className="flex items-start justify-between gap-4">
-                                <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-sm font-bold ${
-                                    moduleIconTones[module.id] ?? 'bg-sky-50 text-sky-600'
-                                }`}>
-                                    {module.label.charAt(0)}
-                                </span>
-                                <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-500">
-                                    Modul
-                                </span>
-                            </div>
-                            <h3 className="mt-4 font-semibold text-slate-900">{module.label}</h3>
-                            <p className="mt-1 min-h-10 text-sm leading-5 text-slate-500">
-                                {module.description}
-                            </p>
-                            {moduleRoutes[module.id] ? (
-                                <Link
-                                    href={route(moduleRoutes[module.id])}
-                                    className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-brand-blue transition hover:text-brand-navy"
-                                >
-                                    Buka modul
-                                    <span aria-hidden="true">→</span>
-                                </Link>
-                            ) : (
-                                <a
-                                    href={`#modul-${module.id}`}
-                                    className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-brand-blue transition hover:text-brand-navy"
-                                >
-                                    Lihat ringkasan
-                                    <span aria-hidden="true">→</span>
-                                </a>
-                            )}
-                        </article>
-                    ))}
-                </div>
-            </section>
+            </div>
         </DashboardLayout>
     );
 }

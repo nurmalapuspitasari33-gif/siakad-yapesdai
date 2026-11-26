@@ -1,6 +1,10 @@
 import { Link, usePage } from '@inertiajs/react';
 import Dropdown from '@/Components/Dropdown';
-import { createContext, useCallback, useContext, useLayoutEffect, useState } from 'react';
+import DashboardSidebar from '@/Components/DashboardSidebar';
+import formatDashboardUserName from '@/Components/formatDashboardUserName';
+import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useState } from 'react';
+
+const SIDEBAR_PREFERENCE_KEY = 'siakad.dashboard.sidebar.collapsed';
 
 const mobileNavigationIcons = {
     home: (
@@ -174,84 +178,124 @@ function DashboardFrame({
     navigation = [],
     children,
 }) {
-    const { auth = {}, assetUrls = {}, flash = {}, pengaturanSekolah = {} } = usePage().props;
+    const {
+        auth = {},
+        assetUrls = {},
+        flash = {},
+        pengaturanSekolah = {},
+        tahunAjaranAktif = null,
+    } = usePage().props;
     const user = auth?.user;
-    const userName = user?.name ?? 'Pengguna';
+    const userName = formatDashboardUserName(user);
     const [isNavigationOpen, setIsNavigationOpen] = useState(false);
-    const isAccountPage = route().current('profile.edit');
-    const accountLink = (
-        <Link
-            href={route('profile.edit')}
-            prefetch
-            onClick={() => setIsNavigationOpen(false)}
-            aria-current={isAccountPage ? 'page' : undefined}
-            className={`flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-medium transition-all duration-150 ${
-                isAccountPage
-                    ? 'bg-brand-blue font-semibold text-white shadow-sm shadow-black/20'
-                    : 'text-white/75 hover:bg-white/10 hover:text-white'
-            }`}
-        >
-            <span
-                className={`h-2 w-2 rounded-full ${
-                    isAccountPage ? 'bg-brand-gold' : 'bg-white/35'
-                }`}
-                aria-hidden="true"
-            />
-            Pengaturan Akun
-        </Link>
+    const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() =>
+        typeof window !== 'undefined'
+        && window.localStorage.getItem(SIDEBAR_PREFERENCE_KEY) === 'true',
     );
-    const logoutLink = (
-        <Link
-            href={route('logout')}
-            method="post"
-            as="button"
-            onClick={() => setIsNavigationOpen(false)}
-            className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-rose-600 transition duration-150 hover:bg-rose-50 hover:text-rose-700"
-        >
-            <span className="h-2 w-2 rounded-full bg-rose-400" aria-hidden="true" />
-            Keluar
-        </Link>
-    );
-    const mobileQuickLinks = mobileQuickLinksFor(user?.role, navigation, isAccountPage);
+    const activePageLabel = title ?? navigation.find((item) => item.active)?.label ?? 'Dasbor';
+    const academicTerm = typeof tahunAjaranAktif === 'string'
+        ? tahunAjaranAktif
+        : [
+              tahunAjaranAktif?.nama_tahun,
+              tahunAjaranAktif?.semester?.toUpperCase(),
+          ].filter(Boolean).join(' · ') || 'Belum ditetapkan';
+    const mobileQuickLinks = mobileQuickLinksFor(user?.role, navigation, route().current('profile.edit'));
+
+    useEffect(() => {
+        window.localStorage.setItem(SIDEBAR_PREFERENCE_KEY, String(isSidebarCollapsed));
+    }, [isSidebarCollapsed]);
 
     return (
-        <div className="dashboard-theme min-h-screen bg-gradient-to-br from-blue-50/50 via-slate-50 to-amber-50/30 font-sans antialiased tracking-tight text-slate-900 print:min-h-0 print:bg-white">
-            <header className="sticky top-0 z-40 border-b border-slate-200/60 bg-white/75 backdrop-blur-xl print:hidden">
-                <div className="flex h-16 w-full items-center justify-between gap-4 px-6 lg:px-10">
-                    <div className="flex min-w-0 items-center gap-3">
+        <div className="dashboard-theme min-h-screen bg-slate-50 font-sans antialiased tracking-tight text-slate-900 print:min-h-0 print:bg-white">
+            <header className="sticky top-0 z-40 border-b border-slate-200 bg-white print:hidden">
+                <div className="flex h-16 w-full items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
+                    <div className="flex min-w-0 items-center gap-2 sm:gap-3">
                         {navigation.length > 0 && (
                             <button
                                 type="button"
                                 onClick={() => setIsNavigationOpen((open) => !open)}
                                 aria-label={isNavigationOpen ? 'Tutup navigasi' : 'Buka navigasi'}
                                 aria-expanded={isNavigationOpen}
-                                className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 text-slate-600 transition hover:bg-slate-100 lg:hidden"
+                                aria-controls="dashboard-sidebar"
+                                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 text-slate-600 transition hover:bg-slate-100 lg:hidden"
                             >
                                 <span className="text-lg" aria-hidden="true">
                                     {isNavigationOpen ? '×' : '☰'}
                                 </span>
                             </button>
                         )}
+                        {navigation.length > 0 && (
+                            <button
+                                type="button"
+                                onClick={() => setIsSidebarCollapsed((collapsed) => !collapsed)}
+                                aria-label={isSidebarCollapsed ? 'Tampilkan navigasi samping' : 'Sembunyikan navigasi samping'}
+                                aria-expanded={!isSidebarCollapsed}
+                                aria-controls="dashboard-sidebar"
+                                className="hidden h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 text-brand-navy transition hover:border-brand-gold hover:bg-amber-50 lg:inline-flex"
+                            >
+                                <svg
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="1.8"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    className={`h-5 w-5 transition-transform duration-300 ${isSidebarCollapsed ? 'rotate-180' : ''}`}
+                                    aria-hidden="true"
+                                >
+                                    <rect x="3" y="4" width="18" height="16" rx="2" />
+                                    <path d="M9 4v16M14 9l-2 3 2 3" />
+                                </svg>
+                            </button>
+                        )}
                         <div className="min-w-0">
-                            <p className="truncate text-sm font-bold text-slate-900 sm:text-base">
-                                {title}
-                            </p>
-                            <p className="truncate text-xs text-slate-500">
-                                {subtitle}
-                            </p>
+                            <h1
+                                aria-describedby={subtitle ? 'dashboard-page-subtitle' : undefined}
+                                className="truncate text-sm font-bold text-brand-navy sm:text-base"
+                            >
+                                {activePageLabel}
+                            </h1>
+                            {subtitle && (
+                                <span id="dashboard-page-subtitle" className="sr-only">
+                                    {subtitle}
+                                </span>
+                            )}
+                            <div className="mt-0.5 flex min-w-0 items-center gap-1.5 sm:hidden">
+                                {roleLabel && (
+                                    <span className="truncate text-[10px] font-semibold text-slate-600">
+                                        {roleLabel}
+                                    </span>
+                                )}
+                                <span aria-hidden="true" className="text-[10px] text-slate-400">·</span>
+                                <span className="truncate text-[10px] font-medium text-slate-500">
+                                    {academicTerm}
+                                </span>
+                            </div>
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-3">
-                        <span className="hidden rounded-full border border-brand-gold/60 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-brand-navy sm:inline-flex">
-                            {roleLabel}
+                    <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+                        {roleLabel && (
+                            <span className="hidden rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-xs font-semibold text-brand-navy sm:inline-flex">
+                                {roleLabel}
+                            </span>
+                        )}
+                        <span
+                            title="Tahun ajaran dan semester aktif"
+                            className="hidden max-w-56 items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-brand-navy md:inline-flex"
+                        >
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4 shrink-0" aria-hidden="true">
+                                <rect x="3" y="5" width="18" height="16" rx="2" />
+                                <path d="M16 3v4M8 3v4M3 10h18" />
+                            </svg>
+                            <span className="truncate">{academicTerm}</span>
                         </span>
                         <Dropdown>
                             <Dropdown.Trigger>
                                 <button
                                     type="button"
                                     aria-label={`Menu akun ${userName}`}
-                                    className="inline-flex items-center gap-2 rounded-full border border-slate-200/80 bg-white/80 p-1.5 pr-3 text-left transition hover:bg-white focus:outline-none focus:ring-4 focus:ring-brand-blue/10"
+                                    className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white p-1.5 pr-3 text-left transition hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-brand-blue/10"
                                 >
                                     <span className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-50 font-semibold text-brand-blue">
                                         {userName.charAt(0).toUpperCase()}
@@ -259,9 +303,6 @@ function DashboardFrame({
                                     <span className="hidden max-w-36 sm:block">
                                         <span className="block truncate text-xs font-semibold text-slate-800">
                                             {userName}
-                                        </span>
-                                        <span className="block truncate text-[11px] text-slate-500">
-                                            {roleLabel}
                                         </span>
                                     </span>
                                     <svg className="h-4 w-4 text-slate-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
@@ -284,143 +325,18 @@ function DashboardFrame({
 
             <div className="flex w-full">
                 {navigation.length > 0 && (
-                    <>
-                        {isNavigationOpen && (
-                            <button
-                                type="button"
-                                aria-label="Tutup navigasi"
-                                onClick={() => setIsNavigationOpen(false)}
-                                className="fixed inset-16 z-10 bg-slate-950/20 backdrop-blur-sm print:hidden lg:hidden"
-                            />
-                        )}
-                        <aside
-                            className={`print:hidden ${
-                                isNavigationOpen ? 'block' : 'hidden'
-                            } fixed inset-y-16 left-0 z-20 w-72 overflow-y-auto border-r border-white/10 bg-brand-navy p-5 text-white shadow-xl shadow-brand-navy/10 lg:sticky lg:top-16 lg:block lg:h-[calc(100vh-4rem)] lg:w-72 lg:shrink-0`}
-                        >
-                            <Link
-                                href="/"
-                                prefetch
-                                className="mb-7 flex items-center gap-3 rounded-2xl px-2 py-1"
-                                aria-label={`${pengaturanSekolah?.nama_sekolah ?? 'SIAKAD Sekolah'}, beranda`}
-                            >
-                                <img
-                                    src={assetUrls.logoSekolah}
-                                    alt=""
-                                    className="h-10 w-10 shrink-0 rounded-xl border border-white/20 bg-white object-contain p-1"
-                                />
-                                <span className="min-w-0">
-                                    <span className="block break-words text-[13px] font-bold leading-4 text-white">
-                                        {pengaturanSekolah?.nama_sekolah ?? 'SIAKAD Sekolah'}
-                                    </span>
-                                    <span className="block text-xs text-white/65">
-                                        Portal akademik terpadu
-                                    </span>
-                                </span>
-                            </Link>
-                            <div className="mb-5 px-3">
-                                <p className="text-xs font-bold uppercase tracking-[0.16em] text-brand-gold">
-                                    Navigasi utama
-                                </p>
-                            </div>
-                            <nav className="flex flex-col gap-1" aria-label="Navigasi dasbor">
-                                {navigation.map((item) => {
-                                    const isActive = Boolean(item.active);
-                                    const className = `group flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm transition-all duration-150 ${
-                                        isActive
-                                            ? 'bg-brand-blue font-semibold text-white shadow-sm shadow-black/20'
-                                                : 'font-medium text-white/75 hover:bg-white/10 hover:text-white'
-                                    }`;
-                                    const content = (
-                                        <>
-                                            <span
-                                                className={`h-2 w-2 rounded-full transition ${
-                                                    isActive
-                                                        ? 'bg-brand-gold'
-                                                        : 'bg-white/35 group-hover:bg-brand-gold'
-                                                }`}
-                                                aria-hidden="true"
-                                            />
-                                            <span className="truncate">{item.label}</span>
-                                            {item.badge && (
-                                                <span className={`ml-auto max-w-24 truncate rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                                                    isActive ? 'bg-white/15 text-white' : 'bg-white/10 text-brand-gold'
-                                                }`}>
-                                                    {item.badge}
-                                                </span>
-                                            )}
-                                        </>
-                                    );
-                                    const onClick = () => setIsNavigationOpen(false);
-
-                                    return item.isRoute ? (
-                                        <div key={item.id}>
-                                            {item.sectionTitle && (
-                                                <p className={`mb-1 px-3 text-xs font-semibold uppercase tracking-wider text-white/50 ${
-                                                    item.sectionTitle === 'Utama' ? 'mt-0' : 'mt-5'
-                                                }`}>
-                                                    {item.sectionTitle}
-                                                </p>
-                                            )}
-                                            <Link
-                                                href={item.href}
-                                                prefetch
-                                                onClick={onClick}
-                                                aria-current={isActive ? 'page' : undefined}
-                                                className={className}
-                                            >
-                                                {content}
-                                            </Link>
-                                        </div>
-                                    ) : (
-                                        <div key={item.id}>
-                                            {item.sectionTitle && (
-                                                <p className={`mb-1 px-3 text-xs font-semibold uppercase tracking-wider text-white/50 ${
-                                                    item.sectionTitle === 'Utama' ? 'mt-0' : 'mt-5'
-                                                }`}>
-                                                    {item.sectionTitle}
-                                                </p>
-                                            )}
-                                            <a
-                                                href={item.href}
-                                                onClick={onClick}
-                                                aria-current={isActive ? 'location' : undefined}
-                                                className={className}
-                                            >
-                                                {content}
-                                            </a>
-                                        </div>
-                                    );
-                                })}
-                                <div className="mt-4 border-t border-white/15 pt-4">
-                                    {accountLink}
-                                </div>
-                                {logoutLink}
-                            </nav>
-
-                            <div className="mt-8 rounded-2xl border border-white/15 bg-white/10 p-4 text-white/85 shadow-sm backdrop-blur-md">
-                                <p className="text-sm font-semibold text-brand-gold">Butuh bantuan?</p>
-                                <p className="mt-1 text-xs leading-5 text-white/70">
-                                    Hubungi administrator sekolah untuk bantuan akses.
-                                </p>
-                            </div>
-                        </aside>
-                    </>
+                    <DashboardSidebar
+                        navigation={navigation}
+                        isNavigationOpen={isNavigationOpen}
+                        isSidebarCollapsed={isSidebarCollapsed}
+                        onClose={() => setIsNavigationOpen(false)}
+                        schoolName={pengaturanSekolah?.nama_sekolah}
+                        logoUrl={assetUrls.logoSekolah}
+                    />
                 )}
 
-                <main className="min-w-0 flex-1 px-6 pt-6 pb-20 print:p-0 sm:pt-8 md:pb-8 lg:px-10">
+                <main className="min-w-0 flex-1 px-4 pt-5 pb-20 print:p-0 sm:px-6 sm:pt-6 md:pb-8 lg:px-8">
                     <div className="w-full print:max-w-none">
-                        <div className="mb-6 print:hidden">
-                            <p className="mb-2 text-sm font-semibold text-brand-blue">
-                                {roleLabel}
-                            </p>
-                            <h1 className="font-display text-2xl font-bold tracking-tight text-brand-navy sm:text-3xl">
-                                {title}
-                            </h1>
-                            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500 sm:text-base">
-                                {subtitle}
-                            </p>
-                        </div>
                         {flash.success && (
                             <div
                                 role="status"

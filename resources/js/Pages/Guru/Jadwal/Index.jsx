@@ -22,11 +22,14 @@ function localDateString() {
 
 export default function GuruJadwalIndex({
     jadwals = [],
+    openJadwalId = null,
     tahunAjaranAktif = null,
     isWaliKelas = false,
     waliKelasName = '',
 }) {
-    const [selectedJadwal, setSelectedJadwal] = useState(null);
+    const [selectedJadwal, setSelectedJadwal] = useState(
+        () => jadwals.find((jadwal) => Number(jadwal.id) === Number(openJadwalId)) ?? null,
+    );
     const [tanggal, setTanggal] = useState(localDateString);
     const [materiJurnal, setMateriJurnal] = useState('');
     const [presensi, setPresensi] = useState({});
