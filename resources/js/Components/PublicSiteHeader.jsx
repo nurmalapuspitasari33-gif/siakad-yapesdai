@@ -1,5 +1,5 @@
 import { Link, usePage } from '@inertiajs/react';
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 const navigationItems = [
     { label: 'Beranda', href: '#beranda' },
@@ -14,9 +14,7 @@ export default function PublicSiteHeader() {
     const auth = props.auth ?? {};
     const tahunAjaranAktif = props.tahunAjaranAktif;
     const [activeSection, setActiveSection] = useState('#beranda');
-    const [activePill, setActivePill] = useState({ left: 0, top: 0, width: 0, height: 0 });
     const headerRef = useRef(null);
-    const navigationItemRefs = useRef({});
     const scrollAnimationRef = useRef(null);
 
     const scrollToSection = (href) => {
@@ -122,28 +120,6 @@ export default function PublicSiteHeader() {
         };
     }, []);
 
-    useLayoutEffect(() => {
-        const navigationItem = navigationItemRefs.current[activeSection];
-
-        if (!navigationItem) {
-            return undefined;
-        }
-
-        const updateActivePill = () => {
-            setActivePill({
-                left: navigationItem.offsetLeft,
-                top: navigationItem.offsetTop,
-                width: navigationItem.offsetWidth,
-                height: navigationItem.offsetHeight,
-            });
-        };
-
-        updateActivePill();
-        window.addEventListener('resize', updateActivePill);
-
-        return () => window.removeEventListener('resize', updateActivePill);
-    }, [activeSection]);
-
     return (
         <header ref={headerRef} className="sticky top-0 z-40 text-white shadow-lg">
             <div className="bg-[#0B2C59]">
@@ -172,33 +148,25 @@ export default function PublicSiteHeader() {
             <div className="bg-[#004A99]">
                 <div className="mx-auto flex h-12 max-w-6xl items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
                     <nav aria-label="Navigasi utama" className="relative flex min-w-0 flex-1 items-center gap-1 overflow-x-auto overscroll-x-contain scroll-smooth no-scrollbar">
-                    <span
-                        aria-hidden="true"
-                        className="pointer-events-none absolute left-0 z-0 rounded-md bg-white shadow-sm"
-                        style={{
-                            height: activePill.height,
-                            width: activePill.width,
-                            transform: `translate(${activePill.left}px, ${activePill.top}px)`,
-                        }}
-                    />
-                    {navigationItems.map((item) => (
-                        <a
-                            key={item.href}
-                            ref={(element) => {
-                                navigationItemRefs.current[item.href] = element;
-                            }}
-                            href={`${route('home')}${item.href}`}
-                            onClick={(event) => handleNavigationClick(event, item.href)}
-                            aria-current={activeSection === item.href ? 'location' : undefined}
-                            className={`relative z-10 whitespace-nowrap rounded-md px-3.5 py-1.5 text-xs font-bold transition-colors ${
-                                activeSection === item.href
-                                    ? 'text-[#0B2C59]'
-                                    : 'text-white hover:bg-white/10'
-                            }`}
-                        >
-                            {item.label}
-                        </a>
-                    ))}
+                        {navigationItems.map((item) => {
+                            const isActive = activeSection === item.href;
+
+                            return (
+                                <a
+                                    key={item.href}
+                                    href={`${route('home')}${item.href}`}
+                                    onClick={(event) => handleNavigationClick(event, item.href)}
+                                    aria-current={isActive ? 'location' : undefined}
+                                    className={`group relative flex h-full shrink-0 items-center whitespace-nowrap px-3.5 py-3.5 text-xs after:absolute after:bottom-0 after:left-0 after:h-[3px] after:bg-amber-400 after:transition-all after:duration-300 after:ease-out after:content-[''] ${
+                                        isActive
+                                            ? 'font-semibold text-amber-400 after:w-full'
+                                            : 'font-medium text-white/90 transition-colors duration-200 hover:text-amber-200 after:w-0 hover:after:w-full'
+                                    }`}
+                                >
+                                    {item.label}
+                                </a>
+                            );
+                        })}
                     </nav>
                     <Link href={auth.user ? route('dashboard') : route('register')} className="inline-flex shrink-0 items-center justify-center rounded-full bg-white px-5 py-1.5 text-[10px] font-extrabold uppercase tracking-wide text-[#0B2C59] transition-colors hover:bg-amber-100 sm:text-xs">
                         Daftar Sekarang
