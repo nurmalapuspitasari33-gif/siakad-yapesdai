@@ -174,6 +174,7 @@ export default function Welcome({
 }) {
     const [activeSlide, setActiveSlide] = useState(0);
     const [autoSlideResetKey, setAutoSlideResetKey] = useState(0);
+    const [isHeroPaused, setIsHeroPaused] = useState(false);
     const displaySlides = slides.length > 0 ? slides : [null];
     const registerHref = auth?.user || !canRegister ? route('login') : route('register');
     const sortedProgramKeahlians = [...programKeahlians].sort((first, second) =>
@@ -227,16 +228,16 @@ export default function Welcome({
         || (registrationIsOpen ? 'Pendaftaran Dibuka' : 'Pendaftaran Ditutup');
 
     useEffect(() => {
-        if (slides.length <= 1) {
+        if (slides.length <= 1 || isHeroPaused) {
             return undefined;
         }
 
         const intervalId = window.setInterval(() => {
             setActiveSlide((current) => (current + 1) % slides.length);
-        }, 5000);
+        }, 1000);
 
         return () => window.clearInterval(intervalId);
-    }, [slides.length, autoSlideResetKey]);
+    }, [slides.length, autoSlideResetKey, isHeroPaused]);
 
     const resetAutoSlideTimer = () => {
         setAutoSlideResetKey((current) => current + 1);
@@ -262,6 +263,11 @@ export default function Welcome({
                 <section
                     id="beranda"
                     aria-label="Informasi utama SPMB"
+                    onMouseEnter={() => setIsHeroPaused(true)}
+                    onMouseLeave={() => setIsHeroPaused(false)}
+                    onTouchStart={() => setIsHeroPaused(true)}
+                    onTouchEnd={() => setIsHeroPaused(false)}
+                    onTouchCancel={() => setIsHeroPaused(false)}
                     className="relative isolate h-[400px] w-full scroll-mt-32 overflow-hidden rounded-t-none rounded-b-3xl bg-gradient-to-br from-slate-50 via-white to-amber-50 shadow-sm md:h-[460px] md:rounded-b-[2.5rem]"
                 >
                     <div

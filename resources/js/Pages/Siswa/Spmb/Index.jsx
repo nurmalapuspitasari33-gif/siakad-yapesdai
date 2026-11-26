@@ -1,12 +1,13 @@
 import InputError from '@/Components/InputError';
 import DashboardLayout from '@/Layouts/DashboardLayout';
+import SpmbVerificationBadge from '@/Components/SpmbVerificationBadge';
 import StudentIdentityFields, { studentIdentityDefaults } from '@/Components/StudentIdentityFields';
 import roleNavigationItems from '@/Components/RoleNavigationItems';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
 import { useEffect, useRef, useState } from 'react';
 
 const statusLabels = {
-    pending: 'Menunggu Seleksi',
+    pending: 'Menunggu Verifikasi',
     diterima: 'Diterima',
     ditolak: 'Ditolak',
 };
@@ -96,6 +97,9 @@ export default function SiswaSpmbIndex({
     const selectedProgram = programKeahlians.find(
         (program) => String(program.id) === String(form.data.program_keahlian_id),
     );
+    const catatanVerifikasi = pendaftaran?.catatan_verifikasi
+        || pendaftaran?.catatan_perbaikan
+        || pendaftaran?.catatan_admin;
 
     useEffect(() => {
         queuedPhotoUrls.current = queuedPhotos.map((photo) => photo.preview);
@@ -193,7 +197,14 @@ export default function SiswaSpmbIndex({
             <div className="flex flex-col gap-6">
                 <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
                     <div className="bg-gradient-to-r from-brand-navy to-brand-blue px-6 py-6 text-white sm:px-8">
-                        <p className="text-sm font-semibold text-brand-gold">Status hasil seleksi</p>
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                            <p className="text-sm font-semibold text-brand-gold">Status verifikasi berkas</p>
+                            {pendaftaran && (
+                                <SpmbVerificationBadge
+                                    status={pendaftaran.status_verifikasi ?? pendaftaran.status_seleksi}
+                                />
+                            )}
+                        </div>
                         <h2 className="mt-2 text-xl font-bold">
                             {pendaftaran
                                 ? statusLabels[pendaftaran.status_seleksi] ?? 'Status belum tersedia'
@@ -205,6 +216,12 @@ export default function SiswaSpmbIndex({
                             </p>
                         )}
                     </div>
+                    {catatanVerifikasi && (
+                        <div className="border-b border-amber-200 bg-amber-50 px-6 py-4 text-sm text-amber-950 sm:px-8">
+                            <p className="font-semibold">Catatan perbaikan dari admin</p>
+                            <p className="mt-1 whitespace-pre-line">{catatanVerifikasi}</p>
+                        </div>
+                    )}
                     <div className="flex flex-col gap-3 p-6 sm:flex-row sm:items-center sm:justify-between sm:px-8">
                         <p className="text-sm leading-6 text-slate-600">
                             {pendaftaran?.status_seleksi === 'diterima'

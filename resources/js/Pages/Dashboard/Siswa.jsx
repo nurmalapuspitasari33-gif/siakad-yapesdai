@@ -1,6 +1,7 @@
 import DashboardKpiStrip from '@/Components/DashboardKpiStrip';
 import DashboardWorkPanel from '@/Components/DashboardWorkPanel';
 import DashboardLayout from '@/Layouts/DashboardLayout';
+import SpmbVerificationBadge from '@/Components/SpmbVerificationBadge';
 import roleNavigationItems from '@/Components/RoleNavigationItems';
 import { Head, Link, router } from '@inertiajs/react';
 import { useState } from 'react';
@@ -76,6 +77,9 @@ export default function SiswaDashboard({
     const [startingExamId, setStartingExamId] = useState(null);
     const statusSiswa = siswa?.status_siswa ?? 'calon_spmb';
     const isCandidate = statusSiswa === 'calon_spmb';
+    const catatanVerifikasi = pendaftaran?.catatan_verifikasi
+        || pendaftaran?.catatan_perbaikan
+        || pendaftaran?.catatan_admin;
     const tahunAjaranLabel = [
         tahunAjaranAktif?.nama_tahun,
         tahunAjaranAktif?.semester?.toUpperCase(),
@@ -233,8 +237,21 @@ export default function SiswaDashboard({
                                             {pendaftaran?.no_pendaftaran ?? 'Belum tersedia'}
                                         </p>
                                     </div>
-                                    <StatusBadge status={pendaftaran?.status_seleksi ?? 'pending'} />
+                                    {pendaftaran && (
+                                        <div className="flex flex-col items-start gap-1 sm:items-end">
+                                            <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">Verifikasi berkas</p>
+                                            <SpmbVerificationBadge
+                                                status={pendaftaran.status_verifikasi ?? pendaftaran.status_seleksi}
+                                            />
+                                        </div>
+                                    )}
                                 </div>
+                                {catatanVerifikasi && (
+                                    <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950">
+                                        <p className="font-semibold">Catatan perbaikan dari admin</p>
+                                        <p className="mt-1 whitespace-pre-line">{catatanVerifikasi}</p>
+                                    </div>
+                                )}
                                 <p className="text-sm leading-5 text-slate-600">
                                     Lengkapi formulir dan pantau status seleksi menggunakan NIK Anda.
                                 </p>

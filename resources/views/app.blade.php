@@ -5,9 +5,16 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
-        <link rel="icon" type="image/png" href="{{ asset('logo.png') }}?v=2">
+        <link rel="icon" type="image/png" href="{{ asset('yapesdai.png') }}">
+        <meta name="description" content="YAPESDAI — Sistem Informasi Akademik dan SPMB resmi Yayasan Pengembangan Sumberdaya Insani.">
+        <meta property="og:title" content="YAPESDAI — Sistem Informasi Akademik &amp; SPMB">
+        <meta property="og:description" content="Portal resmi YAPESDAI untuk layanan akademik dan Sistem Penerimaan Murid Baru (SPMB).">
+        <meta property="og:image" content="{{ asset('yapesdai.png') }}">
+        <meta property="og:url" content="{{ url()->current() }}">
+        <meta property="og:type" content="website">
+        <meta property="og:site_name" content="YAPESDAI">
 
-        <title inertia>{{ config('app.name', 'YAPESDAI') }}</title>
+        <title inertia>YAPESDAI — Sistem Informasi Akademik &amp; SPMB</title>
 
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
