@@ -24,14 +24,16 @@ const publicPageNames = new Set([
 ]);
 
 createInertiaApp({
-    title: (title) => title || 'YAPESDAI',
+    title: (title) => title || "SPMB SMK Al Mu'allim Kesugihan",
     resolve: async (name) => {
         const page = await resolvePageComponent(
             `./Pages/${name}.jsx`,
             import.meta.glob('./Pages/**/*.jsx'),
         );
 
-        if (/^(Admin|Guru|Siswa|Profile)\//.test(name) || /^Dashboard\/(Admin|Guru|Siswa)$/.test(name)) {
+        if (name === 'Siswa/Spmb/Print') {
+            page.default.layout = (page) => page;
+        } else if (/^(Admin|Guru|Siswa|Profile)\//.test(name) || /^Dashboard\/(Admin|Guru|Siswa)$/.test(name)) {
             page.default.layout = withDashboardLayout;
         } else if (publicPageNames.has(name)) {
             page.default.layout = withPublicSiteLayout;

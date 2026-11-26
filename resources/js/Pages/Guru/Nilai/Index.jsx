@@ -470,6 +470,18 @@ export default function GuruNilaiIndex({
                                                             />
                                                         </div>
                                                         <InputError message={form.errors[`nilai.${index}.nilai_akhir`]} className="mt-1" />
+                                                        <p className="mt-2 text-[11px] font-semibold text-slate-600">
+                                                            Nilai akhir rapor: {siswa.nilai_rapor ?? '—'}
+                                                        </p>
+                                                        {siswa.kontribusi_guru?.length > 0 && (
+                                                            <ul className="mt-1 flex flex-col gap-0.5 text-[10px] leading-4 text-slate-500">
+                                                                {siswa.kontribusi_guru.map((contribution) => (
+                                                                    <li key={`${siswa.id}-${contribution.guru_id}`}>
+                                                                        {contribution.nama_guru}: {contribution.nilai_akhir}
+                                                                    </li>
+                                                                ))}
+                                                            </ul>
+                                                        )}
                                                     </td>
                                                 </tr>
                                             );

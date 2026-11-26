@@ -53,7 +53,7 @@ class NilaiControllerTest extends TestCase
             'siswa_id' => $student->id,
             'mapel_id' => $mapel->id,
             'nilai_akhir' => 80,
-            'capaian_kompetensi' => 'Memahami konsep dengan baik.',
+            'capaian_kompetensi' => 'Guru Matematika: Memahami konsep dengan baik.',
         ]);
     }
 
@@ -143,7 +143,102 @@ class NilaiControllerTest extends TestCase
             'nilai_tugas' => 50,
             'nilai_uts' => 50,
             'nilai_uas' => 50,
-            'capaian_kompetensi' => 'Menerapkan konsep secara mandiri.',
+            'capaian_kompetensi' => 'Guru Matematika: Menerapkan konsep secara mandiri.',
+        ]);
+    }
+
+    public function test_team_teachers_keep_separate_scores_and_sync_the_equal_weight_average(): void
+    {
+        $firstTeacherUser = User::factory()->create(['role' => 'guru']);
+        [$firstTeacher, $tahunAjaran, $kelas, $mapel, $student] = $this->createAssignment($firstTeacherUser);
+        $secondTeacherUser = User::factory()->create(['role' => 'guru']);
+        $secondTeacher = Guru::create([
+            'user_id' => $secondTeacherUser->id,
+            'nip' => '19870003',
+            'nama_lengkap' => 'Guru Pengampu Kedua',
+        ]);
+        Jadwal::create([
+            'tahun_ajaran_id' => $tahunAjaran->id,
+            'kelas_id' => $kelas->id,
+            'mapel_id' => $mapel->id,
+            'guru_id' => $secondTeacher->id,
+            'hari' => 'selasa',
+            'jam_mulai' => '09:00',
+            'jam_selesai' => '10:00',
+        ]);
+
+        $this->actingAs($firstTeacherUser)
+            ->post(route('guru.nilai.store'), [
+                'kelas_id' => $kelas->id,
+                'mapel_id' => $mapel->id,
+                'nilai' => [[
+                    'siswa_id' => $student->id,
+                    'nilai_akhir' => 80,
+                    'capaian_kompetensi' => 'Menguasai dasar materi.',
+                ]],
+            ])
+            ->assertRedirect();
+
+        $this->actingAs($secondTeacherUser)
+            ->post(route('guru.nilai.store'), [
+                'kelas_id' => $kelas->id,
+                'mapel_id' => $mapel->id,
+                'nilai' => [[
+                    'siswa_id' => $student->id,
+                    'nilai_akhir' => 90,
+                    'capaian_kompetensi' => 'Menerapkan materi.',
+                ]],
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseCount('nilai_gurus', 2);
+        $this->assertDatabaseHas('nilai_gurus', [
+            'tahun_ajaran_id' => $tahunAjaran->id,
+            'siswa_id' => $student->id,
+            'kelas_id' => $kelas->id,
+            'mapel_id' => $mapel->id,
+            'guru_id' => $firstTeacher->id,
+            'nilai_akhir' => 80,
+        ]);
+        $this->assertDatabaseHas('nilai_gurus', [
+            'tahun_ajaran_id' => $tahunAjaran->id,
+            'siswa_id' => $student->id,
+            'kelas_id' => $kelas->id,
+            'mapel_id' => $mapel->id,
+            'guru_id' => $secondTeacher->id,
+            'nilai_akhir' => 90,
+        ]);
+        $this->assertDatabaseHas('nilais', [
+            'tahun_ajaran_id' => $tahunAjaran->id,
+            'siswa_id' => $student->id,
+            'mapel_id' => $mapel->id,
+            'nilai_akhir' => 85,
+        ]);
+
+        $this->actingAs($firstTeacherUser)
+            ->get(route('guru.nilai.index', ['kelas_id' => $kelas->id, 'mapel_id' => $mapel->id]))
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('siswas.0.nilai.nilai_akhir', 80)
+                ->where('siswas.0.nilai_rapor', '85.00')
+                ->has('siswas.0.kontribusi_guru', 2));
+
+        $this->actingAs($secondTeacherUser)
+            ->post(route('guru.nilai.store'), [
+                'kelas_id' => $kelas->id,
+                'mapel_id' => $mapel->id,
+                'nilai' => [[
+                    'siswa_id' => $student->id,
+                    'nilai_akhir' => 100,
+                ]],
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseCount('nilai_gurus', 2);
+        $this->assertDatabaseHas('nilais', [
+            'tahun_ajaran_id' => $tahunAjaran->id,
+            'siswa_id' => $student->id,
+            'mapel_id' => $mapel->id,
+            'nilai_akhir' => 90,
         ]);
     }
 

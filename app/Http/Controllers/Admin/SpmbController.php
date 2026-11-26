@@ -10,11 +10,13 @@ use App\Models\ProgramKeahlian;
 use App\Models\Siswa;
 use App\Models\TahunAjaran;
 use App\Support\StudentIdentity;
+use App\Support\SpmbDocumentsPdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -54,6 +56,7 @@ class SpmbController extends Controller
                 'user.siswa',
                 'user.siswa.kelas:id,nama_kelas',
                 'user.siswa.kategoriBeasiswa:id,nama_beasiswa,is_afirmasi',
+                'berkas:id,pendaftaran_spmb_id,path,caption,sort_order',
                 'kategoriBeasiswa:id,nama_beasiswa,is_afirmasi',
                 'programKeahlian:id,kode_jurusan,nama_jurusan',
                 'konsentrasiKeahlian:id,program_keahlian_id,kode_konsentrasi,nama_konsentrasi',
@@ -61,9 +64,17 @@ class SpmbController extends Controller
             ->orderByDesc('created_at')
             ->paginate(10)
             ->withQueryString();
-        $pendaftarans->getCollection()->each(
-            static fn (PendaftaranSpmb $pendaftaran) => $pendaftaran->user?->makeVisible('nik'),
-        );
+        $pendaftarans->getCollection()->each(function (PendaftaranSpmb $pendaftaran): void {
+            $pendaftaran->user?->makeVisible('nik');
+            $pendaftaran->setRelation(
+                'berkas',
+                $pendaftaran->berkas->map(fn ($berkas): array => [
+                    'id' => $berkas->id,
+                    'caption' => $berkas->caption,
+                    'url' => Storage::disk('public')->url($berkas->path),
+                ]),
+            );
+        });
         $printPendaftarans = (clone $query)
             ->with([
                 'user:id,name',
@@ -203,6 +214,7 @@ class SpmbController extends Controller
                 $pendaftaran->berkas_path,
                 $pendaftaran->foto_siswa_path,
                 $siswa?->foto_siswa_path,
+                ...$pendaftaran->berkas()->pluck('path')->all(),
             ])));
 
             if (! $user) {
@@ -316,5 +328,27 @@ class SpmbController extends Controller
         abort_unless($spmb->berkas_path && Storage::disk('public')->exists($spmb->berkas_path), 404);
 
         return Storage::disk('public')->download($spmb->berkas_path);
+    }
+
+    public function downloadDocumentsPdf(PendaftaranSpmb $spmb, SpmbDocumentsPdf $pdf): StreamedResponse
+    {
+        $documents = $spmb->berkas()->get();
+        abort_unless($documents->isNotEmpty(), 404);
+
+        foreach ($documents as $document) {
+            abort_unless(Storage::disk('public')->exists($document->path), 404);
+        }
+
+        $spmb->loadMissing('user.siswa');
+        $contents = $pdf->generate($spmb, $documents->all());
+        $filename = Str::slug($spmb->no_pendaftaran).'-berkas.pdf';
+
+        return response()->streamDownload(
+            static function () use ($contents): void {
+                echo $contents;
+            },
+            $filename,
+            ['Content-Type' => 'application/pdf'],
+        );
     }
 }

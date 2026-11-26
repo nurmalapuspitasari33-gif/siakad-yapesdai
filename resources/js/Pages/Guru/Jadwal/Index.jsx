@@ -1,4 +1,5 @@
 import DashboardLayout from '@/Layouts/DashboardLayout';
+import SchedulePrintDocument from '@/Components/SchedulePrintDocument';
 import ScheduleWeekGrid from '@/Components/ScheduleWeekGrid';
 import roleNavigationItems from '@/Components/RoleNavigationItems';
 import { Head, router } from '@inertiajs/react';
@@ -24,6 +25,7 @@ export default function GuruJadwalIndex({
     jadwals = [],
     openJadwalId = null,
     tahunAjaranAktif = null,
+    printIdentity = {},
     isWaliKelas = false,
     waliKelasName = '',
 }) {
@@ -127,7 +129,14 @@ export default function GuruJadwalIndex({
                             <h2 className="mt-1 text-lg font-bold text-slate-900">Jadwal pada tahun ajaran aktif</h2>
                             <p className="mt-1 text-sm text-slate-500">{tahunAjaranAktif ?? 'Belum ada tahun ajaran aktif'}</p>
                         </div>
-                        <div className="flex gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                            <button
+                                type="button"
+                                onClick={() => window.print()}
+                                className="min-h-10 rounded-xl bg-brand-blue px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-navy"
+                            >
+                                Cetak Jadwal
+                            </button>
                             <div className="rounded-2xl border border-white bg-white/80 px-4 py-2 text-center shadow-sm">
                                 <p className="text-lg font-bold text-slate-900">{jadwals.length}</p>
                                 <p className="text-[11px] font-medium text-slate-500">Jadwal</p>
@@ -158,6 +167,7 @@ export default function GuruJadwalIndex({
                     emptyMessage="Jadwal mengajar Anda akan tampil setelah ditetapkan oleh administrator."
                 />
             </section>
+            <SchedulePrintDocument jadwals={jadwals} identity={printIdentity} />
             {selectedJadwal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4">
                     <section

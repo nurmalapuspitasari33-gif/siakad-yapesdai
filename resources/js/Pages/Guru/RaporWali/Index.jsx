@@ -770,7 +770,18 @@ export default function GuruRaporWaliIndex({
                                                         <td key={group.key} className="border border-slate-400 px-2 py-2 text-center">—</td>
                                                     ) : group.subjects.flatMap((mapel) => (
                                                         [
-                                                            <td key={`${mapel.id}-na`} className="border border-slate-400 px-2 py-2 text-center">{formatScore(siswa.nilai?.[mapel.id]?.nilai_akhir)}</td>,
+                                                            <td key={`${mapel.id}-na`} className="border border-slate-400 px-2 py-2 text-center">
+                                                                <span className="font-semibold">{formatScore(siswa.nilai?.[mapel.id]?.nilai_akhir)}</span>
+                                                                {siswa.nilai?.[mapel.id]?.kontribusi_guru?.length > 0 && (
+                                                                    <span className="mt-1 block text-left text-[8px] leading-3 text-slate-700">
+                                                                        {siswa.nilai[mapel.id].kontribusi_guru.map((contribution) => (
+                                                                            <span key={contribution.guru_id} className="block">
+                                                                                {contribution.nama_guru}: {formatScore(contribution.nilai_akhir)}
+                                                                            </span>
+                                                                        ))}
+                                                                    </span>
+                                                                )}
+                                                            </td>,
                                                             <td key={`${mapel.id}-capaian`} className="min-w-36 border border-slate-400 px-2 py-2">{siswa.nilai?.[mapel.id]?.capaian_kompetensi ?? '—'}</td>,
                                                         ]
                                                     )))}

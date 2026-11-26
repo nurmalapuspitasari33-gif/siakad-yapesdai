@@ -24,6 +24,7 @@ use App\Http\Controllers\Guru\NilaiController as GuruNilaiController;
 use App\Http\Controllers\Guru\RaporWaliController;
 use App\Http\Controllers\Guru\UjianController as GuruUjianController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\SpmbPortalController;
 use App\Http\Controllers\Siswa\JadwalController as SiswaJadwalController;
 use App\Http\Controllers\Siswa\RaporController as SiswaRaporController;
 use App\Http\Controllers\Siswa\SpmbController as SiswaSpmbController;
@@ -31,21 +32,11 @@ use App\Http\Controllers\Siswa\TagihanController as SiswaTagihanController;
 use App\Http\Controllers\Siswa\UjianController as SiswaUjianController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
-use Inertia\Inertia;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
-Route::get('/', function () {
-    return auth()->check()
-        ? redirect()->route('dashboard')
-        : redirect()->route('login');
-});
+Route::get('/', SpmbPortalController::class)->name('home');
 
-Route::get('/spmb', function () {
-    return Inertia::render('Welcome', [
-        'canLogin' => Route::has('login'),
-        'canRegister' => Route::has('register'),
-    ]);
-})->name('spmb.home');
+Route::get('/spmb', SpmbPortalController::class)->name('spmb.home');
 
 Route::middleware(['auth', 'force-password-change', 'verified'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])
@@ -122,6 +113,8 @@ Route::middleware(['auth', 'force-password-change', 'verified', 'role:admin'])
         Route::delete('spmb/{spmb}', [AdminSpmbController::class, 'destroy'])->name('spmb.destroy');
         Route::patch('spmb/{spmb}/terima', [AdminSpmbController::class, 'accept'])->name('spmb.accept');
         Route::patch('spmb/{spmb}/tolak', [AdminSpmbController::class, 'reject'])->name('spmb.reject');
+        Route::get('spmb/{spmb}/berkas-pdf', [AdminSpmbController::class, 'downloadDocumentsPdf'])
+            ->name('spmb.berkas-pdf');
         Route::get('spmb/{spmb}/berkas', [AdminSpmbController::class, 'download'])->name('spmb.berkas');
 
         Route::resource('beasiswa', BeasiswaController::class)
@@ -191,8 +184,11 @@ Route::middleware(['auth', 'force-password-change', 'verified', 'role:siswa'])
     ->prefix('siswa')
     ->name('siswa.')
     ->group(function () {
+        Route::get('spmb/cetak', [SiswaSpmbController::class, 'print'])->name('spmb.cetak');
         Route::get('spmb', [SiswaSpmbController::class, 'index'])->name('spmb.index');
         Route::post('spmb', [SiswaSpmbController::class, 'store'])->name('spmb.store');
+        Route::delete('spmb/berkas/{berkas}', [SiswaSpmbController::class, 'destroyDocument'])
+            ->name('spmb.berkas.destroy');
         Route::get('spmb/berkas', [SiswaSpmbController::class, 'download'])->name('spmb.berkas');
         Route::get('jadwal', SiswaJadwalController::class)->name('jadwal.index');
         Route::get('tagihan', [SiswaTagihanController::class, 'index'])->name('tagihan.index');

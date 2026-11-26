@@ -238,6 +238,14 @@ export default function SiswaDashboard({
                                 <p className="text-sm leading-5 text-slate-600">
                                     Lengkapi formulir dan pantau status seleksi menggunakan NIK Anda.
                                 </p>
+                                {pendaftaran && (
+                                    <Link
+                                        href={route('siswa.spmb.cetak')}
+                                        className="inline-flex min-h-10 items-center justify-center self-start rounded-xl bg-brand-blue px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-navy"
+                                    >
+                                        Cetak Formulir Pendaftaran
+                                    </Link>
+                                )}
                             </div>
                         ) : (
                             <div className="flex flex-col gap-5">

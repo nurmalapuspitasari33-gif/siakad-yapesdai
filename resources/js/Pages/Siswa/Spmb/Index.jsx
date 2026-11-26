@@ -2,7 +2,8 @@ import InputError from '@/Components/InputError';
 import DashboardLayout from '@/Layouts/DashboardLayout';
 import StudentIdentityFields, { studentIdentityDefaults } from '@/Components/StudentIdentityFields';
 import roleNavigationItems from '@/Components/RoleNavigationItems';
-import { Head, Link, useForm, usePage } from '@inertiajs/react';
+import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
+import { useEffect, useRef, useState } from 'react';
 
 const statusLabels = {
     pending: 'Menunggu Seleksi',
@@ -16,6 +17,31 @@ const currencyFormatter = new Intl.NumberFormat('id-ID', {
     maximumFractionDigits: 0,
 });
 
+const maxPhotoBytes = 5 * 1024 * 1024;
+const maxPhotoCount = 20;
+
+async function compressPhoto(file) {
+    const image = await createImageBitmap(file);
+    const scale = Math.min(1, 1800 / Math.max(image.width, image.height));
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.max(1, Math.round(image.width * scale));
+    canvas.height = Math.max(1, Math.round(image.height * scale));
+    canvas.getContext('2d').drawImage(image, 0, 0, canvas.width, canvas.height);
+    image.close();
+
+    for (const quality of [0.84, 0.72, 0.6]) {
+        const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', quality));
+
+        if (blob && blob.size <= maxPhotoBytes) {
+            const name = file.name.replace(/\.[^.]+$/, '').slice(0, 100) || 'berkas-spmb';
+
+            return new File([blob], `${name}.jpg`, { type: 'image/jpeg' });
+        }
+    }
+
+    throw new Error(`${file.name}: ukuran foto tetap lebih dari 5 MB setelah dikompresi.`);
+}
+
 export default function SiswaSpmbIndex({
     nik = '',
     siswa = {},
@@ -24,6 +50,8 @@ export default function SiswaSpmbIndex({
     kategoriBeasiswas = [],
     programKeahlians = [],
     fotoSiswaUrl = null,
+    uploadedDocuments = [],
+    documentCount = 0,
 }) {
     const { pengaturanSekolah = {} } = usePage().props;
     const form = useForm({
@@ -38,9 +66,14 @@ export default function SiswaSpmbIndex({
         ),
         sekolah_asal: pendaftaran?.asal_sekolah ?? siswa?.sekolah_asal ?? '',
         no_wa_wali: siswa?.no_wa_wali ?? '',
-        berkas: null,
+        foto_berkas: [],
+        foto_keterangan: [],
         foto_siswa: null,
     });
+    const [queuedPhotos, setQueuedPhotos] = useState([]);
+    const [photoProcessing, setPhotoProcessing] = useState(false);
+    const [photoError, setPhotoError] = useState('');
+    const queuedPhotoUrls = useRef([]);
     const sppBase = Number(pengaturanSekolah?.tarif_spp_reguler ?? 0);
     const practicalBase = Number(pengaturanSekolah?.tarif_praktikum ?? 0);
     const programDiscounts = {
@@ -64,13 +97,85 @@ export default function SiswaSpmbIndex({
         (program) => String(program.id) === String(form.data.program_keahlian_id),
     );
 
+    useEffect(() => {
+        queuedPhotoUrls.current = queuedPhotos.map((photo) => photo.preview);
+    }, [queuedPhotos]);
+
+    useEffect(() => () => {
+        queuedPhotoUrls.current.forEach((url) => URL.revokeObjectURL(url));
+    }, []);
+
+    const selectPhotos = async (event) => {
+        const files = Array.from(event.target.files ?? []);
+        event.target.value = '';
+        setPhotoError('');
+
+        if (documentCount + queuedPhotos.length + files.length > maxPhotoCount) {
+            setPhotoError(`Maksimal ${maxPhotoCount} foto dapat diunggah untuk satu pendaftaran.`);
+
+            return;
+        }
+
+        setPhotoProcessing(true);
+
+        try {
+            const compressedPhotos = await Promise.all(files.map(async (file) => ({
+                file: await compressPhoto(file),
+                caption: file.name,
+            })));
+            const preparedPhotos = compressedPhotos.map((photo) => ({
+                ...photo,
+                preview: URL.createObjectURL(photo.file),
+            }));
+            const nextPhotos = [...queuedPhotos, ...preparedPhotos];
+
+            setQueuedPhotos(nextPhotos);
+            form.setData({
+                ...form.data,
+                foto_berkas: nextPhotos.map((photo) => photo.file),
+                foto_keterangan: nextPhotos.map((photo) => photo.caption),
+            });
+        } catch (error) {
+            setPhotoError(error.message || 'Foto tidak dapat dikompresi. Pilih berkas gambar lain.');
+        } finally {
+            setPhotoProcessing(false);
+        }
+    };
+
+    const removeQueuedPhoto = (index) => {
+        const removedPhoto = queuedPhotos[index];
+        URL.revokeObjectURL(removedPhoto.preview);
+        const nextPhotos = queuedPhotos.filter((_, photoIndex) => photoIndex !== index);
+
+        setQueuedPhotos(nextPhotos);
+        form.setData({
+            ...form.data,
+            foto_berkas: nextPhotos.map((photo) => photo.file),
+            foto_keterangan: nextPhotos.map((photo) => photo.caption),
+        });
+    };
+
+    const updatePhotoCaption = (index, caption) => {
+        const nextPhotos = queuedPhotos.map((photo, photoIndex) => (
+            photoIndex === index ? { ...photo, caption } : photo
+        ));
+
+        setQueuedPhotos(nextPhotos);
+        form.setData({
+            ...form.data,
+            foto_berkas: nextPhotos.map((photo) => photo.file),
+            foto_keterangan: nextPhotos.map((photo) => photo.caption),
+        });
+    };
+
     const submit = (event) => {
         event.preventDefault();
         form.post(route('siswa.spmb.store'), {
-            forceFormData: true,
             preserveScroll: true,
             onSuccess: () => {
-                form.reset('berkas');
+                queuedPhotos.forEach((photo) => URL.revokeObjectURL(photo.preview));
+                setQueuedPhotos([]);
+                form.reset('foto_berkas', 'foto_keterangan');
                 form.reset('foto_siswa');
             },
         });
@@ -108,14 +213,24 @@ export default function SiswaSpmbIndex({
                                   ? 'Hasil seleksi telah ditetapkan. Hubungi panitia sekolah untuk informasi lebih lanjut.'
                                   : 'Pastikan data dan dokumen yang diunggah sudah benar sebelum dikirim.'}
                         </p>
-                        {berkasUrl && (
-                            <a
-                                href={berkasUrl}
-                                className="shrink-0 rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-indigo-700 transition hover:bg-indigo-50"
-                            >
-                                Unduh berkas saat ini
-                            </a>
-                        )}
+                        <div className="flex flex-wrap gap-2">
+                            {pendaftaran && (
+                                <Link
+                                    href={route('siswa.spmb.cetak')}
+                                    className="inline-flex min-h-10 items-center justify-center rounded-xl bg-brand-blue px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-navy"
+                                >
+                                    Cetak Formulir Pendaftaran
+                                </Link>
+                            )}
+                            {berkasUrl && (
+                                <a
+                                    href={berkasUrl}
+                                    className="inline-flex min-h-10 items-center justify-center rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-indigo-700 transition hover:bg-indigo-50"
+                                >
+                                    Unduh berkas lama
+                                </a>
+                            )}
+                        </div>
                     </div>
                 </section>
 
@@ -124,7 +239,7 @@ export default function SiswaSpmbIndex({
                         <div className="mb-6">
                             <h2 className="text-lg font-bold text-slate-900">Biodata pendaftaran</h2>
                             <p className="mt-1 text-sm text-slate-500">
-                                Lengkapi identitas murid dan keluarga. Berkas persyaratan PDF/JPG maksimal 5 MB.
+                                Lengkapi identitas murid dan keluarga, lalu unggah foto persyaratan yang jelas.
                             </p>
                         </div>
                         <div className="mb-6 rounded-xl border border-indigo-100 bg-indigo-50 p-4 text-sm leading-6 text-indigo-950">
@@ -225,6 +340,19 @@ export default function SiswaSpmbIndex({
                                 </div>
                             )}
                             <div>
+                                <label htmlFor="foto-siswa-spmb" className="mb-2 block text-sm font-semibold text-slate-700">
+                                    Pas Foto Calon Siswa 3×4 (Opsional)
+                                </label>
+                                <input
+                                    id="foto-siswa-spmb"
+                                    type="file"
+                                    accept="image/jpeg,image/png"
+                                    onChange={(event) => form.setData('foto_siswa', event.target.files?.[0] ?? null)}
+                                    className="block w-full rounded-xl border border-slate-300 text-sm text-slate-600 file:mr-4 file:rounded-lg file:border-0 file:bg-indigo-50 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-indigo-700"
+                                />
+                                <InputError message={form.errors.foto_siswa} className="mt-2" />
+                            </div>
+                            <div>
                                 <label htmlFor="no-wa-wali" className="mb-2 block text-sm font-semibold text-slate-700">
                                     No. WhatsApp Wali
                                 </label>
@@ -237,23 +365,100 @@ export default function SiswaSpmbIndex({
                                 />
                                 <InputError message={form.errors.no_wa_wali} className="mt-2" />
                             </div>
-                            <div>
-                                <label htmlFor="berkas-spmb" className="mb-2 block text-sm font-semibold text-slate-700">
-                                    Berkas Persyaratan
+                            <section className="rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:p-5">
+                                <div className="flex flex-wrap items-start justify-between gap-3">
+                                    <div>
+                                        <h3 className="text-sm font-bold text-slate-900">
+                                            Dokumentasi &amp; Berkas Persyaratan Foto
+                                        </h3>
+                                        <p className="mt-1 text-xs leading-5 text-slate-600">
+                                            Maksimal 20 foto, 5 MB per foto. Foto akan dikompresi otomatis sebelum diunggah.
+                                        </p>
+                                    </div>
+                                    <span className="rounded-full bg-white px-3 py-1 text-xs font-bold text-brand-blue ring-1 ring-slate-200">
+                                        {documentCount + queuedPhotos.length}/{maxPhotoCount} foto
+                                    </span>
+                                </div>
+
+                                {uploadedDocuments.length > 0 && (
+                                    <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                                        {uploadedDocuments.map((document) => (
+                                            <article key={document.id} className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+                                                <img src={document.url} alt={document.caption || 'Foto berkas persyaratan'} className="h-28 w-full object-cover" />
+                                                <div className="flex items-center justify-between gap-2 p-2">
+                                                    <p className="min-w-0 truncate text-xs font-medium text-slate-700">
+                                                        {document.caption || 'Berkas persyaratan'}
+                                                    </p>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            if (window.confirm('Hapus foto berkas ini?')) {
+                                                                router.delete(route('siswa.spmb.berkas.destroy', document.id), {
+                                                                    preserveScroll: true,
+                                                                });
+                                                            }
+                                                        }}
+                                                        className="shrink-0 text-xs font-bold text-rose-700 hover:text-rose-900"
+                                                    >
+                                                        Hapus
+                                                    </button>
+                                                </div>
+                                            </article>
+                                        ))}
+                                    </div>
+                                )}
+
+                                <label htmlFor="foto-berkas-spmb" className="mt-4 inline-flex min-h-11 cursor-pointer items-center justify-center rounded-xl border border-brand-blue bg-white px-4 py-2 text-sm font-semibold text-brand-blue transition hover:bg-blue-50">
+                                    {photoProcessing ? 'Mengompresi foto…' : 'Pilih Foto Persyaratan'}
+                                    <input
+                                        id="foto-berkas-spmb"
+                                        type="file"
+                                        accept="image/jpeg,image/png,image/webp"
+                                        multiple
+                                        disabled={photoProcessing || documentCount + queuedPhotos.length >= maxPhotoCount}
+                                        onChange={selectPhotos}
+                                        className="sr-only"
+                                    />
                                 </label>
-                                <input
-                                    id="berkas-spmb"
-                                    type="file"
-                                    accept=".pdf,.jpg,.jpeg,application/pdf,image/jpeg"
-                                    onChange={(event) => form.setData('berkas', event.target.files?.[0] ?? null)}
-                                    className="block w-full rounded-xl border border-slate-300 text-sm text-slate-600 file:mr-4 file:rounded-lg file:border-0 file:bg-indigo-50 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-indigo-700 hover:file:bg-indigo-100"
-                                />
-                                <InputError message={form.errors.berkas} className="mt-2" />
-                            </div>
+
+                                {queuedPhotos.length > 0 && (
+                                    <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                                        {queuedPhotos.map((photo, index) => (
+                                            <article key={photo.preview} className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+                                                <img src={photo.preview} alt={`Pratinjau foto ${index + 1}`} className="h-28 w-full object-cover" />
+                                                <div className="flex flex-col gap-2 p-2">
+                                                    <input
+                                                        type="text"
+                                                        value={photo.caption}
+                                                        maxLength={255}
+                                                        onChange={(event) => updatePhotoCaption(index, event.target.value)}
+                                                        aria-label={`Keterangan foto ${index + 1}`}
+                                                        placeholder="Keterangan berkas"
+                                                        className="w-full rounded-lg border-slate-300 text-xs"
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => removeQueuedPhoto(index)}
+                                                        className="self-start text-xs font-bold text-rose-700 hover:text-rose-900"
+                                                    >
+                                                        Hapus foto
+                                                    </button>
+                                                </div>
+                                            </article>
+                                        ))}
+                                    </div>
+                                )}
+
+                                {(photoError || form.errors.foto_berkas || form.errors['foto_berkas.0']) && (
+                                    <p role="alert" className="mt-3 text-sm font-medium text-rose-700">
+                                        {photoError || form.errors.foto_berkas || form.errors['foto_berkas.0']}
+                                    </p>
+                                )}
+                            </section>
                             {form.progress && (
                                 <div>
                                     <div className="mb-1 flex justify-between text-xs font-medium text-slate-600">
-                                        <span>Mengunggah berkas</span>
+                                        <span>Mengunggah berkas dan menyimpan biodata</span>
                                         <span>{form.progress.percentage}%</span>
                                     </div>
                                     <progress
@@ -266,8 +471,8 @@ export default function SiswaSpmbIndex({
                             <div className="flex flex-col gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:items-center sm:justify-between">
                                 <p className="text-xs leading-5 text-slate-500">
                                     {pendaftaran?.has_berkas
-                                        ? 'Pilih berkas baru hanya jika ingin mengganti unggahan sebelumnya.'
-                                        : 'Berkas wajib diunggah untuk mengirim pendaftaran.'}
+                                        ? 'Foto baru akan ditambahkan tanpa mengganti foto yang sudah tersimpan.'
+                                        : 'Unggah minimal satu foto berkas sebelum mengirim pendaftaran.'}
                                 </p>
                                 <button
                                     type="submit"

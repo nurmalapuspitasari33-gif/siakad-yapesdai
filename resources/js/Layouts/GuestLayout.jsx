@@ -1,9 +1,7 @@
 export default function GuestLayout({ children }) {
     return (
-        <div className="mx-auto flex w-full max-w-7xl flex-1 items-center justify-center px-4 py-8 sm:px-6 sm:py-10 lg:px-8">
-            <div className="w-full max-w-2xl rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_20px_50px_rgb(11,44,89,0.10)] sm:p-9">
-                {children}
-            </div>
-        </div>
+        <section className="w-full max-w-lg rounded-3xl border border-white/70 bg-white p-6 shadow-[0_24px_70px_rgba(2,12,27,0.35)] sm:p-9">
+            {children}
+        </section>
     );
 }

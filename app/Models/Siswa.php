@@ -98,6 +98,11 @@ class Siswa extends Model
         return $this->hasMany(Nilai::class);
     }
 
+    public function nilaiGurus(): HasMany
+    {
+        return $this->hasMany(NilaiGuru::class);
+    }
+
     public function catatanRapors(): HasMany
     {
         return $this->hasMany(CatatanRapor::class);

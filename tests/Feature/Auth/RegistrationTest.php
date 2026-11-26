@@ -24,6 +24,7 @@ class RegistrationTest extends TestCase
         $response = $this->post('/register', [
             'name' => 'Test User',
             'nik' => '0012345678901234',
+            'no_wa' => '081234567890',
             'email' => 'test@example.com',
             'password' => 'password',
             'password_confirmation' => 'password',
@@ -37,6 +38,7 @@ class RegistrationTest extends TestCase
 
         $this->assertSame('siswa', $user->role);
         $this->assertSame('0012345678901234', $user->nik);
+        $this->assertSame('081234567890', $user->no_wa);
         $this->assertArrayNotHasKey('nik', $user->toArray());
         $this->assertSame('calon_spmb', $siswa->status_siswa);
         $this->assertSame('Test User', $siswa->nama_lengkap);
@@ -57,6 +59,7 @@ class RegistrationTest extends TestCase
         $response = $this->post('/register', [
             'name' => 'Calon Tanpa Email',
             'nik' => '0001234567890123',
+            'no_wa' => '081234567891',
             'email' => '',
             'password' => 'password',
             'password_confirmation' => 'password',
@@ -75,6 +78,7 @@ class RegistrationTest extends TestCase
         $this->post('/register', [
             'name' => 'Calon Invalid',
             'nik' => '123456789012345',
+            'no_wa' => '081234567892',
             'email' => '',
             'password' => 'password',
             'password_confirmation' => 'password',
@@ -86,6 +90,7 @@ class RegistrationTest extends TestCase
         $this->post('/register', [
             'name' => 'Calon Invalid',
             'nik' => '001234567890ABCD',
+            'no_wa' => '081234567893',
             'email' => '',
             'password' => 'password',
             'password_confirmation' => 'password',
@@ -99,9 +104,21 @@ class RegistrationTest extends TestCase
         $this->post('/register', [
             'name' => 'Calon Duplikat',
             'nik' => '0012345678901234',
+            'no_wa' => '081234567894',
             'email' => '',
             'password' => 'password',
             'password_confirmation' => 'password',
         ])->assertSessionHasErrors('nik');
+    }
+
+    public function test_registration_requires_an_active_whatsapp_number(): void
+    {
+        $this->post('/register', [
+            'name' => 'Calon Tanpa WhatsApp',
+            'nik' => '0012345678901255',
+            'email' => '',
+            'password' => 'password',
+            'password_confirmation' => 'password',
+        ])->assertSessionHasErrors('no_wa');
     }
 }

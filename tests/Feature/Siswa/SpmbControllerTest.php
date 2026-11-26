@@ -17,7 +17,7 @@ class SpmbControllerTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_candidate_can_submit_biodata_and_upload_a_spmb_document(): void
+    public function test_candidate_can_submit_biodata_and_upload_multiple_spmb_photos(): void
     {
         Storage::fake('public');
         $candidate = User::factory()->create([
@@ -62,7 +62,11 @@ class SpmbControllerTest extends TestCase
                 'nik' => '0012345678901234',
                 'sekolah_asal' => 'SMP Negeri 1',
                 'no_wa_wali' => '081234567890',
-                'berkas' => UploadedFile::fake()->create('ijazah.pdf', 100, 'application/pdf'),
+                'foto_berkas' => [
+                    UploadedFile::fake()->image('kartu-keluarga.jpg', 300, 400),
+                    UploadedFile::fake()->image('akta-kelahiran.jpg', 300, 400),
+                ],
+                'foto_keterangan' => ['Kartu Keluarga', 'Akta Kelahiran'],
                 'foto_siswa' => UploadedFile::fake()->image('foto.jpg', 300, 400),
                 'nis' => 'SMK-3001',
                 'tempat_lahir' => 'Cilacap',
@@ -110,9 +114,23 @@ class SpmbControllerTest extends TestCase
         $this->assertSame($concentration->id, $siswa->konsentrasi_keahlian_id);
         $this->assertSame($category->id, $siswa->kategori_beasiswa_id);
         $this->assertSame('L', $pendaftaran->jenis_kelamin);
-        Storage::disk('public')->assertExists($pendaftaran->berkas_path);
+        $this->assertNull($pendaftaran->berkas_path);
+        $this->assertDatabaseCount('pendaftaran_spmb_berkas', 2);
+        foreach ($pendaftaran->berkas as $berkas) {
+            Storage::disk('public')->assertExists($berkas->path);
+        }
         Storage::disk('public')->assertExists($pendaftaran->foto_siswa_path);
         $this->assertSame($siswa->foto_siswa_path, $pendaftaran->foto_siswa_path);
+
+        $this->actingAs($candidate)
+            ->get(route('siswa.spmb.cetak'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Siswa/Spmb/Print')
+                ->where('pendaftaran.nomor', $pendaftaran->no_pendaftaran)
+                ->where('pendaftaran.nik', '0012345678901234')
+                ->where('pendaftaran.nama_lengkap', 'Calon Siswa')
+                ->has('pendaftaran.berkas', 2));
     }
 
     public function test_candidate_must_upload_a_document_before_submitting(): void
@@ -127,10 +145,11 @@ class SpmbControllerTest extends TestCase
 
         $this->actingAs($candidate)
             ->post(route('siswa.spmb.store'), [
+                'nik' => '0012345678901235',
                 'asal_sekolah' => 'SMP Negeri 2',
                 'no_wa_wali' => '081234567891',
             ])
-            ->assertSessionHasErrors('berkas');
+            ->assertSessionHasErrors('foto_berkas');
 
         $this->assertDatabaseCount('pendaftaran_spmbs', 0);
     }
@@ -149,7 +168,7 @@ class SpmbControllerTest extends TestCase
             ->post(route('siswa.spmb.store'), [
                 'sekolah_asal' => 'SMP Negeri 4',
                 'no_wa_wali' => '081234567894',
-                'berkas' => UploadedFile::fake()->create('ijazah.pdf', 100, 'application/pdf'),
+                'foto_berkas' => [UploadedFile::fake()->image('ijazah.jpg', 300, 400)],
             ])
             ->assertSessionHasErrors('nik');
 
@@ -182,7 +201,6 @@ class SpmbControllerTest extends TestCase
                 'nik' => '0012345678901234',
                 'sekolah_asal' => 'SMP Negeri 5',
                 'no_wa_wali' => '081234567895',
-                'berkas' => UploadedFile::fake()->create('ijazah-baru.pdf', 100, 'application/pdf'),
             ])
             ->assertForbidden();
 
@@ -192,6 +210,95 @@ class SpmbControllerTest extends TestCase
             'status_seleksi' => 'ditolak',
             'asal_sekolah' => 'SMP Negeri 5',
         ]);
+    }
+
+    public function test_candidate_can_add_and_remove_photos_without_replacing_other_photos(): void
+    {
+        Storage::fake('public');
+        $candidate = User::factory()->create([
+            'role' => 'siswa',
+            'nik' => '0012345678901237',
+        ]);
+        Siswa::create([
+            'user_id' => $candidate->id,
+            'nisn' => '3000000007',
+            'nama_lengkap' => 'Calon Siswa Tujuh',
+            'status_siswa' => 'calon_spmb',
+        ]);
+        $pendaftaran = PendaftaranSpmb::create([
+            'user_id' => $candidate->id,
+            'no_pendaftaran' => 'SPMB-2026-AB12CD37',
+            'asal_sekolah' => 'SMP Negeri 7',
+            'status_seleksi' => 'pending',
+        ]);
+        Storage::disk('public')->put('berkas-spmb/foto/berkas-lama.jpg', 'existing photo');
+        $existingDocument = $pendaftaran->berkas()->create([
+            'path' => 'berkas-spmb/foto/berkas-lama.jpg',
+            'caption' => 'Kartu Keluarga',
+        ]);
+
+        $this->actingAs($candidate)
+            ->post(route('siswa.spmb.store'), [
+                'nik' => '0012345678901237',
+                'sekolah_asal' => 'SMP Negeri 7',
+                'no_wa_wali' => '081234567897',
+                'foto_berkas' => [UploadedFile::fake()->image('akta.jpg', 300, 400)],
+                'foto_keterangan' => ['Akta Kelahiran'],
+            ])
+            ->assertRedirect(route('siswa.spmb.index', absolute: false));
+
+        $this->assertDatabaseCount('pendaftaran_spmb_berkas', 2);
+        Storage::disk('public')->assertExists('berkas-spmb/foto/berkas-lama.jpg');
+
+        $addedDocument = $pendaftaran->berkas()->where('caption', 'Akta Kelahiran')->firstOrFail();
+        Storage::disk('public')->assertExists($addedDocument->path);
+
+        $this->actingAs($candidate)
+            ->delete(route('siswa.spmb.berkas.destroy', $existingDocument))
+            ->assertRedirect();
+
+        $this->assertDatabaseCount('pendaftaran_spmb_berkas', 1);
+        Storage::disk('public')->assertMissing('berkas-spmb/foto/berkas-lama.jpg');
+        Storage::disk('public')->assertExists($addedDocument->path);
+    }
+
+    public function test_candidate_cannot_upload_more_than_twenty_photos(): void
+    {
+        Storage::fake('public');
+        $candidate = User::factory()->create([
+            'role' => 'siswa',
+            'nik' => '0012345678901238',
+        ]);
+        Siswa::create([
+            'user_id' => $candidate->id,
+            'nisn' => '3000000008',
+            'nama_lengkap' => 'Calon Siswa Delapan',
+            'status_siswa' => 'calon_spmb',
+        ]);
+        $pendaftaran = PendaftaranSpmb::create([
+            'user_id' => $candidate->id,
+            'no_pendaftaran' => 'SPMB-2026-AB12CD38',
+            'asal_sekolah' => 'SMP Negeri 8',
+            'status_seleksi' => 'pending',
+        ]);
+
+        foreach (range(1, 20) as $index) {
+            $path = "berkas-spmb/foto/berkas-{$index}.jpg";
+            Storage::disk('public')->put($path, 'existing photo');
+            $pendaftaran->berkas()->create(['path' => $path]);
+        }
+
+        $this->actingAs($candidate)
+            ->post(route('siswa.spmb.store'), [
+                'nik' => '0012345678901238',
+                'sekolah_asal' => 'SMP Negeri 8',
+                'no_wa_wali' => '081234567898',
+                'foto_berkas' => [UploadedFile::fake()->image('foto-tambahan.jpg', 300, 400)],
+            ])
+            ->assertSessionHasErrors('foto_berkas');
+
+        $this->assertDatabaseCount('pendaftaran_spmb_berkas', 20);
+        $this->assertCount(20, Storage::disk('public')->allFiles('berkas-spmb/foto'));
     }
 
     public function test_candidate_cannot_submit_a_concentration_from_another_program(): void
@@ -218,9 +325,10 @@ class SpmbControllerTest extends TestCase
 
         $this->actingAs($candidate)
             ->post(route('siswa.spmb.store'), [
+                'nik' => '0012345678901236',
                 'sekolah_asal' => 'SMP Negeri 3',
                 'no_wa_wali' => '081234567892',
-                'berkas' => UploadedFile::fake()->create('ijazah.pdf', 100, 'application/pdf'),
+                'foto_berkas' => [UploadedFile::fake()->image('ijazah.jpg', 300, 400)],
                 'program_keahlian_id' => $program->id,
                 'konsentrasi_keahlian_id' => $otherConcentration->id,
             ])

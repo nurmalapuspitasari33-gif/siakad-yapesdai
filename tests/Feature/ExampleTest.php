@@ -3,15 +3,17 @@
 namespace Tests\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
 class ExampleTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_guest_visiting_home_is_redirected_to_login(): void
+    public function test_guest_visiting_home_sees_the_public_spmb_portal(): void
     {
         $this->get('/')
-            ->assertRedirect(route('login', absolute: false));
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->component('Welcome'));
     }
 }

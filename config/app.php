@@ -13,7 +13,7 @@ return [
     |
     */
 
-    'name' => env('APP_NAME', 'YAPESDAI'),
+    'name' => env('APP_NAME', "SPMB SMK Al Mu'allim Kesugihan"),
 
     /*
     |--------------------------------------------------------------------------

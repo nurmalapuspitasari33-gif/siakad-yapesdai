@@ -36,6 +36,7 @@ class RegisteredUserController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'nik' => StudentIdentity::nikRules(),
+            'no_wa' => ['required', 'string', 'max:30'],
             'email' => ['bail', 'nullable', 'string', 'lowercase', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
@@ -45,6 +46,7 @@ class RegisteredUserController extends Controller
                 'name' => $validated['name'],
                 'email' => $validated['email'] ?? null,
                 'nik' => $validated['nik'],
+                'no_wa' => $validated['no_wa'],
                 'password' => Hash::make($validated['password']),
                 'role' => 'siswa',
             ]);

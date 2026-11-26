@@ -9,6 +9,7 @@ use App\Models\Jadwal;
 use App\Models\Kelas;
 use App\Models\MataPelajaran;
 use App\Models\Nilai;
+use App\Models\NilaiGuru;
 use App\Models\PengaturanSekolah;
 use App\Models\PresensiKelas;
 use App\Models\Siswa;
@@ -118,6 +119,24 @@ class RaporWaliControllerTest extends TestCase
             'nilai_akhir' => 80,
             'capaian_kompetensi' => 'Memahami materi.',
         ]);
+        $otherTeacher = Guru::create([
+            'user_id' => User::factory()->create(['role' => 'guru'])->id,
+            'nip' => '19870010',
+            'nama_lengkap' => 'Guru Pengampu Kedua',
+        ]);
+        foreach ([
+            [$wali, 70],
+            [$otherTeacher, 90],
+        ] as [$teacher, $score]) {
+            NilaiGuru::create([
+                'tahun_ajaran_id' => $tahunAjaran->id,
+                'siswa_id' => $student->id,
+                'kelas_id' => $kelas->id,
+                'mapel_id' => $mapel->id,
+                'guru_id' => $teacher->id,
+                'nilai_akhir' => $score,
+            ]);
+        }
         CatatanRapor::create([
             'tahun_ajaran_id' => $tahunAjaran->id,
             'siswa_id' => $student->id,
@@ -158,6 +177,9 @@ class RaporWaliControllerTest extends TestCase
                 ->where('mataPelajarans.0.kelompok_mapel', 'umum')
                 ->where("siswas.0.nilai.{$mapel->id}.nilai_akhir", '80.00')
                 ->where('siswas.0.nilai.'.$mapel->id.'.capaian_kompetensi', 'Memahami materi.')
+                ->has("siswas.0.nilai.{$mapel->id}.kontribusi_guru", 2)
+                ->where("siswas.0.nilai.{$mapel->id}.kontribusi_guru.0.nilai_akhir", 70)
+                ->where("siswas.0.nilai.{$mapel->id}.kontribusi_guru.1.nama_guru", 'Guru Pengampu Kedua')
                 ->where('siswas.0.jumlah_nilai', 80)
                 ->where('siswas.0.rata_rata', 80)
                 ->where('siswas.0.ranking', 2)

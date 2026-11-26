@@ -462,16 +462,27 @@ export default function SpmbIndex({
                                         </p>
                                     </td>
                                     <td className="whitespace-nowrap px-5 py-4">
-                                        {pendaftaran.berkas_path ? (
-                                            <a
-                                                href={route('admin.spmb.berkas', pendaftaran.id)}
-                                                className="rounded-lg px-2.5 py-1.5 text-xs font-semibold text-indigo-700 transition hover:bg-indigo-50"
-                                            >
-                                                Unduh berkas
-                                            </a>
-                                        ) : (
-                                            <span className="text-xs text-slate-400">Belum diunggah</span>
-                                        )}
+                                        <div className="flex flex-col items-start gap-1">
+                                            {pendaftaran.berkas?.length > 0 && (
+                                                <a
+                                                    href={route('admin.spmb.berkas-pdf', pendaftaran.id)}
+                                                    className="rounded-lg px-2.5 py-1.5 text-xs font-semibold text-indigo-700 transition hover:bg-indigo-50"
+                                                >
+                                                    Unduh Berkas PDF ({pendaftaran.berkas.length})
+                                                </a>
+                                            )}
+                                            {pendaftaran.berkas_path && (
+                                                <a
+                                                    href={route('admin.spmb.berkas', pendaftaran.id)}
+                                                    className="rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-100"
+                                                >
+                                                    Berkas lama
+                                                </a>
+                                            )}
+                                            {!pendaftaran.berkas?.length && !pendaftaran.berkas_path && (
+                                                <span className="text-xs text-slate-400">Belum diunggah</span>
+                                            )}
+                                        </div>
                                     </td>
                                     <td className="whitespace-nowrap px-5 py-4">
                                         <SelectionBadge status={pendaftaran.status_seleksi} />
@@ -583,6 +594,29 @@ export default function SpmbIndex({
                                     alt={`Pas foto ${student?.nama_lengkap ?? 'calon siswa'}`}
                                     className="h-32 w-24 rounded-lg border border-slate-200 object-cover"
                                 />
+                            )}
+                            {viewingPendaftaran.berkas?.length > 0 && (
+                                <section>
+                                    <h3 className="mb-2 text-sm font-bold text-slate-800">
+                                        Dokumentasi &amp; Berkas Persyaratan Foto
+                                    </h3>
+                                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                                        {viewingPendaftaran.berkas.map((berkas) => (
+                                            <a
+                                                key={berkas.id}
+                                                href={berkas.url}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                className="overflow-hidden rounded-xl border border-slate-200 bg-white"
+                                            >
+                                                <img src={berkas.url} alt={berkas.caption || 'Foto berkas persyaratan'} className="h-28 w-full object-cover" />
+                                                <span className="block truncate px-2 py-1.5 text-xs text-slate-600">
+                                                    {berkas.caption || 'Berkas persyaratan'}
+                                                </span>
+                                            </a>
+                                        ))}
+                                    </div>
+                                </section>
                             )}
                             <dl className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
                                 {details.map(([label, value]) => (

@@ -9,6 +9,7 @@ use App\Models\Siswa;
 use App\Models\TahunAjaran;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
@@ -171,6 +172,46 @@ class SpmbControllerTest extends TestCase
         Storage::disk('public')->assertMissing('berkas-spmb/0015.pdf');
         Storage::disk('public')->assertMissing('foto-siswa/pendaftaran-0015.jpg');
         Storage::disk('public')->assertMissing('foto-siswa/siswa-0015.jpg');
+    }
+
+    public function test_admin_can_download_all_candidate_photos_as_a_pdf(): void
+    {
+        Storage::fake('public');
+        $admin = User::factory()->create(['role' => 'admin']);
+        $candidate = User::factory()->create([
+            'role' => 'siswa',
+            'nik' => '0012345678901250',
+        ]);
+        Siswa::create([
+            'user_id' => $candidate->id,
+            'nisn' => '2000000050',
+            'nama_lengkap' => 'Calon PDF',
+            'status_siswa' => 'calon_spmb',
+        ]);
+        $pendaftaran = PendaftaranSpmb::create([
+            'user_id' => $candidate->id,
+            'no_pendaftaran' => 'SPMB-2026-AB12CD50',
+            'asal_sekolah' => 'SMP Negeri',
+            'status_seleksi' => 'pending',
+        ]);
+        $firstPhoto = UploadedFile::fake()->image('kartu-keluarga.jpg', 300, 400)
+            ->store('berkas-spmb/foto', 'public');
+        $secondPhoto = UploadedFile::fake()->image('akta.jpg', 300, 400)
+            ->store('berkas-spmb/foto', 'public');
+        $pendaftaran->berkas()->createMany([
+            ['path' => $firstPhoto, 'caption' => 'Kartu Keluarga'],
+            ['path' => $secondPhoto, 'caption' => 'Akta Kelahiran'],
+        ]);
+
+        $response = $this->actingAs($admin)
+            ->get(route('admin.spmb.berkas-pdf', $pendaftaran));
+
+        $response->assertOk()
+            ->assertDownload('spmb-2026-ab12cd50-berkas.pdf')
+            ->assertHeader('content-type', 'application/pdf')
+            ->assertStreamed();
+        $this->assertStringStartsWith('%PDF-1.4', $response->streamedContent());
+        $this->assertStringContainsString('NIK:', $response->streamedContent());
     }
 
     public function test_admin_can_delete_an_application_when_its_student_record_is_missing(): void

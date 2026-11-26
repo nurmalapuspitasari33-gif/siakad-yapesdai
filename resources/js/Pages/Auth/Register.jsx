@@ -8,6 +8,7 @@ export default function Register() {
     const { data, setData, post, processing, errors, reset } = useForm({
         name: '',
         nik: '',
+        no_wa: '',
         email: '',
         password: '',
         password_confirmation: '',
@@ -25,7 +26,7 @@ export default function Register() {
 
     return (
         <GuestLayout activePage="spmb">
-            <Head title="Daftar Akun" />
+            <Head title="Pendaftaran Akun Calon Murid Baru" />
 
             <div className="text-center">
                 <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-brand-gold/60 bg-amber-50 text-brand-navy shadow-sm">
@@ -34,13 +35,13 @@ export default function Register() {
                     </svg>
                 </span>
                 <p className="mt-4 text-xs font-semibold uppercase tracking-[0.16em] text-brand-blue">
-                    Penerimaan Peserta Didik Baru
+                    Sistem Penerimaan Murid Baru
                 </p>
                 <h1 className="mt-2 text-2xl font-bold tracking-tight text-slate-900">
-                    Buat akun SPMB
+                    Pendaftaran Akun Calon Murid Baru
                 </h1>
                 <p className="mt-1 text-sm leading-6 text-slate-500">
-                    Daftarkan akun calon siswa untuk melengkapi biodata dan berkas pendaftaran.
+                    Cukup gunakan NIK 16 digit dari Kartu Keluarga tanpa wajib memiliki alamat email.
                 </p>
             </div>
 
@@ -51,7 +52,7 @@ export default function Register() {
                 />
                 <div className="flex items-center gap-3 text-xs font-medium text-slate-400">
                     <span className="h-px flex-1 bg-slate-200" />
-                    <span>atau daftar dengan NIK (email opsional)</span>
+                    <span>atau daftar dengan NIK</span>
                     <span className="h-px flex-1 bg-slate-200" />
                 </div>
             </div>
@@ -59,7 +60,7 @@ export default function Register() {
             <form onSubmit={submit} className="mt-5 flex flex-col gap-4">
                 <div>
                     <label htmlFor="nik" className="block text-sm font-semibold text-slate-700">
-                        NIK sesuai Kartu Keluarga
+                        NIK (16 Digit)
                     </label>
                     <input
                         id="nik"
@@ -75,14 +76,14 @@ export default function Register() {
                         aria-invalid={Boolean(errors.nik)}
                         aria-describedby={errors.nik ? 'nik-error' : undefined}
                         className="mt-2 block w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-brand-blue focus:bg-white focus:ring-4 focus:ring-brand-blue/10"
-                        placeholder="16 digit NIK"
+                        placeholder="Masukkan 16 digit NIK Anda"
                     />
                     <InputError id="nik-error" message={errors.nik} className="mt-2" />
                 </div>
 
                 <div>
                     <label htmlFor="name" className="block text-sm font-semibold text-slate-700">
-                        Nama lengkap
+                        Nama Lengkap Sesuai Ijazah/KK
                     </label>
                     <input
                         id="name"
@@ -95,14 +96,35 @@ export default function Register() {
                         aria-invalid={Boolean(errors.name)}
                         aria-describedby={errors.name ? 'name-error' : undefined}
                         className="mt-2 block w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-brand-blue focus:bg-white focus:ring-4 focus:ring-brand-blue/10"
-                        placeholder="Nama sesuai identitas"
+                        placeholder="Masukkan nama lengkap sesuai identitas"
                     />
                     <InputError id="name-error" message={errors.name} className="mt-2" />
                 </div>
 
                 <div>
+                    <label htmlFor="no_wa" className="block text-sm font-semibold text-slate-700">
+                        Nomor WhatsApp Aktif
+                    </label>
+                    <input
+                        id="no_wa"
+                        name="no_wa"
+                        type="tel"
+                        inputMode="tel"
+                        autoComplete="tel"
+                        value={data.no_wa}
+                        required
+                        onChange={(event) => setData('no_wa', event.target.value)}
+                        aria-invalid={Boolean(errors.no_wa)}
+                        aria-describedby={errors.no_wa ? 'no-wa-error' : undefined}
+                        className="mt-2 block w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-brand-blue focus:bg-white focus:ring-4 focus:ring-brand-blue/10"
+                        placeholder="Contoh: 081234567890"
+                    />
+                    <InputError id="no-wa-error" message={errors.no_wa} className="mt-2" />
+                </div>
+
+                <div>
                     <label htmlFor="email" className="block text-sm font-semibold text-slate-700">
-                        Alamat email (opsional)
+                        Email (Opsional)
                     </label>
                     <input
                         id="email"
@@ -121,7 +143,7 @@ export default function Register() {
 
                 <div>
                     <label htmlFor="password" className="block text-sm font-semibold text-slate-700">
-                        Kata sandi
+                        Kata Sandi
                     </label>
                     <div className="relative mt-2">
                         <input
@@ -152,7 +174,7 @@ export default function Register() {
 
                 <div>
                     <label htmlFor="password_confirmation" className="block text-sm font-semibold text-slate-700">
-                        Konfirmasi kata sandi
+                        Konfirmasi Kata Sandi
                     </label>
                     <div className="relative mt-2">
                         <input
@@ -190,17 +212,25 @@ export default function Register() {
                     disabled={processing}
                     className="mt-1 inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-brand-blue px-5 py-3.5 text-sm font-semibold text-white shadow-md shadow-brand-navy/20 transition hover:-translate-y-0.5 hover:bg-brand-navy focus:outline-none focus:ring-4 focus:ring-brand-blue/20 disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                    {processing ? 'Mendaftarkan...' : 'Daftar dan lanjutkan'}
+                    {processing ? 'Mendaftarkan...' : 'Buat Akun & Lanjut Pendaftaran'}
                 </button>
             </form>
 
             <p className="mt-5 border-t border-slate-200/70 pt-5 text-center text-sm text-slate-600">
-                Sudah memiliki akun?{' '}
+                Sudah memiliki akun SPMB atau SIAKAD?{' '}
                 <Link
                     href={route('login')}
                     className="font-semibold text-brand-blue transition hover:text-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-blue focus:ring-offset-2"
                 >
-                    Masuk
+                    Masuk di sini
+                </Link>
+            </p>
+            <p className="mt-3 text-center text-sm">
+                <Link
+                    href={route('home')}
+                    className="font-semibold text-slate-500 transition hover:text-brand-blue"
+                >
+                    ← Kembali ke Beranda SPMB
                 </Link>
             </p>
         </GuestLayout>

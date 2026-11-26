@@ -78,6 +78,11 @@ class RaporWaliController extends Controller
                     'konsentrasiKeahlian:id,program_keahlian_id,nama_konsentrasi',
                     'nilais' => fn ($query) => $query
                         ->where('tahun_ajaran_id', $tahunAjaranAktif->id),
+                    'nilaiGurus' => fn ($query) => $query
+                        ->where('tahun_ajaran_id', $tahunAjaranAktif->id)
+                        ->where('kelas_id', $selectedKelasId)
+                        ->orderBy('id')
+                        ->with('guru:id,nama_lengkap'),
                     'catatanRapors' => fn ($query) => $query
                         ->where('tahun_ajaran_id', $tahunAjaranAktif->id),
                 ])
@@ -116,6 +121,14 @@ class RaporWaliController extends Controller
                     $nilai->mapel_id => [
                         'nilai_akhir' => $nilai->nilai_akhir,
                         'capaian_kompetensi' => $nilai->capaian_kompetensi,
+                        'kontribusi_guru' => $siswa->nilaiGurus
+                            ->where('mapel_id', $nilai->mapel_id)
+                            ->map(fn ($contribution): array => [
+                                'guru_id' => $contribution->guru_id,
+                                'nama_guru' => $contribution->guru?->nama_lengkap ?? 'Guru',
+                                'nilai_akhir' => $contribution->nilai_akhir,
+                            ])
+                            ->values(),
                     ],
                 ]),
                 'has_nilai' => $scores->isNotEmpty(),

@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 
 #[Fillable([
@@ -79,5 +80,12 @@ class PendaftaranSpmb extends Model
     public function kategoriBeasiswa(): BelongsTo
     {
         return $this->belongsTo(KategoriBeasiswa::class);
+    }
+
+    public function berkas(): HasMany
+    {
+        return $this->hasMany(PendaftaranSpmbBerkas::class)
+            ->orderBy('sort_order')
+            ->orderBy('id');
     }
 }

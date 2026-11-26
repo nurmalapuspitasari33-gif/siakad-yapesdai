@@ -47,6 +47,9 @@ class JadwalControllerTest extends TestCase
                 ->where('openJadwalId', $jadwalSaya->id)
                 ->where('jadwals.0.kelas', 'X IPA 1')
                 ->where('jadwals.0.mata_pelajaran', 'Matematika')
+                ->where('jadwals.0.jam_ke', '1')
+                ->where('printIdentity.nama_guru', 'Guru Saya')
+                ->where('printIdentity.total_jp', 1)
                 ->where('isWaliKelas', false));
     }
 
