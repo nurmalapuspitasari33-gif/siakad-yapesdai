@@ -103,6 +103,39 @@ class TahunAjaranControllerTest extends TestCase
         $this->assertDatabaseCount('tahun_ajarans', 1);
     }
 
+    public function test_active_academic_term_is_shared_globally_and_updates_after_activation(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        TahunAjaran::create([
+            'nama_tahun' => '2025/2026',
+            'semester' => 'genap',
+            'is_aktif' => true,
+        ]);
+        $nextYear = TahunAjaran::create([
+            'nama_tahun' => '2026/2027',
+            'semester' => 'ganjil',
+            'is_aktif' => false,
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.tahun-ajaran.index'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('activeTahunAjaran.tahun', '2025/2026')
+                ->where('activeTahunAjaran.semester', 'genap')
+                ->where('activeTahunAjaran.label', '2025/2026 • Genap'));
+
+        $this->patch(route('admin.tahun-ajaran.activate', $nextYear))
+            ->assertRedirectToRoute('admin.tahun-ajaran.index');
+
+        $this->get(route('admin.siswa.index'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('activeTahunAjaran.tahun', '2026/2027')
+                ->where('activeTahunAjaran.semester', 'ganjil')
+                ->where('activeTahunAjaran.label', '2026/2027 • Ganjil'));
+    }
+
     public function test_year_cannot_be_deleted_while_active_or_referenced_by_a_class(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);

@@ -7,7 +7,9 @@ import { Link, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 
 export default function AuthenticatedLayout({ header, children }) {
-    const user = usePage().props.auth?.user ?? {};
+    const { auth = {}, activeTahunAjaran = null } = usePage().props;
+    const user = auth.user ?? {};
+    const academicTerm = activeTahunAjaran?.label ?? 'Belum ditetapkan';
 
     const [showingNavigationDropdown, setShowingNavigationDropdown] =
         useState(false);
@@ -35,8 +37,14 @@ export default function AuthenticatedLayout({ header, children }) {
                             </div>
                         </div>
 
-                        <div className="hidden sm:ms-6 sm:flex sm:items-center">
-                            <div className="relative ms-3">
+                        <div className="flex items-center gap-2 sm:ms-6">
+                            <span
+                                title="Tahun ajaran dan semester aktif"
+                                className="max-w-36 truncate rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-[10px] font-semibold text-slate-700 sm:max-w-56 sm:px-3 sm:text-xs"
+                            >
+                                {academicTerm}
+                            </span>
+                            <div className="relative ms-3 hidden sm:block">
                                 <Dropdown>
                                     <Dropdown.Trigger>
                                         <span className="inline-flex rounded-xl">

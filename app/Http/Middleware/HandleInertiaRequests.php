@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Models\PengaturanSekolah;
+use App\Models\TahunAjaran;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -35,6 +36,22 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $request->user(),
             ],
+            'activeTahunAjaran' => function (): ?array {
+                $tahunAjaran = TahunAjaran::query()
+                    ->where('is_aktif', true)
+                    ->first(['nama_tahun', 'semester']);
+
+                if (! $tahunAjaran) {
+                    return null;
+                }
+
+                return [
+                    'tahun' => $tahunAjaran->nama_tahun,
+                    'nama_tahun' => $tahunAjaran->nama_tahun,
+                    'semester' => $tahunAjaran->semester,
+                    'label' => $tahunAjaran->nama_tahun.' • '.ucfirst($tahunAjaran->semester),
+                ];
+            },
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),
                 'error' => fn () => $request->session()->get('error'),

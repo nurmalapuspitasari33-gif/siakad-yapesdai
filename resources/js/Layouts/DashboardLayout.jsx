@@ -182,7 +182,7 @@ function DashboardFrame({
     const {
         auth = {},
         flash = {},
-        tahunAjaranAktif = null,
+        activeTahunAjaran = null,
     } = usePage().props;
     const user = auth?.user;
     const userName = formatDashboardUserName(user);
@@ -192,12 +192,7 @@ function DashboardFrame({
         && window.localStorage.getItem(SIDEBAR_PREFERENCE_KEY) === 'true',
     );
     const activePageLabel = title ?? navigation.find((item) => item.active)?.label ?? 'Dasbor';
-    const academicTerm = typeof tahunAjaranAktif === 'string'
-        ? tahunAjaranAktif
-        : [
-              tahunAjaranAktif?.nama_tahun,
-              tahunAjaranAktif?.semester?.toUpperCase(),
-          ].filter(Boolean).join(' · ') || 'Belum ditetapkan';
+    const academicTerm = activeTahunAjaran?.label ?? 'Belum ditetapkan';
     const mobileQuickLinks = mobileQuickLinksFor(user?.role, navigation, route().current('profile.edit'));
 
     useEffect(() => {
