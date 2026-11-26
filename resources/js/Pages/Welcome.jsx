@@ -1,5 +1,5 @@
 import { Head, Link, usePage } from '@inertiajs/react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 const DEFAULT_HERO_KICKER = 'SISTEM PENERIMAAN MURID BARU (SPMB) • YAPESDAI';
 
@@ -14,6 +14,23 @@ function ArrowIcon({ direction = 'right' }) {
             strokeWidth="2"
         >
             <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14m-6-6 6 6-6 6" />
+        </svg>
+    );
+}
+
+function ChevronIcon({ direction = 'right' }) {
+    return (
+        <svg
+            aria-hidden="true"
+            className={`h-5 w-5 ${direction === 'left' ? 'rotate-180' : ''}`}
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+        >
+            <path d="m9 18 6-6-6-6" />
         </svg>
     );
 }
@@ -156,6 +173,7 @@ export default function Welcome({
     tahunAjaranAktif = null,
 }) {
     const [activeSlide, setActiveSlide] = useState(0);
+    const [autoSlideResetKey, setAutoSlideResetKey] = useState(0);
     const displaySlides = slides.length > 0 ? slides : [null];
     const registerHref = auth?.user || !canRegister ? route('login') : route('register');
     const sortedProgramKeahlians = [...programKeahlians].sort((first, second) =>
@@ -208,10 +226,32 @@ export default function Welcome({
     const registrationStatus = wave?.status_label
         || (registrationIsOpen ? 'Pendaftaran Dibuka' : 'Pendaftaran Ditutup');
 
+    useEffect(() => {
+        if (slides.length <= 1) {
+            return undefined;
+        }
+
+        const intervalId = window.setInterval(() => {
+            setActiveSlide((current) => (current + 1) % slides.length);
+        }, 5000);
+
+        return () => window.clearInterval(intervalId);
+    }, [slides.length, autoSlideResetKey]);
+
+    const resetAutoSlideTimer = () => {
+        setAutoSlideResetKey((current) => current + 1);
+    };
+
     const changeSlide = (direction) => {
         setActiveSlide((current) => (
             slides.length === 0 ? 0 : (current + direction + slides.length) % slides.length
         ));
+        resetAutoSlideTimer();
+    };
+
+    const selectSlide = (index) => {
+        setActiveSlide(index);
+        resetAutoSlideTimer();
     };
 
     return (
@@ -248,7 +288,7 @@ export default function Welcome({
                                         </>
                                     )}
 
-                                    <div className="relative z-10 flex h-full w-full items-center px-14 py-8 sm:px-20 sm:py-12">
+                                    <div className="relative z-10 flex h-full w-full items-center pl-16 pr-14 py-8 md:pl-20 md:pr-20 sm:py-12">
                                         {slide ? (
                                             <div className="max-w-2xl">
                                                 <p className={`text-xs font-bold uppercase tracking-[0.16em] sm:text-sm ${
@@ -304,17 +344,17 @@ export default function Welcome({
                                 type="button"
                                 aria-label="Slide sebelumnya"
                                 onClick={() => changeSlide(-1)}
-                                className="absolute left-4 top-1/2 z-20 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/85 text-[#0B2C59] shadow-md backdrop-blur-md transition hover:bg-white focus:outline-none focus:ring-4 focus:ring-[#FACC15]/50 md:left-8"
+                                className="absolute left-4 top-1/2 z-20 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/25 bg-[#0B2C59]/70 text-[#FACC15] shadow-md backdrop-blur-md transition-colors duration-200 hover:bg-[#004A99]/90 focus:outline-none focus:ring-4 focus:ring-[#FACC15]/50 md:left-8"
                             >
-                                <ArrowIcon direction="left" />
+                                <ChevronIcon direction="left" />
                             </button>
                             <button
                                 type="button"
                                 aria-label="Slide berikutnya"
                                 onClick={() => changeSlide(1)}
-                                className="absolute right-4 top-1/2 z-20 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/85 text-[#0B2C59] shadow-md backdrop-blur-md transition hover:bg-white focus:outline-none focus:ring-4 focus:ring-[#FACC15]/50 md:right-8"
+                                className="absolute right-4 top-1/2 z-20 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/25 bg-[#0B2C59]/70 text-[#FACC15] shadow-md backdrop-blur-md transition-colors duration-200 hover:bg-[#004A99]/90 focus:outline-none focus:ring-4 focus:ring-[#FACC15]/50 md:right-8"
                             >
-                                <ArrowIcon />
+                                <ChevronIcon />
                             </button>
                         </>
                     )}
@@ -328,7 +368,7 @@ export default function Welcome({
                                 type="button"
                                 aria-label={`Tampilkan slide ${index + 1}`}
                                 aria-pressed={activeSlide === index}
-                                onClick={() => setActiveSlide(index)}
+                                onClick={() => selectSlide(index)}
                                 className={`h-2.5 transition-all ${
                                     activeSlide === index ? 'w-8 rounded-full bg-[#0B2C59]' : 'w-2.5 rounded-full bg-slate-300'
                                 }`}
