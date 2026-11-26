@@ -3,6 +3,12 @@
 @tailwind utilities;
 
 @layer base {
+    .dashboard-theme main h1,
+    .dashboard-theme main h2,
+    .dashboard-theme main h3 {
+        @apply font-display;
+    }
+
     table:not(.report-table) {
         @apply min-w-full text-left text-sm;
     }
@@ -93,6 +99,27 @@
 }
 
 @media screen {
+    .dashboard-theme main a[class*="text-emerald-"],
+    .dashboard-theme main a[class*="text-sky-"] {
+        color: #004a99;
+    }
+
+    .dashboard-theme main a[class*="hover:text-emerald-"]:hover,
+    .dashboard-theme main a[class*="hover:text-sky-"]:hover {
+        color: #0b2c59;
+    }
+
+    .dashboard-theme main a[class*="bg-emerald-600"],
+    .dashboard-theme main a[class*="bg-emerald-700"],
+    .dashboard-theme main a[class*="bg-emerald-800"] {
+        background-color: #004a99;
+        color: #fff;
+    }
+
+    .dashboard-theme main a[class*="hover:bg-emerald-"]:hover {
+        background-color: #0b2c59;
+    }
+
     .dashboard-theme main section[class*="rounded-"][class*="bg-white"],
     .dashboard-theme main article[class*="rounded-"][class*="bg-white"],
     .dashboard-theme main div[class*="rounded-"][class*="bg-white"] {

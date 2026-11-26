@@ -60,21 +60,21 @@ export default function GuruDashboard({ guru = {}, jadwals = [], kelasWalian = [
             description: 'Lihat hasil dan status pengerjaan siswa.',
             href: route('guru.hasil-ujian.index'),
             icon: 'document',
-            tone: 'emerald',
+            tone: 'blue',
         },
         {
             title: 'Ujian & Bank Soal',
             description: 'Jadwalkan ujian dan kelola soal pilihan ganda.',
             href: route('guru.ujian.index'),
             icon: 'book',
-            tone: 'sky',
+            tone: 'gold',
         },
         ...(isWaliKelas ? [{
             title: 'Rapor Kelas Wali',
             description: 'Kelola rapor dan data kelas yang menjadi tanggung jawab Anda.',
             href: route('guru.rapor-wali.index'),
             icon: 'school',
-            tone: 'emerald',
+            tone: 'blue',
             kelasWalian,
         }] : []),
     ];
@@ -107,7 +107,7 @@ export default function GuruDashboard({ guru = {}, jadwals = [], kelasWalian = [
 
             <section
                 id="jadwal-mengajar"
-                className="scroll-mt-24 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7"
+                className="scroll-mt-24 rounded-3xl border border-white/80 bg-white/80 p-5 shadow-[0_8px_30px_rgb(0,0,0,0.04)] ring-1 ring-slate-900/5 backdrop-blur-xl sm:p-7"
             >
                 <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
                     <div>
@@ -123,7 +123,7 @@ export default function GuruDashboard({ guru = {}, jadwals = [], kelasWalian = [
                 <div className="mb-5">
                     <a
                         href={route('guru.jadwal.index')}
-                        className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-800 transition hover:text-emerald-950"
+                        className="inline-flex items-center gap-2 text-sm font-semibold text-brand-blue transition hover:text-brand-navy"
                     >
                         Lihat jadwal lengkap <span aria-hidden="true">→</span>
                     </a>
@@ -141,7 +141,7 @@ export default function GuruDashboard({ guru = {}, jadwals = [], kelasWalian = [
                         {jadwals.map((jadwal) => (
                             <article
                                 key={jadwal.id}
-                                className="rounded-2xl border border-slate-200/80 bg-white/60 p-4 transition hover:border-emerald-200 hover:bg-emerald-50/40"
+                                className="rounded-2xl border border-slate-200/80 bg-white/60 p-4 transition hover:border-brand-gold hover:bg-amber-50/40"
                             >
                                 <div className="flex items-start justify-between gap-3">
                                     <div>
@@ -156,7 +156,7 @@ export default function GuruDashboard({ guru = {}, jadwals = [], kelasWalian = [
                                         {dayLabels[jadwal.hari] ?? jadwal.hari ?? '—'}
                                     </span>
                                 </div>
-                                <p className="mt-4 text-sm font-medium text-emerald-800">
+                                <p className="mt-4 text-sm font-medium text-brand-blue">
                                     {jadwal.jam_mulai} – {jadwal.jam_selesai}
                                 </p>
                             </article>
@@ -170,15 +170,13 @@ export default function GuruDashboard({ guru = {}, jadwals = [], kelasWalian = [
                     <Link
                         key={item.title}
                         href={item.href}
-                        className="group rounded-3xl border border-white/80 bg-white/80 p-5 shadow-[0_8px_30px_rgb(0,0,0,0.04)] ring-1 ring-slate-900/5 backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-md"
+                        className="group rounded-3xl border border-white/80 bg-white/80 p-5 shadow-[0_8px_30px_rgb(0,0,0,0.04)] ring-1 ring-slate-900/5 backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:border-brand-gold hover:shadow-md"
                     >
                         <div className="flex items-start justify-between gap-4">
                             <span className={`flex h-11 w-11 items-center justify-center rounded-xl ${
-                                item.tone === 'emerald'
-                                    ? 'bg-emerald-50 text-emerald-600'
-                                    : item.tone === 'sky'
-                                        ? 'bg-sky-50 text-sky-600'
-                                        : 'bg-emerald-50 text-emerald-700'
+                                item.tone === 'blue'
+                                    ? 'bg-blue-50 text-brand-blue'
+                                    : 'bg-amber-50 text-amber-600'
                             }`} aria-hidden="true">
                                 <svg
                                     viewBox="0 0 24 24"
@@ -208,7 +206,7 @@ export default function GuruDashboard({ guru = {}, jadwals = [], kelasWalian = [
                                     )}
                                 </svg>
                             </span>
-                            <span className="text-lg text-slate-400 transition group-hover:translate-x-1 group-hover:text-emerald-700" aria-hidden="true">
+                            <span className="text-lg text-slate-400 transition group-hover:translate-x-1 group-hover:text-brand-blue" aria-hidden="true">
                                 →
                             </span>
                         </div>

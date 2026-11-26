@@ -28,7 +28,7 @@ export default {
                 purple: colors.blue,
                 violet: colors.blue,
                 blue: colors.blue,
-                sky: colors.teal,
+                sky: colors.blue,
             },
         },
     },

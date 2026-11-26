@@ -194,10 +194,10 @@ export default function SiswaDashboard({
                     id="status-spmb"
                     className="scroll-mt-24 overflow-hidden rounded-3xl border border-white/80 bg-white/85 shadow-[0_8px_30px_rgb(0,0,0,0.04)] ring-1 ring-slate-900/5 backdrop-blur-xl"
                 >
-                    <div className="bg-gradient-to-r from-emerald-950 via-emerald-900 to-teal-900 px-6 py-7 text-white sm:px-8">
-                        <p className="text-sm font-semibold text-emerald-100">Penerimaan siswa baru</p>
+                    <div className="bg-gradient-to-r from-brand-navy via-brand-blue to-brand-navy px-6 py-7 text-white sm:px-8">
+                        <p className="text-sm font-semibold text-brand-gold">Penerimaan siswa baru</p>
                         <h2 className="mt-2 text-xl font-bold sm:text-2xl">Status seleksi SPMB</h2>
-                        <p className="mt-2 max-w-xl text-sm leading-6 text-emerald-100/90">
+                        <p className="mt-2 max-w-xl text-sm leading-6 text-white/85">
                             Informasi pendaftaran Anda ditampilkan di bawah ini. Periksa kembali secara berkala untuk pembaruan.
                         </p>
                     </div>
@@ -227,7 +227,7 @@ export default function SiswaDashboard({
                         <div className="mt-5">
                             <Link
                                 href={route('siswa.spmb.index')}
-                                className="inline-flex items-center gap-2 rounded-2xl bg-emerald-800 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-900"
+                                className="inline-flex items-center gap-2 rounded-2xl bg-brand-blue px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-navy"
                             >
                                 Lengkapi formulir SPMB <span aria-hidden="true">→</span>
                             </Link>
@@ -236,14 +236,14 @@ export default function SiswaDashboard({
                 </section>
             ) : statusSiswa === 'aktif' ? (
                 <div className="flex flex-col gap-6">
-                    <div className="flex flex-wrap items-center justify-between gap-3 rounded-3xl border border-emerald-100 bg-emerald-50/70 px-5 py-4">
+                    <div className="flex flex-wrap items-center justify-between gap-3 rounded-3xl border border-blue-100 bg-blue-50/70 px-5 py-4">
                         <div>
-                            <p className="text-sm font-semibold text-emerald-950">Status siswa aktif</p>
-                            <p className="mt-1 text-sm text-emerald-800">
+                            <p className="text-sm font-semibold text-brand-navy">Status siswa aktif</p>
+                            <p className="mt-1 text-sm text-brand-blue">
                                 {siswa.kelas ? `Kelas ${siswa.kelas}` : 'Kelas belum ditetapkan'}
                             </p>
                         </div>
-                        <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-emerald-800 shadow-sm">
+                        <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-brand-blue shadow-sm">
                             Tahun ajaran aktif
                         </span>
                     </div>
@@ -261,7 +261,7 @@ export default function SiswaDashboard({
                         <div className="mb-4">
                             <Link
                                 href={route('siswa.jadwal.index')}
-                                className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-800 transition hover:text-emerald-950"
+                                className="inline-flex items-center gap-2 text-sm font-semibold text-brand-blue transition hover:text-brand-navy"
                             >
                                 Buka tampilan jadwal <span aria-hidden="true">→</span>
                             </Link>
@@ -285,7 +285,7 @@ export default function SiswaDashboard({
                                                 {jadwal.guru ?? 'Guru belum ditetapkan'}
                                             </p>
                                         </div>
-                                        <p className="text-sm font-semibold text-emerald-800">
+                                        <p className="text-sm font-semibold text-brand-blue">
                                             {jadwal.jam_mulai} – {jadwal.jam_selesai}
                                         </p>
                                     </div>
@@ -361,7 +361,7 @@ export default function SiswaDashboard({
                                             <p className="mt-1 text-sm text-slate-500">
                                                 {ujian.mata_pelajaran ?? 'Mata Pelajaran belum tersedia'} · {formatDateTime(ujian.waktu_mulai)}
                                             </p>
-                                            <p className="mt-3 text-xs font-semibold text-emerald-800">
+                                            <p className="mt-3 text-xs font-semibold text-brand-blue">
                                                 Durasi {ujian.durasi_menit} menit
                                             </p>
                                         </article>

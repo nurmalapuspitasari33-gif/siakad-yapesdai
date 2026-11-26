@@ -27,16 +27,16 @@ export default function AdminDashboard({ statistics, modules }) {
         laporan: 'admin.laporan.index',
     };
     const moduleIconTones = {
-        siswa: 'bg-emerald-50 text-emerald-700',
-        guru: 'bg-emerald-50 text-emerald-600',
+        siswa: 'bg-blue-50 text-brand-blue',
+        guru: 'bg-blue-50 text-brand-blue',
         kelas: 'bg-amber-50 text-amber-600',
-        'mata-pelajaran': 'bg-sky-50 text-sky-600',
-        'tahun-ajaran': 'bg-emerald-50 text-emerald-600',
-        jadwal: 'bg-emerald-50 text-emerald-700',
+        'mata-pelajaran': 'bg-blue-50 text-brand-blue',
+        'tahun-ajaran': 'bg-blue-50 text-brand-blue',
+        jadwal: 'bg-blue-50 text-brand-blue',
         spmb: 'bg-amber-50 text-amber-600',
-        tagihan: 'bg-sky-50 text-sky-600',
-        ujian: 'bg-emerald-50 text-emerald-600',
-        'hasil-ujian': 'bg-emerald-50 text-emerald-700',
+        tagihan: 'bg-blue-50 text-brand-blue',
+        ujian: 'bg-blue-50 text-brand-blue',
+        'hasil-ujian': 'bg-blue-50 text-brand-blue',
         laporan: 'bg-amber-50 text-amber-600',
     };
 
@@ -123,7 +123,7 @@ export default function AdminDashboard({ statistics, modules }) {
                         <article
                             id={`modul-${module.id}`}
                             key={module.id}
-                            className="scroll-mt-24 rounded-3xl border border-white/80 bg-white/80 p-5 shadow-[0_8px_30px_rgb(0,0,0,0.04)] ring-1 ring-slate-900/5 backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-md"
+                            className="scroll-mt-24 rounded-3xl border border-white/80 bg-white/80 p-5 shadow-[0_8px_30px_rgb(0,0,0,0.04)] ring-1 ring-slate-900/5 backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:border-brand-gold hover:shadow-md"
                         >
                             <div className="flex items-start justify-between gap-4">
                                 <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-sm font-bold ${
@@ -142,7 +142,7 @@ export default function AdminDashboard({ statistics, modules }) {
                             {moduleRoutes[module.id] ? (
                                 <Link
                                     href={route(moduleRoutes[module.id])}
-                                    className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-emerald-800 transition hover:text-emerald-950"
+                                    className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-brand-blue transition hover:text-brand-navy"
                                 >
                                     Buka modul
                                     <span aria-hidden="true">→</span>
@@ -150,7 +150,7 @@ export default function AdminDashboard({ statistics, modules }) {
                             ) : (
                                 <a
                                     href={`#modul-${module.id}`}
-                                    className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-emerald-800 transition hover:text-emerald-950"
+                                    className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-brand-blue transition hover:text-brand-navy"
                                 >
                                     Lihat ringkasan
                                     <span aria-hidden="true">→</span>
