@@ -219,7 +219,7 @@ export default function GuruJadwalIndex({
                                     {attendanceError}
                                 </p>
                             )}
-                            <div className="overflow-x-auto rounded-xl border border-slate-200">
+                            <div className="w-full overflow-x-auto rounded-xl border border-slate-200">
                                 <table className="min-w-full divide-y divide-slate-100 text-left">
                                     <thead className="bg-slate-50">
                                         <tr>
@@ -261,7 +261,7 @@ export default function GuruJadwalIndex({
                                     </tbody>
                                 </table>
                             </div>
-                            <div className="flex justify-end gap-3">
+                            <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
                                 <button
                                     type="button"
                                     onClick={() => setSelectedJadwal(null)}

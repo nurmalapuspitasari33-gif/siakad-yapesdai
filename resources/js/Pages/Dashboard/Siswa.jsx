@@ -198,7 +198,7 @@ export default function SiswaDashboard({
             <div className="flex flex-col gap-5">
                 <section
                     aria-label="Identitas siswa"
-                    className="grid grid-cols-1 gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:grid-cols-2 xl:grid-cols-4"
+                    className="grid grid-cols-1 gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:grid-cols-2 lg:grid-cols-4"
                 >
                     {[
                         { label: 'Nama', value: siswa?.nama_lengkap ?? 'Belum tersedia' },

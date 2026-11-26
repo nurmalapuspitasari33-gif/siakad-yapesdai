@@ -208,7 +208,7 @@ export default function SpmbCmsIndex({ gelombangs = [], banners = [], contents =
 
             <div className="flex flex-col gap-6">
                 <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-                    <div className="flex gap-2 overflow-x-auto border-b border-slate-200 px-4 pt-3 sm:px-6">
+                    <div className="flex min-w-0 gap-2 overflow-x-auto overscroll-x-contain border-b border-slate-200 px-4 pt-3 no-scrollbar sm:px-6">
                         {tabs.map((tab) => (
                             <button
                                 key={tab.id}

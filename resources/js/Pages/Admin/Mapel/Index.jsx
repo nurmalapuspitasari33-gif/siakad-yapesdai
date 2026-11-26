@@ -287,7 +287,7 @@ export default function MataPelajaranIndex({
                     </form>
                 </div>
 
-                <div className="overflow-x-auto">
+                <div className="w-full overflow-x-auto">
                     <table className="min-w-full divide-y divide-slate-100 text-left">
                         <thead className="bg-slate-50">
                             <tr>
@@ -501,7 +501,7 @@ export default function MataPelajaranIndex({
                         </div>
                     </form>
 
-                    <div className="overflow-x-auto">
+                    <div className="w-full overflow-x-auto">
                         <table className="min-w-full divide-y divide-slate-100 text-left">
                             <thead className="bg-slate-50">
                                 <tr>
@@ -583,7 +583,7 @@ export default function MataPelajaranIndex({
                             <InputError message={kokurikulerForm.errors.template_kokurikuler} className="mt-2" />
                         </div>
 
-                        <div className="flex justify-end border-t border-slate-100 pt-4">
+                        <div className="flex flex-col-reverse gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:justify-end">
                             <button
                                 type="submit"
                                 disabled={kokurikulerForm.processing}

@@ -385,7 +385,7 @@ export default function GuruNilaiIndex({
                                 </p>
                                 <InputError message={form.errors['nilai.0.capaian_kompetensi']} className="mt-1" />
                             </div>
-                            <div className="overflow-x-auto">
+                            <div className="w-full overflow-x-auto">
                                 <table className="min-w-full divide-y divide-slate-100 text-left">
                                     <thead className="bg-slate-50">
                                         <tr>

@@ -28,7 +28,7 @@ function PrintHeading({ schoolSettings, title, yearLabel }) {
 
 function ReportTable({ headers, rows, emptyMessage, renderRow }) {
     return (
-        <div className="overflow-x-auto executive-report-table-wrapper">
+        <div className="w-full overflow-x-auto executive-report-table-wrapper">
             <table className="report-table executive-report-table min-w-full text-left">
                 <thead>
                     <tr>

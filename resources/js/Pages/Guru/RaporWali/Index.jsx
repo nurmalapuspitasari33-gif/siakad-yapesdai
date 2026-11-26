@@ -343,7 +343,7 @@ export default function GuruRaporWaliIndex({
                                 {monitoringNilai.length === 0 ? (
                                     <p className="py-8 text-center text-sm text-slate-500">Belum ada mata pelajaran pada jadwal kelas ini.</p>
                                 ) : (
-                                    <div className="overflow-x-auto rounded-xl border border-slate-200">
+                                    <div className="w-full overflow-x-auto rounded-xl border border-slate-200">
                                         <table className="min-w-full divide-y divide-slate-100 text-left">
                                             <thead className="bg-slate-50">
                                                 <tr>
@@ -590,7 +590,7 @@ export default function GuruRaporWaliIndex({
                                                                 </div>
                                                                 <div>
                                                                     <p className="mb-1.5 text-xs font-semibold text-slate-700">Ketidakhadiran (hari)</p>
-                                                                    <div className="grid grid-cols-3 gap-2">
+                                                                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                                                                         {[
                                                                             ['sakit', 'Sakit', 'presensi_manual_sakit'],
                                                                             ['izin', 'Izin', 'presensi_manual_izin'],
@@ -711,7 +711,7 @@ export default function GuruRaporWaliIndex({
                                 <p className="py-10 text-center text-sm text-slate-500">Belum ada siswa aktif di kelas ini.</p>
                             ) : (
                                 <div id="tabel-leger-kelas" className={isLedgerTableExpanded ? '' : 'hidden'}>
-                                    <div className="overflow-x-auto">
+                                    <div className="w-full overflow-x-auto">
                                         <table className="report-table min-w-max border-collapse text-[10px]">
                                         <thead>
                                             <tr>

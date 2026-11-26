@@ -20,10 +20,8 @@ function ArrowIcon({ direction = 'right' }) {
 
 function SectionMark() {
     return (
-        <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-blue-50 text-brand-blue">
-            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                <path d="m12 2 2.6 6.1L21 11l-6.4 2.9L12 20l-2.6-6.1L3 11l6.4-2.9L12 2Zm7 14 .9 2.1L22 19l-2.1.9L19 22l-.9-2.1L16 19l2.1-.9L19 16Z" />
-            </svg>
+        <span className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-[#0B2C59] bg-[#0B2C59]" aria-hidden="true">
+            <span className="h-5 w-[3px] rounded-full bg-[#FACC15]" />
         </span>
     );
 }
@@ -32,7 +30,7 @@ const defaultPathways = [
     {
         judul: 'Jalur Reguler',
         badge: 'Penerimaan Umum',
-        deskripsi: 'Jalur penerimaan bagi calon murid baru sesuai minat dan kuota kompetensi keahlian.',
+        deskripsi: 'Jalur penerimaan bagi calon murid baru sesuai minat dan kuota program keahlian.',
         syarat_utama: 'NIK 16 digit, Kartu Keluarga, dan biodata calon murid.',
         jadwal_kuota: 'Mengikuti periode gelombang pendaftaran aktif.',
         status_buka: true,
@@ -74,7 +72,7 @@ const defaultRequirements = [
     },
     {
         judul: 'Surat Keterangan Sehat / Bebas Buta Warna',
-        deskripsi: 'Surat sehat dan keterangan bebas buta warna untuk kompetensi keahlian terkait.',
+        deskripsi: 'Surat sehat dan keterangan bebas buta warna untuk program keahlian terkait.',
     },
 ];
 
@@ -85,7 +83,7 @@ const defaultProcessSteps = [
     },
     {
         judul: 'Lengkapi Biodata & Pilih Jurusan',
-        deskripsi: 'Isi data diri, asal sekolah, dan pilihan kompetensi keahlian.',
+        deskripsi: 'Isi data diri, asal sekolah, dan pilihan program keahlian.',
     },
     {
         judul: 'Unggah Foto Berkas Persyaratan',
@@ -184,7 +182,7 @@ export default function Welcome({
     const registrationIsOpen = Boolean(statistics.registration_open);
     const statisticsItems = [
         {
-            label: 'Kompetensi Keahlian',
+            label: 'Program Keahlian',
             value: statistics.competencies ?? 0,
             icon: 'competencies',
         },
@@ -290,7 +288,7 @@ export default function Welcome({
                                                     Informasi Penerimaan Murid Baru
                                                 </h1>
                                                 <p className="mt-4 text-sm leading-6 text-slate-700">
-                                                    Informasi SPMB dan pilihan kompetensi keahlian YAPESDAI.
+                                                    Informasi SPMB dan pilihan program keahlian YAPESDAI.
                                                 </p>
                                             </div>
                                         )}
@@ -384,14 +382,14 @@ export default function Welcome({
                     </div>
                 </section>
 
-                <section id="kompetensi-keahlian" className="scroll-mt-32 px-4 py-10 sm:px-6 sm:py-12">
+                <section                 id="program-keahlian" className="scroll-mt-32 px-4 py-10 sm:px-6 sm:py-12">
                     <div className="mx-auto max-w-6xl">
                         <div className="flex items-center gap-3">
                             <SectionMark />
                             <div>
                                 <p className="text-xs font-bold uppercase tracking-[0.14em] text-brand-blue">Program keahlian</p>
                                 <h2 className="font-display text-xl font-extrabold text-[#0B2C59] sm:text-2xl">
-                                    Kompetensi Keahlian
+                                    Program Keahlian
                                 </h2>
                             </div>
                         </div>
@@ -420,7 +418,7 @@ export default function Welcome({
                             ))}
                             {sortedProgramKeahlians.length === 0 && (
                                 <article className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-sm leading-6 text-slate-600 sm:col-span-2 lg:col-span-3">
-                                    Informasi kompetensi keahlian dapat dikonfirmasi kepada panitia SPMB.
+                                    Informasi program keahlian dapat dikonfirmasi kepada panitia SPMB.
                                     <Link href={route('register')} className="ml-1 font-bold text-brand-blue hover:text-brand-navy">
                                         Buat akun untuk mulai mendaftar.
                                     </Link>

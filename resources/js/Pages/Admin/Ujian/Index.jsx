@@ -118,7 +118,7 @@ export default function ExamMonitoring({ examOptions, selectedExam, filters, sta
                     )}
                 </section>
 
-                <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="Ringkasan peserta">
+                <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4" aria-label="Ringkasan peserta">
                     {summaryCards.map((card) => (
                         <article key={card.label} className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
                             <div className={`h-1 ${card.accent}`} />
@@ -144,7 +144,7 @@ export default function ExamMonitoring({ examOptions, selectedExam, filters, sta
                             Tindakan hanya tersedia untuk mereset sesi siswa yang sedang mengerjakan.
                         </p>
                     </div>
-                    <div className="overflow-x-auto">
+                    <div className="w-full overflow-x-auto">
                         <table className="min-w-full divide-y divide-slate-100 text-left">
                             <thead className="bg-slate-50">
                                 <tr>

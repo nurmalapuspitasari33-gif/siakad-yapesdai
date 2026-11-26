@@ -70,7 +70,7 @@ export default function SiswaPresensiIndex({
                     </div>
                 </section>
 
-                <section aria-label="Ringkasan kehadiran" className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                <section aria-label="Ringkasan kehadiran" className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     {cards.map((card) => (
                         <article key={card.label} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                             <p className="text-sm font-medium text-slate-500">{card.label}</p>

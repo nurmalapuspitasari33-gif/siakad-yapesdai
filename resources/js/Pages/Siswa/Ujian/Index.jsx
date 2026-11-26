@@ -94,7 +94,7 @@ export default function SiswaUjianIndex({ ujians = [] }) {
                                         {completed ? 'Selesai' : inProgress ? 'Sedang dikerjakan' : 'Tersedia'}
                                     </span>
                                 </div>
-                                <div className="mt-5 grid grid-cols-2 gap-3 rounded-xl bg-slate-50 p-4 text-sm">
+                                <div className="mt-5 grid grid-cols-1 gap-3 rounded-xl bg-slate-50 p-4 text-sm sm:grid-cols-2">
                                     <div>
                                         <p className="text-xs text-slate-500">Waktu mulai</p>
                                         <p className="mt-1 font-semibold text-slate-800">{formatDateTime(ujian.waktu_mulai)}</p>

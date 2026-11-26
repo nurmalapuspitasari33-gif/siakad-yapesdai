@@ -120,7 +120,7 @@ export default function ExamResults({
                     </form>
                 </section>
 
-                <section className="grid grid-cols-1 gap-4 sm:grid-cols-3" aria-label="Statistik nilai ujian">
+                <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3" aria-label="Statistik nilai ujian">
                     <StatisticCard label="Rata-rata kelas" value={statistics.rataRata} accent="bg-indigo-500" />
                     <StatisticCard label="Nilai tertinggi" value={statistics.nilaiTertinggi} accent="bg-emerald-500" />
                     <StatisticCard label="Nilai terendah" value={statistics.nilaiTerendah} accent="bg-amber-500" />
@@ -142,7 +142,7 @@ export default function ExamResults({
                             Export Nilai ke Excel (.xlsx)
                         </a>
                     </div>
-                    <div className="overflow-x-auto">
+                    <div className="w-full overflow-x-auto">
                         <table className="min-w-full divide-y divide-slate-100 text-left">
                             <thead className="bg-slate-50">
                                 <tr>

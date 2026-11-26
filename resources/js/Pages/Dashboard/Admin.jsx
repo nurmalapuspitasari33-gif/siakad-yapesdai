@@ -117,7 +117,7 @@ export default function AdminDashboard({
                         actionHref={route('admin.spmb.index')}
                         actionLabel="Semua pendaftar"
                     >
-                        <div className="overflow-x-auto">
+                        <div className="w-full overflow-x-auto">
                             <table className="min-w-full text-left text-sm">
                                 <thead>
                                     <tr>

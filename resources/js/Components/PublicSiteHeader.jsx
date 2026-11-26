@@ -3,7 +3,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 const navigationItems = [
     { label: 'Beranda', href: '#beranda' },
-    { label: 'Kompetensi Keahlian', href: '#kompetensi-keahlian' },
+    { label: 'Program Keahlian', href: '#program-keahlian' },
     { label: 'Jalur Seleksi', href: '#jalur-seleksi' },
     { label: 'Persyaratan & Biaya', href: '#persyaratan-biaya' },
     { label: 'Alur Pendaftaran', href: '#alur-pendaftaran' },
@@ -171,10 +171,10 @@ export default function PublicSiteHeader() {
             </div>
             <div className="bg-[#004A99]">
                 <div className="mx-auto flex h-12 max-w-6xl items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
-                    <nav aria-label="Navigasi utama" className="relative flex min-w-0 flex-1 items-center gap-1 overflow-x-auto">
+                    <nav aria-label="Navigasi utama" className="relative flex min-w-0 flex-1 items-center gap-1 overflow-x-auto overscroll-x-contain scroll-smooth no-scrollbar">
                     <span
                         aria-hidden="true"
-                        className="pointer-events-none absolute left-0 z-0 rounded-md bg-white shadow-sm transition-[height,transform,width] duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] motion-reduce:transition-none"
+                        className="pointer-events-none absolute left-0 z-0 rounded-md bg-white shadow-sm"
                         style={{
                             height: activePill.height,
                             width: activePill.width,

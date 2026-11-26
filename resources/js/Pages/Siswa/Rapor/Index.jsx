@@ -19,7 +19,7 @@ function SubjectTable({ title, subjects = [] }) {
     return (
         <section className="overflow-hidden rounded-xl border border-slate-200">
             <h3 className="bg-slate-50 px-4 py-3 text-sm font-bold text-slate-800">{title}</h3>
-            <div className="overflow-x-auto">
+            <div className="w-full overflow-x-auto">
                 <table className="report-table min-w-full border-collapse text-left text-xs">
                     <thead>
                         <tr>
@@ -55,7 +55,7 @@ function AttendanceAndNotes({ catatan = {} }) {
         <div className="grid gap-4 md:grid-cols-2">
             <section className="rounded-xl border border-slate-200 p-4">
                 <h3 className="font-bold text-slate-900">Ketidakhadiran</h3>
-                <div className="mt-3 grid grid-cols-3 gap-3 text-sm text-slate-600">
+                <div className="mt-3 grid grid-cols-1 gap-2 text-sm text-slate-600 sm:grid-cols-3 sm:gap-3">
                     <p>Sakit: {catatan.sakit ?? 0}</p>
                     <p>Izin: {catatan.izin ?? 0}</p>
                     <p>Alpa: {catatan.tanpa_keterangan ?? 0}</p>
