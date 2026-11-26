@@ -45,6 +45,14 @@ export default function PublicSiteFooter() {
                         <Link href={route('spmb.home')} className="transition hover:text-brand-gold">
                             Informasi SPMB
                         </Link>
+                        <a
+                            href="https://smk.yapesdai.online"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="transition hover:text-brand-gold"
+                        >
+                            Website SMK Al Mu'allim
+                        </a>
                     </div>
                 </div>
 

@@ -123,13 +123,11 @@ export default function PublicSiteHeader() {
     return (
         <header ref={headerRef} className="sticky top-0 z-40 text-white shadow-lg">
             <div className="bg-[#0B2C59]">
-                <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+                <div className="mx-auto flex min-h-[84px] max-w-[1220px] items-center justify-between gap-3 px-4 py-3.5 sm:min-h-[96px] sm:gap-6 sm:px-6 lg:px-8">
                     <Link href={route('home')} aria-label="YAPESDAI — Portal SPMB" className="flex min-w-0 items-center gap-3">
-                        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-white p-1.5">
-                            <img src="/yapesdai.png" alt="" className="h-full w-full object-contain" />
-                        </span>
+                        <img src="/yapesdai.png" alt="" className="h-14 w-auto shrink-0 object-contain" />
                         <span className="min-w-0">
-                            <span className="block truncate font-display text-sm font-extrabold sm:text-base">YAPESDAI</span>
+                            <span className="block truncate font-display text-lg font-extrabold leading-tight sm:text-2xl">YAPESDAI</span>
                             <span className="block truncate text-[10px] font-medium text-brand-gold sm:text-xs">
                                 Yayasan Pengembangan Sumberdaya Insani
                             </span>
@@ -147,7 +145,7 @@ export default function PublicSiteHeader() {
             </div>
             <div className="bg-[#004A99]">
                 <div className="mx-auto flex h-12 max-w-6xl items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
-                    <nav aria-label="Navigasi utama" className="relative flex min-w-0 flex-1 items-center gap-1 overflow-x-auto overscroll-x-contain scroll-smooth no-scrollbar">
+                    <nav aria-label="Navigasi utama" className="relative flex min-w-0 flex-1 items-center gap-2 overflow-x-auto overscroll-x-contain scroll-smooth no-scrollbar">
                         {navigationItems.map((item) => {
                             const isActive = activeSection === item.href;
 
@@ -157,18 +155,24 @@ export default function PublicSiteHeader() {
                                     href={`${route('home')}${item.href}`}
                                     onClick={(event) => handleNavigationClick(event, item.href)}
                                     aria-current={isActive ? 'location' : undefined}
-                                    className={`group relative flex h-full shrink-0 items-center whitespace-nowrap px-3.5 py-3.5 text-xs after:absolute after:bottom-0 after:left-0 after:h-[3px] after:bg-amber-400 after:transition-all after:duration-300 after:ease-out after:content-[''] ${
+                                    className={`group relative inline-flex h-12 shrink-0 items-center whitespace-nowrap px-3.5 text-sm transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-[#FACC15] ${
                                         isActive
-                                            ? 'font-semibold text-amber-400 after:w-full'
-                                            : 'font-medium text-white/90 transition-colors duration-200 hover:text-amber-200 after:w-0 hover:after:w-full'
+                                            ? 'border-b-2 border-[#FACC15] font-semibold text-[#FACC15]'
+                                            : 'font-medium text-white/95 hover:text-[#FACC15]'
                                     }`}
                                 >
                                     {item.label}
+                                    {!isActive && (
+                                        <span
+                                            aria-hidden="true"
+                                            className="pointer-events-none absolute inset-x-3 bottom-0 h-[2px] origin-left scale-x-0 bg-[#FACC15] transition-transform duration-300 ease-out group-hover:scale-x-100"
+                                        />
+                                    )}
                                 </a>
                             );
                         })}
                     </nav>
-                    <Link href={auth.user ? route('dashboard') : route('register')} className="inline-flex shrink-0 items-center justify-center rounded-full bg-white px-5 py-1.5 text-[10px] font-extrabold uppercase tracking-wide text-[#0B2C59] transition-colors hover:bg-amber-100 sm:text-xs">
+                    <Link href={auth.user ? route('dashboard') : route('register')} className="inline-flex shrink-0 items-center justify-center rounded-full bg-white px-4 py-1.5 text-xs font-bold uppercase tracking-wide text-[#0B2C59] transition-colors hover:bg-amber-100">
                         Daftar Sekarang
                     </Link>
                 </div>
