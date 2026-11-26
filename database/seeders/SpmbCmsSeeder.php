@@ -50,6 +50,54 @@ class SpmbCmsSeeder extends Seeder
         $defaultContents = [
             'jalur_seleksi' => [
                 [
+                    'judul' => 'Jalur Reguler',
+                    'badge' => 'Penerimaan Umum',
+                    'deskripsi' => 'Jalur penerimaan umum bagi calon murid baru sesuai kuota kompetensi keahlian.',
+                    'syarat_utama' => 'NIK 16 digit, Kartu Keluarga, dan biodata calon murid.',
+                    'jadwal_kuota' => 'Mengikuti periode gelombang pendaftaran aktif.',
+                    'status_buka' => true,
+                ],
+                [
+                    'judul' => 'Jalur Prestasi Akademik / Non-Akademik',
+                    'badge' => 'Akademik & Non-Akademik',
+                    'deskripsi' => 'Jalur bagi calon murid dengan capaian prestasi akademik atau nonakademik.',
+                    'syarat_utama' => 'NIK 16 digit, Kartu Keluarga, dan bukti prestasi yang dapat diverifikasi.',
+                    'jadwal_kuota' => 'Berkas prestasi diverifikasi panitia.',
+                    'status_buka' => true,
+                ],
+                [
+                    'judul' => 'Jalur Afirmasi / Beasiswa',
+                    'badge' => 'Dukungan Pendidikan',
+                    'deskripsi' => 'Jalur bantuan pendidikan sesuai kategori dan ketentuan sekolah.',
+                    'syarat_utama' => 'NIK 16 digit, Kartu Keluarga, dan dokumen pendukung sesuai kategori.',
+                    'jadwal_kuota' => 'Kuota dan syarat mengikuti kebijakan sekolah.',
+                    'status_buka' => true,
+                ],
+            ],
+            'persyaratan' => [
+                ['judul' => 'Kartu Keluarga & NIK 16 Digit', 'deskripsi' => 'Foto atau pindai Kartu Keluarga yang jelas dan terbaca.'],
+                ['judul' => 'Akta Kelahiran', 'deskripsi' => 'Foto atau pindai dokumen yang terbaca jelas.'],
+                ['judul' => 'Ijazah / SKL SMP/MTs', 'deskripsi' => 'Ijazah atau Surat Keterangan Lulus dari SMP/MTs.'],
+                ['judul' => 'Pas Foto Terbaru', 'deskripsi' => 'Pas foto calon murid dengan tampilan yang jelas.'],
+                ['judul' => 'Surat Keterangan Sehat', 'deskripsi' => 'Termasuk keterangan bebas buta warna untuk kompetensi keahlian terkait.'],
+            ],
+            'alur' => [
+                ['judul' => 'Buat Akun dengan NIK 16 Digit', 'deskripsi' => 'Daftarkan akun menggunakan NIK yang tercantum pada Kartu Keluarga.'],
+                ['judul' => 'Lengkapi Biodata & Pilih Kompetensi Keahlian', 'deskripsi' => 'Isi data diri, asal sekolah, dan pilihan kompetensi keahlian.'],
+                ['judul' => 'Unggah Foto Berkas Persyaratan', 'deskripsi' => 'Unggah foto dokumen persyaratan dengan hasil yang jelas dan terbaca.'],
+                ['judul' => 'Cetak Formulir & Pantau Hasil Verifikasi', 'deskripsi' => 'Cetak bukti pendaftaran dan pantau status verifikasi secara berkala.'],
+            ],
+            'kontak' => [
+                'nomor_whatsapp' => '',
+                'nomor_telepon' => '',
+                'email' => '',
+                'alamat' => '',
+            ],
+        ];
+
+        $previousDefaultContents = [
+            'jalur_seleksi' => [
+                [
                     'judul' => 'Reguler',
                     'badge' => 'Jalur Umum',
                     'deskripsi' => 'Jalur penerimaan umum bagi calon murid baru sesuai kuota kompetensi keahlian.',
@@ -83,19 +131,22 @@ class SpmbCmsSeeder extends Seeder
                 ['judul' => 'Unggah Foto Berkas Persyaratan', 'deskripsi' => 'Unggah hingga 20 foto dokumen yang terbaca jelas.'],
                 ['judul' => 'Cetak Bukti Formulir & Pantau Verifikasi', 'deskripsi' => 'Simpan bukti pendaftaran dan cek status seleksi.'],
             ],
-            'kontak' => [
-                'nomor_whatsapp' => '',
-                'nomor_telepon' => '',
-                'email' => '',
-                'alamat' => '',
-            ],
         ];
 
         foreach ($defaultContents as $contentKey => $content) {
-            SpmbContent::query()->firstOrCreate(
+            $contentRecord = SpmbContent::query()->firstOrCreate(
                 ['content_key' => $contentKey],
                 ['content' => $content],
             );
+
+            $previousDefault = $previousDefaultContents[$contentKey] ?? null;
+
+            if (
+                ! $contentRecord->wasRecentlyCreated
+                && (empty($contentRecord->content) || ($previousDefault !== null && $contentRecord->content === $previousDefault))
+            ) {
+                $contentRecord->update(['content' => $content]);
+            }
         }
     }
 }

@@ -2,13 +2,8 @@ import { Link, usePage } from '@inertiajs/react';
 
 export default function PublicSiteFooter() {
     const { props } = usePage();
-    const assetUrls = props.assetUrls ?? {};
     const pengaturanSekolah = props.pengaturanSekolah ?? {};
     const portalContacts = props.portalContacts ?? {};
-    const schoolName = pengaturanSekolah.nama_sekolah
-        && pengaturanSekolah.nama_sekolah !== 'Nama Sekolah'
-        ? pengaturanSekolah.nama_sekolah
-        : "SMK Al Mu'allim Kesugihan";
     const contactHref = portalContacts.email
         ? `mailto:${portalContacts.email}`
         : portalContacts.nomor_whatsapp
@@ -22,15 +17,15 @@ export default function PublicSiteFooter() {
                     <div className="flex items-center gap-3">
                         <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-white/20 bg-white p-1.5">
                             <img
-                                src={assetUrls.logoSekolah || assetUrls.logoYapesdai}
+                                src="/yapesdai.png"
                                 alt=""
                                 className="h-full w-full object-contain"
                             />
                         </span>
                         <div>
-                            <p className="font-display text-lg font-bold leading-tight">{schoolName}</p>
+                            <p className="font-display text-lg font-bold leading-tight">YAPESDAI</p>
                             <p className="mt-1 text-xs font-semibold tracking-wide text-brand-gold">
-                                Yayasan Pengembangan Sumber Daya Insani (YAPESDAI)
+                                Yayasan Pengembangan Sumberdaya Insani
                             </p>
                         </div>
                     </div>
@@ -79,7 +74,7 @@ export default function PublicSiteFooter() {
             </div>
 
             <div className="border-t border-white/15 px-4 py-3 text-center text-xs text-white/65">
-                © {new Date().getFullYear()} {schoolName} · Naungan YAPESDAI.
+                © 2026 YAPESDAI — Yayasan Pengembangan Sumberdaya Insani.
             </div>
         </footer>
     );

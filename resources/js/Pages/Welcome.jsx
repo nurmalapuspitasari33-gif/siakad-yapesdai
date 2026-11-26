@@ -26,6 +26,75 @@ function SectionMark() {
     );
 }
 
+const defaultPathways = [
+    {
+        judul: 'Jalur Reguler',
+        badge: 'Penerimaan Umum',
+        deskripsi: 'Jalur penerimaan bagi calon murid baru sesuai minat dan kuota kompetensi keahlian.',
+        syarat_utama: 'NIK 16 digit, Kartu Keluarga, dan biodata calon murid.',
+        jadwal_kuota: 'Mengikuti periode gelombang pendaftaran aktif.',
+        status_buka: true,
+    },
+    {
+        judul: 'Jalur Prestasi Akademik / Non-Akademik',
+        badge: 'Akademik & Non-Akademik',
+        deskripsi: 'Jalur bagi calon murid yang memiliki capaian akademik maupun non-akademik.',
+        syarat_utama: 'NIK 16 digit, Kartu Keluarga, dan bukti prestasi yang dapat diverifikasi.',
+        jadwal_kuota: 'Berkas prestasi diverifikasi oleh panitia SPMB.',
+        status_buka: true,
+    },
+    {
+        judul: 'Jalur Afirmasi / Beasiswa',
+        badge: 'Dukungan Pendidikan',
+        deskripsi: 'Jalur dukungan pendidikan bagi calon murid yang memenuhi kriteria afirmasi sekolah.',
+        syarat_utama: 'NIK 16 digit, Kartu Keluarga, dan dokumen pendukung sesuai kategori.',
+        jadwal_kuota: 'Kuota dan ketentuan mengikuti kebijakan sekolah.',
+        status_buka: true,
+    },
+];
+
+const defaultRequirements = [
+    {
+        judul: 'Kartu Keluarga & NIK 16 Digit',
+        deskripsi: 'Foto atau pindai Kartu Keluarga yang jelas dan terbaca.',
+    },
+    {
+        judul: 'Akta Kelahiran',
+        deskripsi: 'Foto atau pindai akta kelahiran calon murid.',
+    },
+    {
+        judul: 'Ijazah / SKL SMP/MTs',
+        deskripsi: 'Ijazah atau Surat Keterangan Lulus dari SMP/MTs.',
+    },
+    {
+        judul: 'Pas Foto Terbaru',
+        deskripsi: 'Pas foto calon murid dengan tampilan yang jelas.',
+    },
+    {
+        judul: 'Surat Keterangan Sehat',
+        deskripsi: 'Termasuk keterangan bebas buta warna untuk kompetensi keahlian terkait.',
+    },
+];
+
+const defaultProcessSteps = [
+    {
+        judul: 'Buat Akun dengan NIK 16 Digit',
+        deskripsi: 'Daftarkan akun menggunakan NIK yang tercantum pada Kartu Keluarga.',
+    },
+    {
+        judul: 'Lengkapi Biodata & Pilih Kompetensi Keahlian',
+        deskripsi: 'Isi data diri, asal sekolah, dan pilihan kompetensi keahlian.',
+    },
+    {
+        judul: 'Unggah Foto Berkas Persyaratan',
+        deskripsi: 'Unggah foto dokumen persyaratan dengan hasil yang jelas dan terbaca.',
+    },
+    {
+        judul: 'Cetak Formulir & Pantau Hasil Verifikasi',
+        deskripsi: 'Cetak bukti pendaftaran dan pantau status verifikasi secara berkala.',
+    },
+];
+
 export default function Welcome({
     auth = {},
     canLogin = true,
@@ -43,8 +112,24 @@ export default function Welcome({
     const [activeSlide, setActiveSlide] = useState(0);
     const displaySlides = slides.length > 0 ? slides : [null];
     const registerHref = auth?.user || !canRegister ? route('login') : route('register');
+    const sortedProgramKeahlians = [...programKeahlians].sort((first, second) =>
+        (first.kode_jurusan ?? '').localeCompare(second.kode_jurusan ?? '', undefined, { numeric: true }),
+    );
+    const displayPathways = (pathways.length > 0 ? pathways : defaultPathways).map((pathway, index) => ({
+        ...pathway,
+        syarat_utama: pathway.syarat_utama
+            || defaultPathways[index]?.syarat_utama
+            || 'Gunakan NIK 16 digit dan lengkapi dokumen sesuai ketentuan sekolah.',
+    }));
+    const displayRequirements = requirements.length > 0 ? requirements : defaultRequirements;
+    const displayProcessSteps = defaultProcessSteps.map((step, index) => ({
+        ...step,
+        ...(processSteps[index] ?? {}),
+        number: String(index + 1).padStart(2, '0'),
+    }));
     const whatsappNumber = (portalContacts.nomor_whatsapp ?? '').replace(/\D/g, '').replace(/^0/, '62');
     const whatsappHref = whatsappNumber ? `https://wa.me/${whatsappNumber}` : null;
+    const helpdeskPhone = portalContacts.nomor_telepon || '0282695626';
 
     const changeSlide = (direction) => {
         setActiveSlide((current) => (
@@ -198,21 +283,35 @@ export default function Welcome({
                             </div>
                         </div>
                         <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                            {programKeahlians.map((program) => (
-                                <article key={program.id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                                    <span className="inline-flex rounded-lg bg-blue-50 px-3 py-1 text-xs font-bold text-brand-blue">
+                            {sortedProgramKeahlians.map((program) => (
+                                <article key={program.id} className="flex h-full flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                                    <span className="inline-flex w-fit rounded-lg bg-blue-50 px-3 py-1 text-xs font-bold tracking-wide text-brand-blue">
                                         {program.kode_jurusan}
                                     </span>
                                     <h3 className="mt-3 font-display text-lg font-bold text-slate-900">{program.nama_jurusan}</h3>
-                                    <ul className="mt-3 flex flex-col gap-2 text-sm text-slate-600">
+                                    <ul className="mt-4 flex flex-1 flex-col gap-2 text-sm text-slate-600">
                                         {(program.konsentrasi_keahlians ?? []).map((concentration) => (
-                                            <li key={concentration.id}>{concentration.nama_konsentrasi}</li>
+                                            <li key={concentration.id} className="flex items-start gap-2">
+                                                <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-brand-gold" aria-hidden="true" />
+                                                <span>{concentration.nama_konsentrasi}</span>
+                                            </li>
                                         ))}
                                     </ul>
+                                    <Link
+                                        href={route('register')}
+                                        className="mt-5 inline-flex w-fit items-center gap-1.5 border-t border-slate-100 pt-4 text-sm font-bold text-brand-blue transition hover:text-brand-navy"
+                                    >
+                                        Daftar Jurusan Ini <ArrowIcon />
+                                    </Link>
                                 </article>
                             ))}
-                            {programKeahlians.length === 0 && (
-                                <p className="text-sm text-slate-600">Informasi kompetensi keahlian belum tersedia.</p>
+                            {sortedProgramKeahlians.length === 0 && (
+                                <article className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-sm leading-6 text-slate-600 sm:col-span-2 lg:col-span-3">
+                                    Informasi kompetensi keahlian dapat dikonfirmasi kepada panitia SPMB.
+                                    <Link href={route('register')} className="ml-1 font-bold text-brand-blue hover:text-brand-navy">
+                                        Buat akun untuk mulai mendaftar.
+                                    </Link>
+                                </article>
                             )}
                         </div>
                     </div>
@@ -230,34 +329,44 @@ export default function Welcome({
                             </div>
                         </div>
                         <div className="mt-6 grid gap-4 md:grid-cols-3">
-                            {pathways.map((pathway) => (
-                                <article key={pathway.judul} className="flex flex-col rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                                    <div className="flex items-start justify-between gap-3">
-                                        <h3 className="font-display text-lg font-bold text-slate-900">{pathway.judul}</h3>
-                                        <span className={`rounded-full px-3 py-1 text-xs font-bold ${
-                                            pathway.status_buka && statistics.registration_open
-                                                ? 'bg-emerald-50 text-emerald-800'
-                                                : 'bg-slate-100 text-slate-700'
-                                        }`}>
-                                            {pathway.status_buka && statistics.registration_open ? 'Dibuka' : 'Ditutup'}
-                                        </span>
-                                    </div>
-                                    {pathway.badge && <p className="mt-2 text-xs font-semibold text-brand-blue">{pathway.badge}</p>}
-                                    <p className="mt-3 flex-1 text-sm leading-6 text-slate-600">{pathway.deskripsi}</p>
-                                    {pathway.jadwal_kuota && (
-                                        <p className="mt-3 text-xs font-semibold text-slate-700">{pathway.jadwal_kuota}</p>
-                                    )}
-                                    {pathway.status_buka && statistics.registration_open ? (
-                                        <Link href={registerHref} className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-brand-blue hover:text-brand-navy">
-                                            Daftar jalur ini <ArrowIcon />
-                                        </Link>
-                                    ) : (
-                                        <span className="mt-5 text-sm font-semibold text-slate-500">Pendaftaran belum tersedia</span>
-                                    )}
-                                </article>
-                            ))}
-                            {pathways.length === 0 && (
-                                <p className="text-sm text-slate-600">Informasi jalur seleksi belum tersedia.</p>
+                            {displayPathways.map((pathway) => {
+                                const isRegistrationOpen = pathway.status_buka && statistics.registration_open;
+
+                                return (
+                                    <article key={pathway.judul} className="flex flex-col rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                                        <div className="flex items-start justify-between gap-3">
+                                            <h3 className="font-display text-lg font-bold text-slate-900">{pathway.judul}</h3>
+                                            <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-bold ${
+                                                isRegistrationOpen
+                                                    ? 'bg-emerald-50 text-emerald-800'
+                                                    : 'bg-slate-100 text-slate-700'
+                                            }`}>
+                                                {isRegistrationOpen ? 'Dibuka' : 'Ditutup'}
+                                            </span>
+                                        </div>
+                                        {pathway.badge && <p className="mt-2 text-xs font-semibold text-brand-blue">{pathway.badge}</p>}
+                                        <p className="mt-3 flex-1 text-sm leading-6 text-slate-600">{pathway.deskripsi}</p>
+                                        <div className="mt-4 rounded-xl bg-slate-50 p-3">
+                                            <p className="text-[10px] font-bold uppercase tracking-wide text-brand-navy">Syarat utama</p>
+                                            <p className="mt-1 text-xs leading-5 text-slate-600">{pathway.syarat_utama}</p>
+                                        </div>
+                                        {pathway.jadwal_kuota && (
+                                            <p className="mt-3 text-xs font-semibold text-slate-700">{pathway.jadwal_kuota}</p>
+                                        )}
+                                        {isRegistrationOpen ? (
+                                            <Link href={registerHref} className="mt-5 inline-flex w-fit items-center gap-2 rounded-full bg-brand-navy px-4 py-2 text-sm font-bold text-white transition hover:bg-brand-blue">
+                                                Daftar Jalur Ini <ArrowIcon />
+                                            </Link>
+                                        ) : (
+                                            <span className="mt-5 inline-flex w-fit items-center rounded-full bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-600">
+                                                Pendaftaran Ditutup
+                                            </span>
+                                        )}
+                                    </article>
+                                );
+                            })}
+                            {displayPathways.length === 0 && (
+                                <p className="text-sm text-slate-600">Informasi jalur seleksi sedang disiapkan.</p>
                             )}
                         </div>
                     </div>
@@ -276,15 +385,19 @@ export default function Welcome({
                                 </div>
                             </div>
                             <ul className="mt-6 grid gap-3 sm:grid-cols-2">
-                                {requirements.map((item, index) => (
-                                    <li key={`${item.judul}-${index}`} className="rounded-xl border border-slate-200 bg-white p-4">
-                                        <p className="font-bold text-slate-900">{item.judul}</p>
-                                        {item.deskripsi && <p className="mt-1 text-sm leading-5 text-slate-600">{item.deskripsi}</p>}
+                                {displayRequirements.map((item, index) => (
+                                    <li key={`${item.judul}-${index}`} className="flex items-start gap-3 rounded-xl border border-slate-200 bg-white p-4">
+                                        <span className="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-emerald-700">
+                                            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="m5 12 4 4L19 6" />
+                                            </svg>
+                                        </span>
+                                        <span>
+                                            <span className="block font-bold text-slate-900">{item.judul}</span>
+                                            {item.deskripsi && <span className="mt-1 block text-sm leading-5 text-slate-600">{item.deskripsi}</span>}
+                                        </span>
                                     </li>
                                 ))}
-                                {requirements.length === 0 && (
-                                    <li className="text-sm text-slate-600">Persyaratan belum tersedia.</li>
-                                )}
                             </ul>
                         </div>
                         <aside className="rounded-2xl bg-[#0B2C59] p-6 text-white sm:p-8">
@@ -300,7 +413,12 @@ export default function Welcome({
                                     WhatsApp {portalContacts.nomor_whatsapp}
                                 </a>
                             ) : (
-                                <p className="mt-4 text-sm leading-6 text-blue-100">Informasi kontak panitia belum tersedia.</p>
+                                <a
+                                    href={`tel:${helpdeskPhone}`}
+                                    className="mt-5 inline-flex min-h-11 items-center justify-center rounded-full bg-white px-5 py-2.5 text-sm font-bold text-[#0B2C59] transition hover:bg-amber-50"
+                                >
+                                    Hubungi Panitia · {helpdeskPhone}
+                                </a>
                             )}
                             {portalContacts.email && <p className="mt-4 break-all text-sm text-blue-100">{portalContacts.email}</p>}
                             {portalContacts.alamat && <p className="mt-2 text-sm leading-6 text-blue-100">{portalContacts.alamat}</p>}
@@ -321,10 +439,10 @@ export default function Welcome({
                             </div>
                         </div>
                         <ol className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                            {processSteps.map((step, index) => (
-                                <li key={`${step.judul}-${index}`} className="rounded-2xl border border-blue-100 bg-white p-5 shadow-sm">
+                            {displayProcessSteps.map((step) => (
+                                <li key={step.number} className="rounded-2xl border border-blue-100 bg-white p-5 shadow-sm">
                                     <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-brand-blue text-sm font-extrabold text-white">
-                                        {index + 1}
+                                        {step.number}
                                     </span>
                                     <h3 className="mt-4 font-bold text-slate-900">{step.judul}</h3>
                                     <p className="mt-2 text-sm leading-6 text-slate-600">{step.deskripsi}</p>

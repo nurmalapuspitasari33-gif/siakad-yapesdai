@@ -26,7 +26,7 @@ class WelcomePageTest extends TestCase
                 ->where('statistics.pathways', 3)
                 ->where('statistics.registration_open', true)
                 ->has('slides', 2)
-                ->has('requirements', 4));
+                ->has('requirements', 5));
     }
 
     public function test_spmb_landing_page_displays_spmb_information_and_registration_options(): void
