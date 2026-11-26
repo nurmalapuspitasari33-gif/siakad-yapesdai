@@ -11,14 +11,10 @@ class WelcomePageTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_home_page_displays_yapesdai_landing_page(): void
+    public function test_guest_visiting_home_is_redirected_to_login(): void
     {
         $this->get('/')
-            ->assertOk()
-            ->assertInertia(fn (Assert $page) => $page
-                ->component('Home')
-                ->where('assetUrls.logoSekolah', asset('logo.png'))
-                ->where('assetUrls.logoYapesdai', asset('yapesdai.png')));
+            ->assertRedirect(route('login', absolute: false));
     }
 
     public function test_spmb_landing_page_displays_spmb_information_and_registration_options(): void
@@ -31,15 +27,12 @@ class WelcomePageTest extends TestCase
                 ->where('canRegister', true));
     }
 
-    public function test_authenticated_user_role_is_available_on_the_landing_page(): void
+    public function test_authenticated_user_visiting_home_is_redirected_to_dashboard(): void
     {
         $teacher = User::factory()->create(['role' => 'guru']);
 
         $this->actingAs($teacher)
             ->get('/')
-            ->assertOk()
-            ->assertInertia(fn (Assert $page) => $page
-                ->component('Home')
-                ->where('auth.user.role', 'guru'));
+            ->assertRedirect(route('dashboard', absolute: false));
     }
 }

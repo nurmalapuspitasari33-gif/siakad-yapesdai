@@ -34,9 +34,10 @@ class SiswaControllerTest extends TestCase
 
         $this->actingAs($admin)
             ->post(route('admin.siswa.store'), [
+                'nik' => '0012345678901001',
                 'nisn' => '1000000001',
                 'nama_lengkap' => 'Rani Putri',
-                'email' => 'rani@sekolah.sch.id',
+                'email' => '',
                 'password' => 'password123',
                 'kelas_id' => $kelas->id,
                 'no_wa_wali' => '081234567890',
@@ -52,15 +53,23 @@ class SiswaControllerTest extends TestCase
         $user = $siswa->user;
 
         $this->assertSame('siswa', $user->role);
+        $this->assertSame('0012345678901001', $user->nik);
+        $this->assertNull($user->email);
         $this->assertSame('aktif', $siswa->status_siswa);
         $this->assertTrue(Hash::check('password123', $user->password));
 
         $this->actingAs($admin)
+            ->get(route('admin.siswa.index'))
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('siswas.data.0.user.nik', '0012345678901001'));
+
+        $this->actingAs($admin)
             ->post(route('admin.siswa.update', $siswa), [
                 '_method' => 'put',
+                'nik' => '',
                 'nisn' => '1000000002',
                 'nama_lengkap' => 'Rani Putri Baru',
-                'email' => $user->email,
+                'email' => '',
                 'password' => '',
                 'kelas_id' => $kelasLain->id,
                 'no_wa_wali' => '081234567891',
@@ -85,6 +94,8 @@ class SiswaControllerTest extends TestCase
 
         $siswa->refresh();
         $this->assertSame('1000000002', $siswa->nisn);
+        $this->assertSame('0012345678901001', $user->refresh()->nik);
+        $this->assertNull($user->email);
         $this->assertSame('Rani Putri Baru', $siswa->nama_lengkap);
         $this->assertSame($kelasLain->id, $siswa->kelas_id);
         $this->assertSame('081234567891', $siswa->no_wa_wali);
@@ -181,14 +192,120 @@ class SiswaControllerTest extends TestCase
             'status_siswa' => 'aktif',
         ]);
 
-        $this->actingAs($admin)
+        $response = $this->actingAs($admin)
             ->patch(route('admin.siswa.reset-password', $siswa))
             ->assertRedirect(route('admin.siswa.index', absolute: false))
-            ->assertSessionHas('success', 'Kata sandi akun siswa berhasil direset menjadi password.');
+            ->assertSessionHas('success', 'Kredensial sementara berhasil dibuat.')
+            ->assertSessionHas('temporary_password')
+            ->assertSessionHas('temporary_password_student', $siswa->id);
 
         $student->refresh();
-        $this->assertTrue(Hash::check('password', $student->password));
+        $temporaryPassword = $response->getSession()->get('temporary_password');
+        $this->assertIsString($temporaryPassword);
+        $this->assertNotSame('password', $temporaryPassword);
+        $this->assertTrue(Hash::check($temporaryPassword, $student->password));
         $this->assertFalse(Hash::check('old-password', $student->password));
+        $this->assertTrue($student->must_change_password);
+
+        $this->actingAs($admin)
+            ->get(route('admin.siswa.index'))
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('flash.temporaryPassword', $temporaryPassword)
+                ->where('flash.temporaryPasswordStudent', $siswa->id));
+
+        $this->actingAs($admin)
+            ->get(route('admin.siswa.index'))
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('flash.temporaryPassword', null)
+                ->where('flash.temporaryPasswordStudent', null));
+    }
+
+    public function test_temporary_student_password_must_be_changed_before_accessing_other_pages(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $student = User::factory()->create([
+            'role' => 'siswa',
+            'email' => null,
+            'password' => 'old-password',
+        ]);
+        $siswa = Siswa::create([
+            'user_id' => $student->id,
+            'nisn' => '1000000092',
+            'nama_lengkap' => 'Siswa Wajib Ganti Sandi',
+            'status_siswa' => 'aktif',
+        ]);
+
+        $resetResponse = $this->actingAs($admin)
+            ->patch(route('admin.siswa.reset-password', $siswa))
+            ->assertRedirect(route('admin.siswa.index', absolute: false));
+        $temporaryPassword = $resetResponse->getSession()->get('temporary_password');
+
+        $this->actingAs($student->refresh())
+            ->get('/dashboard')
+            ->assertRedirect(route('profile.edit'));
+
+        $this->actingAs($student)
+            ->get(route('profile.edit'))
+            ->assertOk();
+
+        $this->actingAs($student)
+            ->put(route('password.update'), [
+                'current_password' => $temporaryPassword,
+                'password' => 'New-Secure-Password-123!',
+                'password_confirmation' => 'New-Secure-Password-123!',
+            ])
+            ->assertSessionHasNoErrors()
+            ->assertRedirect('/profile');
+
+        $this->assertFalse($student->refresh()->must_change_password);
+
+        $this->actingAs($student)
+            ->get('/dashboard')
+            ->assertRedirect(route('siswa.dashboard'));
+    }
+
+    public function test_new_student_requires_a_unique_sixteen_digit_nik(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $this->actingAs($admin)
+            ->post(route('admin.siswa.store'), [
+                'nisn' => '1000000089',
+                'nama_lengkap' => 'Tanpa NIK',
+                'email' => '',
+                'password' => 'password123',
+                'tipe_program' => 'reguler',
+            ])
+            ->assertSessionHasErrors(['nik' => 'NIK wajib diisi.']);
+
+        $this->actingAs($admin)
+            ->post(route('admin.siswa.store'), [
+                'nik' => '123456789012345',
+                'nisn' => '1000000090',
+                'nama_lengkap' => 'NIK Tidak Valid',
+                'email' => '',
+                'password' => 'password123',
+                'tipe_program' => 'reguler',
+            ])
+            ->assertSessionHasErrors(['nik' => 'NIK harus terdiri dari 16 digit.']);
+
+        $this->assertDatabaseMissing('siswas', ['nisn' => '1000000090']);
+
+        User::factory()->create([
+            'nik' => '0012345678901099',
+            'role' => 'siswa',
+        ]);
+
+        $this->actingAs($admin)
+            ->post(route('admin.siswa.store'), [
+                'nik' => '0012345678901099',
+                'nisn' => '1000000091',
+                'nama_lengkap' => 'NIK Duplikat',
+                'email' => '',
+                'password' => 'password123',
+                'tipe_program' => 'reguler',
+            ])
+            ->assertSessionHasErrors(['nik' => 'NIK sudah digunakan.']);
     }
 
     public function test_admin_cannot_reset_candidate_student_password_from_active_student_management(): void
@@ -220,6 +337,7 @@ class SiswaControllerTest extends TestCase
 
         $this->actingAs($admin)
             ->post(route('admin.siswa.store'), [
+                'nik' => '0012345678901010',
                 'nisn' => '1000000010',
                 'nama_lengkap' => 'Siswa Tanpa Kelas',
                 'email' => 'tanpa.kelas@sekolah.sch.id',
@@ -264,6 +382,7 @@ class SiswaControllerTest extends TestCase
 
         $this->actingAs($admin)
             ->post(route('admin.siswa.store'), [
+                'nik' => '0012345678901040',
                 'nisn' => '1000000040',
                 'nama_lengkap' => 'Siswa Otomotif',
                 'email' => 'otomotif@sekolah.sch.id',
@@ -295,6 +414,7 @@ class SiswaControllerTest extends TestCase
 
         $this->actingAs($admin)
             ->post(route('admin.siswa.store'), [
+                'nik' => '0012345678901041',
                 'nisn' => '1000000041',
                 'nama_lengkap' => 'Siswa Konsentrasi Tidak Cocok',
                 'email' => 'tidakcocok@sekolah.sch.id',

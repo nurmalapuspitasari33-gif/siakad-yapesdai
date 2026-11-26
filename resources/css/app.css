@@ -37,48 +37,48 @@
 
     button[class*="bg-indigo-600"],
     button[class*="bg-indigo-700"] {
-        @apply bg-emerald-800 text-white;
+        @apply bg-brand-blue text-white;
     }
 
     button[class*="bg-indigo-600"]:hover,
     button[class*="bg-indigo-700"]:hover {
-        @apply bg-emerald-900;
+        @apply bg-brand-navy;
     }
 
     button[class*="bg-indigo-50"] {
-        @apply border border-emerald-100 bg-white text-slate-700;
+        @apply border border-brand-gold/50 bg-white text-brand-navy;
     }
 
     button[class*="bg-indigo-50"]:hover {
-        @apply bg-emerald-50/80;
+        @apply bg-amber-50;
     }
 
     button[class*="text-indigo-"]:not([class*="bg-indigo-600"]):not([class*="bg-indigo-700"]) {
-        @apply text-emerald-800;
+        @apply text-brand-blue;
     }
 
     button[class*="hover:bg-indigo-"]:not([class*="bg-indigo-600"]):not([class*="bg-indigo-700"]):hover {
-        @apply bg-emerald-50/80;
+        @apply bg-amber-50;
     }
 
     button[class*="bg-slate-900"],
     button[class*="bg-slate-700"] {
-        @apply bg-emerald-800 text-white;
+        @apply bg-brand-navy text-white;
     }
 
     button[class*="bg-slate-900"]:hover,
     button[class*="bg-slate-700"]:hover {
-        @apply bg-emerald-900;
+        @apply bg-brand-blue;
     }
 
     button[class*="bg-emerald-600"],
     button[class*="bg-emerald-700"] {
-        @apply bg-emerald-600 text-white;
+        @apply bg-brand-blue text-white;
     }
 
     button[class*="bg-emerald-600"]:hover,
     button[class*="bg-emerald-700"]:hover {
-        @apply bg-emerald-700;
+        @apply bg-brand-navy;
     }
 
     button[class*="bg-rose-600"],
@@ -104,7 +104,7 @@
     .dashboard-theme main section[class*="rounded-"][class*="bg-white"][class*="hover:bg-"]:hover,
     .dashboard-theme main article[class*="rounded-"][class*="bg-white"][class*="hover:bg-"]:hover,
     .dashboard-theme main div[class*="rounded-"][class*="bg-white"][class*="hover:bg-"]:hover {
-        background-color: rgb(236 253 245 / 0.4);
+        background-color: rgb(254 243 199 / 0.35);
     }
 
     .dashboard-theme main table:not(.report-table) {
@@ -121,7 +121,7 @@
     }
 
     .dashboard-theme main table:not(.report-table) tbody tr:hover {
-        background: rgb(236 253 245 / 0.4);
+        background: rgb(254 243 199 / 0.35);
     }
 
     .dashboard-theme main input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]),
@@ -134,9 +134,9 @@
     .dashboard-theme main input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]):focus,
     .dashboard-theme main select:focus,
     .dashboard-theme main textarea:focus {
-        border-color: rgb(5 150 105);
+        border-color: rgb(0 74 153);
         background-color: rgb(255 255 255);
-        box-shadow: 0 0 0 4px rgb(5 150 105 / 0.1);
+        box-shadow: 0 0 0 4px rgb(0 74 153 / 0.1);
         outline: none;
     }
 }

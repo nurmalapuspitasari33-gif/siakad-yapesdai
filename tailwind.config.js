@@ -14,14 +14,20 @@ export default {
     theme: {
         extend: {
             fontFamily: {
-                sans: ['Plus Jakarta Sans', ...defaultTheme.fontFamily.sans],
-                public: ['Plus Jakarta Sans', ...defaultTheme.fontFamily.sans],
+                sans: ['"DM Sans"', ...defaultTheme.fontFamily.sans],
+                display: ['"Plus Jakarta Sans"', ...defaultTheme.fontFamily.sans],
+                public: ['"DM Sans"', ...defaultTheme.fontFamily.sans],
             },
             colors: {
-                indigo: colors.emerald,
-                purple: colors.emerald,
-                violet: colors.emerald,
-                blue: colors.teal,
+                brand: {
+                    navy: '#0B2C59',
+                    blue: '#004A99',
+                    gold: '#FACC15',
+                },
+                indigo: colors.blue,
+                purple: colors.blue,
+                violet: colors.blue,
+                blue: colors.blue,
                 sky: colors.teal,
             },
         },

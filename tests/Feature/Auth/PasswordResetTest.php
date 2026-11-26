@@ -30,6 +30,38 @@ class PasswordResetTest extends TestCase
         Notification::assertSentTo($user, ResetPassword::class);
     }
 
+    public function test_nik_for_an_account_without_email_does_not_send_a_reset_email(): void
+    {
+        Notification::fake();
+        $user = User::factory()->create([
+            'email' => null,
+            'nik' => '0012345678903001',
+        ]);
+
+        $this->from('/forgot-password')
+            ->post('/forgot-password', ['email' => $user->nik])
+            ->assertRedirect('/forgot-password')
+            ->assertSessionHas('status', 'Akun tanpa email tidak dapat menerima tautan reset. Silakan hubungi admin/operator sekolah.');
+
+        Notification::assertNothingSent();
+    }
+
+    public function test_nik_for_an_account_with_email_sends_the_reset_link_to_that_email(): void
+    {
+        Notification::fake();
+        $user = User::factory()->create([
+            'email' => 'nik.reset@example.com',
+            'nik' => '0012345678903002',
+        ]);
+
+        $this->from('/forgot-password')
+            ->post('/forgot-password', ['email' => $user->nik])
+            ->assertRedirect('/forgot-password')
+            ->assertSessionHas('status');
+
+        Notification::assertSentTo($user, ResetPassword::class);
+    }
+
     public function test_reset_password_screen_can_be_rendered(): void
     {
         Notification::fake();
@@ -51,7 +83,7 @@ class PasswordResetTest extends TestCase
     {
         Notification::fake();
 
-        $user = User::factory()->create();
+        $user = User::factory()->create(['must_change_password' => true]);
 
         $this->post('/forgot-password', ['email' => $user->email]);
 
@@ -66,6 +98,7 @@ class PasswordResetTest extends TestCase
             $response
                 ->assertSessionHasNoErrors()
                 ->assertRedirect(route('login'));
+            $this->assertFalse($user->refresh()->must_change_password);
 
             return true;
         });

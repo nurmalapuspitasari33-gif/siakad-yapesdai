@@ -4,7 +4,7 @@ use App\Http\Controllers\Guru\NilaiController;
 use App\Http\Controllers\Guru\PresensiController;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware(['auth', 'verified', 'role:guru'])
+Route::middleware(['auth', 'force-password-change', 'verified', 'role:guru'])
     ->prefix('guru')
     ->name('guru.')
     ->group(function (): void {

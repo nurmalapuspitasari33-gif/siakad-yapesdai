@@ -19,7 +19,7 @@ class ProfileUpdateRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:255'],
             'email' => [
-                'required',
+                'nullable',
                 'string',
                 'lowercase',
                 'email',
@@ -40,7 +40,6 @@ class ProfileUpdateRequest extends FormRequest
             'name.required' => 'Nama wajib diisi.',
             'name.string' => 'Nama harus berupa teks.',
             'name.max' => 'Nama maksimal :max karakter.',
-            'email.required' => 'Alamat email wajib diisi.',
             'email.string' => 'Alamat email harus berupa teks.',
             'email.lowercase' => 'Alamat email harus menggunakan huruf kecil.',
             'email.email' => 'Format alamat email tidak valid.',

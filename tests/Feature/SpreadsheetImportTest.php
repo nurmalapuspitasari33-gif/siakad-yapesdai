@@ -53,6 +53,7 @@ class SpreadsheetImportTest extends TestCase
                 'alamat_wali',
                 'telepon_wali',
                 'pekerjaan_wali',
+                'nik',
             ], array_slice($spreadsheet->getActiveSheet()->toArray()[0], 18));
 
             $spreadsheet->disconnectWorksheets();
@@ -132,18 +133,18 @@ class SpreadsheetImportTest extends TestCase
                     [
                         'nisn', 'nis', 'nama_lengkap', 'email', 'nama_kelas', 'jenis_kelamin',
                         'tempat_lahir', 'tanggal_lahir', 'agama', 'alamat_murid', 'nama_ayah',
-                        'nama_ibu', 'no_wa_wali', 'tipe_program', 'ukuran_seragam',
+                        'nama_ibu', 'no_wa_wali', 'tipe_program', 'ukuran_seragam', 'nik',
                     ],
                     [
                         [
                             '1000000001', 'SMK-1001', 'Siswa Valid', 'valid@sekolah.sch.id',
                             'X IPA 1', 'L', 'Cilacap', '2010-01-15', 'Islam', 'Jl. Pendidikan',
-                            'Ayah', 'Ibu', '081234567890', 'reguler', 'L',
+                            'Ayah', 'Ibu', '081234567890', 'reguler', 'L', '0012345678904001',
                         ],
                         [
                             '1000000002', 'SMK-1002', 'Siswa Tidak Valid', 'invalid-email',
                             'X IPA 1', 'P', 'Cilacap', '2010-01-15', 'Islam', 'Jl. Pendidikan',
-                            'Ayah', 'Ibu', '081234567891', 'reguler', 'M',
+                            'Ayah', 'Ibu', '081234567891', 'reguler', 'M', '0012345678904002',
                         ],
                     ],
                 ),
@@ -169,6 +170,7 @@ class SpreadsheetImportTest extends TestCase
                         'status_keluarga', 'anak_ke', 'telepon_rumah', 'diterima_di_kelas',
                         'tanggal_diterima', 'alamat_ortu', 'telepon_ortu', 'pekerjaan_ayah',
                         'pekerjaan_ibu', 'nama_wali', 'alamat_wali', 'telepon_wali', 'pekerjaan_wali',
+                        'nik',
                     ],
                     [[
                         '1000000001', 'SMK-1001', 'Siswa Contoh', 'siswa@sekolah.sch.id',
@@ -176,7 +178,7 @@ class SpreadsheetImportTest extends TestCase
                         'Ayah', 'Ibu', 'SMP Asal', '081234567890', 'santri_internal', 'L',
                         'Anak Kandung', '2', '0282-123456', 'X IPA 1', '15 februari 2025',
                         'Jl. Orang Tua', '081111111111', 'Petani', 'Guru', 'Wali Murid',
-                        'Jl. Wali', '082222222222', 'Wiraswasta',
+                        'Jl. Wali', '082222222222', 'Wiraswasta', '0012345678904003',
                     ]],
                 ),
             ])
@@ -216,11 +218,12 @@ class SpreadsheetImportTest extends TestCase
                         'nisn', 'nis', 'nama_lengkap', 'email', 'nama_kelas', 'jenis_kelamin',
                         'tempat_lahir', 'tanggal_lahir', 'agama', 'alamat_murid', 'nama_ayah',
                         'nama_ibu', 'no_wa_wali', 'tipe_program', 'ukuran_seragam',
-                        'program_keahlian', 'konsentrasi_keahlian',
+                        'program_keahlian', 'konsentrasi_keahlian', 'nik',
                     ],
                     [[
                         '', '2593', 'Siswa Contoh', '', $kelas->nama_kelas, 'Laki-laki',
                         'Cilacap', '01 februari 2011', 'Islam', '', '', '', '', '', '', '', '',
+                        '0012345678904004',
                     ]],
                 ),
             ])
@@ -244,11 +247,11 @@ class SpreadsheetImportTest extends TestCase
                         'nisn', 'nis', 'nama_lengkap', 'email', 'nama_kelas', 'jenis_kelamin',
                         'tempat_lahir', 'tanggal_lahir', 'agama', 'alamat_murid', 'nama_ayah',
                         'nama_ibu', 'no_wa_wali', 'tipe_program', 'ukuran_seragam',
-                        'program_keahlian', 'konsentrasi_keahlian',
+                        'program_keahlian', 'konsentrasi_keahlian', 'nik',
                     ],
                     [[
                         '1000000005', '', 'Siswa Baru', 'siswa.baru@sekolah.sch.id', $kelas->nama_kelas,
-                        'L', '', '', '', '', '', '', '', '', '', '', '',
+                        'L', '', '', '', '', '', '', '', '', '', '', '', '0012345678904005',
                     ]],
                 ),
             ])
@@ -265,6 +268,68 @@ class SpreadsheetImportTest extends TestCase
         $this->assertSame($kelas->id, $student->kelas_id);
     }
 
+    public function test_admin_student_import_matches_existing_accounts_by_nik(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $user = User::factory()->create([
+            'role' => 'siswa',
+            'email' => null,
+            'nik' => '0012345678904010',
+        ]);
+        $student = Siswa::create([
+            'user_id' => $user->id,
+            'nama_lengkap' => 'Nama Sebelum Impor',
+            'status_siswa' => 'aktif',
+        ]);
+
+        $this->actingAs($admin)
+            ->post(route('admin.siswa.import'), [
+                'file' => $this->xlsxUpload(
+                    [
+                        'nisn', 'nis', 'nama_lengkap', 'email', 'nama_kelas', 'jenis_kelamin',
+                        'tempat_lahir', 'tanggal_lahir', 'agama', 'alamat_murid', 'nama_ayah',
+                        'nama_ibu', 'no_wa_wali', 'tipe_program', 'ukuran_seragam', 'nik',
+                    ],
+                    [[
+                        '', '', 'Nama Setelah Impor', '', '', '', '', '', '', '', '', '', '', '', '',
+                        '0012345678904010',
+                    ]],
+                ),
+            ])
+            ->assertRedirect(route('admin.siswa.index', absolute: false))
+            ->assertSessionHas('success', '0 siswa baru ditambahkan, 1 siswa diperbarui.');
+
+        $this->assertDatabaseCount('siswas', 1);
+        $this->assertSame('Nama Setelah Impor', $student->refresh()->nama_lengkap);
+        $this->assertSame('0012345678904010', $user->refresh()->nik);
+        $this->assertNull($user->email);
+    }
+
+    public function test_admin_student_import_rejects_duplicate_niks_before_creating_accounts(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $nik = '0012345678904011';
+
+        $this->actingAs($admin)
+            ->post(route('admin.siswa.import'), [
+                'file' => $this->xlsxUpload(
+                    [
+                        'nisn', 'nis', 'nama_lengkap', 'email', 'nama_kelas', 'jenis_kelamin',
+                        'tempat_lahir', 'tanggal_lahir', 'agama', 'alamat_murid', 'nama_ayah',
+                        'nama_ibu', 'no_wa_wali', 'tipe_program', 'ukuran_seragam', 'nik',
+                    ],
+                    [
+                        ['', '', 'Siswa Pertama', '', '', '', '', '', '', '', '', '', '', '', '', $nik],
+                        ['', '', 'Siswa Kedua', '', '', '', '', '', '', '', '', '', '', '', '', $nik],
+                    ],
+                ),
+            ])
+            ->assertSessionHasErrors('file');
+
+        $this->assertDatabaseCount('siswas', 0);
+        $this->assertDatabaseMissing('users', ['nik' => $nik]);
+    }
+
     public function test_admin_can_import_students_with_only_names(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
@@ -276,11 +341,11 @@ class SpreadsheetImportTest extends TestCase
                         'nisn', 'nis', 'nama_lengkap', 'email', 'nama_kelas', 'jenis_kelamin',
                         'tempat_lahir', 'tanggal_lahir', 'agama', 'alamat_murid', 'nama_ayah',
                         'nama_ibu', 'no_wa_wali', 'tipe_program', 'ukuran_seragam',
-                        'program_keahlian', 'konsentrasi_keahlian',
+                        'program_keahlian', 'konsentrasi_keahlian', 'nik',
                     ],
                     [
-                        ['', '', 'Siswa Kelas XI', '', '', '', '', '', '', '', '', '', '', '', '', '', ''],
-                        ['', '', 'Siswa Kelas XII', '', '', '', '', '', '', '', '', '', '', '', '', '', ''],
+                        ['', '', 'Siswa Kelas XI', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '0012345678904006'],
+                        ['', '', 'Siswa Kelas XII', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '0012345678904007'],
                     ],
                 ),
             ])
@@ -439,13 +504,13 @@ class SpreadsheetImportTest extends TestCase
                         'nisn', 'nis', 'nama_lengkap', 'email', 'nama_kelas', 'jenis_kelamin',
                         'tempat_lahir', 'tanggal_lahir', 'agama', 'alamat_murid', 'nama_ayah',
                         'nama_ibu', 'no_wa_wali', 'tipe_program', 'ukuran_seragam',
-                        'program_keahlian', 'konsentrasi_keahlian',
+                        'program_keahlian', 'konsentrasi_keahlian', 'nik',
                     ],
                     [[
                         '1000000003', 'SMK-1003', 'Siswa Otomotif', 'otomotif@sekolah.sch.id',
                         'X IPA 1', 'L', 'Cilacap', '2010-01-15', 'Islam', 'Jl. Pendidikan',
                         'Ayah', 'Ibu', '081234567893', 'reguler', 'L',
-                        'TO', 'Teknik Kendaraan Ringan',
+                        'TO', 'Teknik Kendaraan Ringan', '0012345678904008',
                     ]],
                 ),
             ])
@@ -479,13 +544,13 @@ class SpreadsheetImportTest extends TestCase
                         'nisn', 'nis', 'nama_lengkap', 'email', 'nama_kelas', 'jenis_kelamin',
                         'tempat_lahir', 'tanggal_lahir', 'agama', 'alamat_murid', 'nama_ayah',
                         'nama_ibu', 'no_wa_wali', 'tipe_program', 'ukuran_seragam',
-                        'program_keahlian', 'konsentrasi_keahlian',
+                        'program_keahlian', 'konsentrasi_keahlian', 'nik',
                     ],
                     [[
                         '1000000004', 'SMK-1004', 'Siswa Farmasi', 'farmasi@sekolah.sch.id',
                         'X IPA 1', 'P', 'Cilacap', '2010-01-15', 'Islam', 'Jl. Pendidikan',
                         'Ayah', 'Ibu', '081234567894', 'reguler', 'M',
-                        $program->kode_jurusan, $concentration->kode_konsentrasi,
+                        $program->kode_jurusan, $concentration->kode_konsentrasi, '0012345678904009',
                     ]],
                 ),
             ])

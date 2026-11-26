@@ -34,7 +34,11 @@ use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
-Route::get('/', fn () => Inertia::render('Home'))->name('home');
+Route::get('/', function () {
+    return auth()->check()
+        ? redirect()->route('dashboard')
+        : redirect()->route('login');
+});
 
 Route::get('/spmb', function () {
     return Inertia::render('Welcome', [
@@ -43,7 +47,7 @@ Route::get('/spmb', function () {
     ]);
 })->name('spmb.home');
 
-Route::middleware(['auth', 'verified'])->group(function () {
+Route::middleware(['auth', 'force-password-change', 'verified'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])
         ->name('dashboard');
 
@@ -60,7 +64,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('siswa.dashboard');
 });
 
-Route::middleware(['auth', 'verified', 'role:admin'])
+Route::middleware(['auth', 'force-password-change', 'verified', 'role:admin'])
     ->prefix('admin')
     ->name('admin.')
     ->group(function () {
@@ -149,7 +153,7 @@ Route::middleware(['auth', 'verified', 'role:admin'])
             ->name('ekstrakurikuler.update');
     });
 
-Route::middleware(['auth', 'verified', 'role:guru'])
+Route::middleware(['auth', 'force-password-change', 'verified', 'role:guru'])
     ->prefix('guru')
     ->name('guru.')
     ->group(function () {
@@ -183,7 +187,7 @@ Route::middleware(['auth', 'verified', 'role:guru'])
         Route::post('rapor-wali', [RaporWaliController::class, 'store'])->name('rapor-wali.store');
     });
 
-Route::middleware(['auth', 'verified', 'role:siswa'])
+Route::middleware(['auth', 'force-password-change', 'verified', 'role:siswa'])
     ->prefix('siswa')
     ->name('siswa.')
     ->group(function () {
@@ -203,7 +207,7 @@ Route::middleware(['auth', 'verified', 'role:siswa'])
         Route::get('rapor', [SiswaRaporController::class, 'index'])->name('rapor.index');
     });
 
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'force-password-change'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');

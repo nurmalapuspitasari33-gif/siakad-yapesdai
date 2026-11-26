@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\PendaftaranSpmb;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -52,18 +53,18 @@ class GoogleAuthController extends Controller
         $email = Str::lower(trim((string) $googleUser->getEmail()));
         $googleId = (string) $googleUser->getId();
 
-        if (! filter_var($email, FILTER_VALIDATE_EMAIL) || $googleId === '') {
+        if (($email !== '' && ! filter_var($email, FILTER_VALIDATE_EMAIL)) || $googleId === '') {
             return to_route('login')
-                ->withErrors(['google' => 'Gunakan akun Google dengan alamat email yang valid.']);
+                ->withErrors(['google' => 'Akun Google tidak memberikan identitas yang valid.']);
         }
 
-        if (! (bool) ($googleUser->user['verified_email'] ?? false)) {
+        if ($email !== '' && ! (bool) ($googleUser->user['verified_email'] ?? false)) {
             return to_route('login')
                 ->withErrors(['google' => 'Gunakan akun Google dengan alamat email terverifikasi.']);
         }
 
         $userByGoogleId = User::query()->where('google_id', $googleId)->first();
-        $userByEmail = User::query()->where('email', $email)->first();
+        $userByEmail = $email !== '' ? User::query()->where('email', $email)->first() : null;
 
         if (
             $userByGoogleId
@@ -77,18 +78,22 @@ class GoogleAuthController extends Controller
         $isNewCandidate = ! $userByGoogleId && ! $userByEmail;
 
         if ($isNewCandidate) {
-            $name = trim((string) $googleUser->getName()) ?: Str::before($email, '@');
+            $name = trim((string) $googleUser->getName())
+                ?: ($email !== '' ? Str::before($email, '@') : 'Calon Siswa');
 
             $user = DB::transaction(function () use ($email, $googleId, $googleUser, $name): User {
                 $user = User::create([
                     'name' => $name,
-                    'email' => $email,
+                    'email' => $email !== '' ? $email : null,
                     'password' => bcrypt(Str::random(32)),
                     'role' => 'siswa',
                     'google_id' => $googleId,
                     'avatar' => $googleUser->getAvatar(),
                 ]);
-                $user->forceFill(['email_verified_at' => now()])->save();
+
+                if ($email !== '') {
+                    $user->forceFill(['email_verified_at' => now()])->save();
+                }
 
                 $user->siswa()->create([
                     'nisn' => null,
@@ -97,7 +102,7 @@ class GoogleAuthController extends Controller
                 ]);
 
                 $user->pendaftaranSpmbs()->create([
-                    'no_pendaftaran' => 'SPMB-'.now()->format('Y').'-'.Str::upper((string) Str::uuid()),
+                    'no_pendaftaran' => PendaftaranSpmb::generateNoPendaftaran(),
                     'asal_sekolah' => '',
                     'status_seleksi' => 'pending',
                 ]);
@@ -109,7 +114,7 @@ class GoogleAuthController extends Controller
             $user->forceFill([
                 'google_id' => $googleId,
                 'avatar' => $googleUser->getAvatar(),
-                'email_verified_at' => $user->email_verified_at ?? now(),
+                'email_verified_at' => $user->email_verified_at ?? ($email !== '' ? now() : null),
             ])->save();
         }
 

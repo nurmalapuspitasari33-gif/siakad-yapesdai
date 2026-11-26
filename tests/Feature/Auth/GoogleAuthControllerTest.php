@@ -64,13 +64,14 @@ class GoogleAuthControllerTest extends TestCase
         $this->assertSame('siswa', $user->role);
         $this->assertSame('google-candidate-1', $user->google_id);
         $this->assertSame('https://example.test/avatar.png', $user->avatar);
+        $this->assertNull($user->nik);
         $this->assertNotNull($user->email_verified_at);
         $this->assertSame('calon_spmb', $siswa->status_siswa);
         $this->assertSame('Calon Google', $siswa->nama_lengkap);
         $this->assertNull($siswa->nisn);
         $this->assertSame('', $pendaftaran->asal_sekolah);
         $this->assertSame('pending', $pendaftaran->status_seleksi);
-        $this->assertStringStartsWith('SPMB-', $pendaftaran->no_pendaftaran);
+        $this->assertMatchesRegularExpression('/^SPMB-\d{4}-[A-Z0-9]{8}$/', $pendaftaran->no_pendaftaran);
         $this->assertModelExists($siswa);
         $this->assertModelExists($pendaftaran);
 
@@ -80,6 +81,21 @@ class GoogleAuthControllerTest extends TestCase
                 ->component('Siswa/Spmb/Index')
                 ->where('siswa.nama_lengkap', 'Calon Google')
                 ->where('pendaftaran.asal_sekolah', ''));
+    }
+
+    public function test_google_can_create_a_candidate_without_an_email_address(): void
+    {
+        $this->fakeGoogleProfile(null, 'google-no-email-1');
+
+        $this->get(route('google.callback'))
+            ->assertRedirect(route('siswa.spmb.index'));
+
+        $this->assertAuthenticated();
+        $this->assertDatabaseHas('users', [
+            'google_id' => 'google-no-email-1',
+            'email' => null,
+            'nik' => null,
+        ]);
     }
 
     /**
@@ -179,7 +195,7 @@ class GoogleAuthControllerTest extends TestCase
     }
 
     private function fakeGoogleProfile(
-        string $email,
+        ?string $email,
         string $googleId,
         bool $verifiedEmail = true,
     ): void {

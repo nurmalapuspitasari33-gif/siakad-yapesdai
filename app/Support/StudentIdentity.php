@@ -3,11 +3,26 @@
 namespace App\Support;
 
 use App\Models\Siswa;
+use App\Models\User;
 use Illuminate\Support\Arr;
 use Illuminate\Validation\Rule;
 
 class StudentIdentity
 {
+    /**
+     * @return array<int, mixed>
+     */
+    public static function nikRules(?User $user = null): array
+    {
+        return [
+            'bail',
+            'required',
+            'string',
+            'digits:16',
+            Rule::unique('users', 'nik')->ignore($user?->id),
+        ];
+    }
+
     /**
      * @var array<int, string>
      */

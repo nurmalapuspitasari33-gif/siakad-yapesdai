@@ -100,6 +100,26 @@ class ProfileTest extends TestCase
         $this->assertNull($user->email_verified_at);
     }
 
+    public function test_profile_email_can_be_cleared_without_changing_the_account_identity(): void
+    {
+        $user = User::factory()->create([
+            'email' => 'siswa@example.com',
+            'nik' => '0012345678902001',
+        ]);
+
+        $this->actingAs($user)
+            ->patch('/profile', [
+                'name' => $user->name,
+                'email' => '',
+            ])
+            ->assertSessionHasNoErrors()
+            ->assertRedirect('/profile');
+
+        $this->assertNull($user->refresh()->email);
+        $this->assertSame('0012345678902001', $user->nik);
+        $this->assertNull($user->email_verified_at);
+    }
+
     public function test_profile_validation_errors_are_indonesian(): void
     {
         $user = User::factory()->create();

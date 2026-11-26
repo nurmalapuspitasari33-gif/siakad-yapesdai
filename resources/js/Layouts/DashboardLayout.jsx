@@ -43,8 +43,8 @@ const mobileNavigationIcons = {
 };
 
 const mobileNavigationTones = [
-    'bg-emerald-50 text-emerald-700',
-    'bg-teal-50 text-teal-700',
+    'bg-blue-50 text-brand-blue',
+    'bg-amber-50 text-amber-700',
     'bg-amber-50 text-amber-600',
     'bg-sky-50 text-sky-600',
 ];
@@ -187,8 +187,8 @@ function DashboardFrame({
             aria-current={isAccountPage ? 'page' : undefined}
             className={`flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-medium transition-all duration-150 ${
                 isAccountPage
-                    ? 'bg-emerald-800 font-semibold text-white shadow-sm shadow-emerald-900/15'
-                    : 'text-slate-600 hover:bg-emerald-50/80 hover:text-emerald-900'
+                    ? 'bg-brand-blue font-semibold text-white shadow-sm shadow-brand-navy/20'
+                    : 'text-slate-600 hover:bg-blue-50 hover:text-brand-navy'
             }`}
         >
             <span
@@ -215,7 +215,7 @@ function DashboardFrame({
     const mobileQuickLinks = mobileQuickLinksFor(user?.role, navigation, isAccountPage);
 
     return (
-        <div className="dashboard-theme min-h-screen bg-gradient-to-br from-emerald-50/40 via-slate-50 to-teal-50/30 font-sans antialiased tracking-tight text-slate-900 print:min-h-0 print:bg-white">
+        <div className="dashboard-theme min-h-screen bg-gradient-to-br from-blue-50/50 via-slate-50 to-amber-50/30 font-sans antialiased tracking-tight text-slate-900 print:min-h-0 print:bg-white">
             <header className="sticky top-0 z-40 border-b border-slate-200/60 bg-white/75 backdrop-blur-xl print:hidden">
                 <div className="flex h-16 w-full items-center justify-between gap-4 px-6 lg:px-10">
                     <div className="flex min-w-0 items-center gap-3">
@@ -243,7 +243,7 @@ function DashboardFrame({
                     </div>
 
                     <div className="flex items-center gap-3">
-                        <span className="hidden rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-800 sm:inline-flex">
+                        <span className="hidden rounded-full border border-brand-gold/60 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-brand-navy sm:inline-flex">
                             {roleLabel}
                         </span>
                         <Dropdown>
@@ -251,9 +251,9 @@ function DashboardFrame({
                                 <button
                                     type="button"
                                     aria-label={`Menu akun ${userName}`}
-                                    className="inline-flex items-center gap-2 rounded-full border border-slate-200/80 bg-white/80 p-1.5 pr-3 text-left transition hover:bg-white focus:outline-none focus:ring-4 focus:ring-emerald-600/10"
+                                    className="inline-flex items-center gap-2 rounded-full border border-slate-200/80 bg-white/80 p-1.5 pr-3 text-left transition hover:bg-white focus:outline-none focus:ring-4 focus:ring-brand-blue/10"
                                 >
-                                    <span className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-50 font-semibold text-emerald-800">
+                                    <span className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-50 font-semibold text-brand-blue">
                                         {userName.charAt(0).toUpperCase()}
                                     </span>
                                     <span className="hidden max-w-36 sm:block">
@@ -328,8 +328,8 @@ function DashboardFrame({
                                     const isActive = Boolean(item.active);
                                     const className = `group flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm transition-all duration-150 ${
                                         isActive
-                                            ? 'bg-emerald-800 font-semibold text-white shadow-sm shadow-emerald-900/15'
-                                            : 'font-medium text-slate-600 hover:bg-emerald-50/80 hover:text-emerald-900'
+                                            ? 'bg-brand-blue font-semibold text-white shadow-sm shadow-brand-navy/20'
+                                            : 'font-medium text-slate-600 hover:bg-blue-50 hover:text-brand-navy'
                                     }`;
                                     const content = (
                                         <>
@@ -337,14 +337,14 @@ function DashboardFrame({
                                                 className={`h-2 w-2 rounded-full transition ${
                                                     isActive
                                                         ? 'bg-white'
-                                                        : 'bg-slate-300 group-hover:bg-emerald-400'
+                                                        : 'bg-slate-300 group-hover:bg-brand-gold'
                                                 }`}
                                                 aria-hidden="true"
                                             />
                                             <span className="truncate">{item.label}</span>
                                             {item.badge && (
                                                 <span className={`ml-auto max-w-24 truncate rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                                                    isActive ? 'bg-white/15 text-white' : 'bg-emerald-50 text-emerald-800'
+                                                    isActive ? 'bg-white/15 text-white' : 'bg-amber-50 text-brand-navy'
                                                 }`}>
                                                     {item.badge}
                                                 </span>
@@ -398,8 +398,8 @@ function DashboardFrame({
                                 {logoutLink}
                             </nav>
 
-                            <div className="mt-8 rounded-3xl border border-emerald-100 bg-emerald-50/70 p-4 text-slate-700 shadow-sm backdrop-blur-md">
-                                <p className="text-sm font-semibold text-emerald-950">Butuh bantuan?</p>
+                            <div className="mt-8 rounded-3xl border border-brand-gold/50 bg-amber-50/70 p-4 text-slate-700 shadow-sm backdrop-blur-md">
+                                <p className="text-sm font-semibold text-brand-navy">Butuh bantuan?</p>
                                 <p className="mt-1 text-xs leading-5 text-slate-600">
                                     Hubungi administrator sekolah untuk bantuan akses.
                                 </p>
@@ -411,7 +411,7 @@ function DashboardFrame({
                 <main className="min-w-0 flex-1 px-6 pt-6 pb-20 print:p-0 sm:pt-8 md:pb-8 lg:px-10">
                     <div className="w-full print:max-w-none">
                         <div className="mb-6 print:hidden">
-                            <p className="mb-2 text-sm font-semibold text-emerald-700">
+                            <p className="mb-2 text-sm font-semibold text-brand-blue">
                                 {roleLabel}
                             </p>
                             <h1 className="text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">
@@ -457,11 +457,11 @@ function DashboardFrame({
                                 aria-label={item.badge ? `${item.label} · ${item.badge}` : item.label}
                                 aria-current={item.active ? 'page' : undefined}
                                 className={`flex min-w-0 flex-col items-center justify-center gap-1 px-1 py-2 text-[10px] font-semibold transition ${
-                                    item.active ? 'text-emerald-800' : 'text-slate-500 hover:text-emerald-800'
+                                    item.active ? 'text-brand-blue' : 'text-slate-500 hover:text-brand-navy'
                                 }`}
                             >
                                 <span className={`flex h-8 w-8 items-center justify-center rounded-xl ${
-                                    item.active ? 'bg-emerald-50 text-emerald-700' : mobileNavigationTones[index]
+                                    item.active ? 'bg-blue-50 text-brand-blue' : mobileNavigationTones[index]
                                 }`}>
                                     <svg
                                         viewBox="0 0 24 24"

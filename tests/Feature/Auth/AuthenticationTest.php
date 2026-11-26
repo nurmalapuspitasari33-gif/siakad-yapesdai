@@ -48,15 +48,39 @@ class AuthenticationTest extends TestCase
 
     public function test_users_can_authenticate_using_the_login_screen(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create([
+            'nik' => '0012345678901234',
+        ]);
 
         $response = $this->post('/login', [
-            'email' => $user->email,
+            'email' => $user->nik,
             'password' => 'password',
         ]);
 
         $this->assertAuthenticated();
         $response->assertRedirect(route('siswa.dashboard', absolute: false));
+    }
+
+    public function test_users_can_still_authenticate_with_email(): void
+    {
+        $user = User::factory()->create();
+
+        $this->post('/login', [
+            'email' => $user->email,
+            'password' => 'password',
+        ]);
+
+        $this->assertAuthenticatedAs($user);
+    }
+
+    public function test_login_rejects_a_non_string_identifier(): void
+    {
+        $this->post('/login', [
+            'email' => ['not-an-identifier'],
+            'password' => 'password',
+        ])->assertSessionHasErrors('email');
+
+        $this->assertGuest();
     }
 
     public function test_users_can_not_authenticate_with_invalid_password(): void

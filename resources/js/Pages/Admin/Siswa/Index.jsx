@@ -9,7 +9,7 @@ import InputError from '@/Components/InputError';
 import Modal from '@/Components/Modal';
 import SecondaryButton from '@/Components/SecondaryButton';
 import DashboardLayout from '@/Layouts/DashboardLayout';
-import { Head, router, useForm } from '@inertiajs/react';
+import { Head, router, useForm, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 
 function dateInputValue(value) {
@@ -17,6 +17,7 @@ function dateInputValue(value) {
 }
 
 const emptyFormData = {
+    nik: '',
     nisn: '',
     nis: '',
     nama_lengkap: '',
@@ -63,6 +64,12 @@ export default function SiswaIndex({
     const [editingSiswa, setEditingSiswa] = useState(null);
     const [deletingSiswa, setDeletingSiswa] = useState(null);
     const [resettingSiswa, setResettingSiswa] = useState(null);
+    const [dismissedTemporaryPassword, setDismissedTemporaryPassword] = useState(null);
+    const { flash = {} } = usePage().props;
+    const temporaryPassword = String(flash.temporaryPasswordStudent ?? '') === String(resettingSiswa?.id ?? '')
+        && flash.temporaryPassword !== dismissedTemporaryPassword
+        ? flash.temporaryPassword
+        : null;
 
     // Single student class actions
     const [assignClassSiswa, setAssignClassSiswa] = useState(null);
@@ -132,6 +139,7 @@ export default function SiswaIndex({
     const openEditForm = (siswa) => {
         setEditingSiswa(siswa);
         form.setData({
+            nik: siswa.user?.nik ?? '',
             nisn: siswa.nisn ?? '',
             nis: siswa.nis ?? '',
             nama_lengkap: siswa.nama_lengkap ?? '',
@@ -237,6 +245,10 @@ export default function SiswaIndex({
     };
 
     const closeResetPassword = () => {
+        if (temporaryPassword) {
+            setDismissedTemporaryPassword(temporaryPassword);
+        }
+
         setResettingSiswa(null);
         resetPasswordForm.reset();
         resetPasswordForm.clearErrors();
@@ -248,9 +260,14 @@ export default function SiswaIndex({
             return;
         }
 
+        if (temporaryPassword) {
+            closeResetPassword();
+            return;
+        }
+
         resetPasswordForm.patch(route('admin.siswa.reset-password', resettingSiswa.id), {
             preserveScroll: true,
-            onSuccess: closeResetPassword,
+            onSuccess: () => resetPasswordForm.reset(),
         });
     };
 
@@ -517,7 +534,7 @@ export default function SiswaIndex({
                     <ExcelImportPanel
                         templateUrl={route('admin.siswa.template')}
                         importUrl={route('admin.siswa.import')}
-                        description="Impor data siswa aktif ke kelas pada tahun ajaran aktif. Format tanggal lahir: YYYY-MM-DD."
+                        description="Impor data siswa aktif ke kelas pada tahun ajaran aktif. NIK 16 digit menjadi kunci utama; format kolom NIK sebagai teks agar nol di depan tetap tersimpan. Format tanggal lahir: YYYY-MM-DD."
                     />
                 </div>
 
@@ -593,8 +610,11 @@ export default function SiswaIndex({
                                                 <p className="text-sm font-semibold text-slate-900">
                                                     {siswa.nama_lengkap}
                                                 </p>
+                                                <p className="font-mono text-xs text-slate-600">
+                                                    NIK: {siswa.user?.nik ?? '—'}
+                                                </p>
                                                 <p className="text-xs text-slate-500">
-                                                    {siswa.user?.email}
+                                                    {siswa.user?.email ?? 'Tanpa email'}
                                                 </p>
                                             </td>
                                             <td className="whitespace-nowrap px-4 py-4 text-sm">
@@ -717,6 +737,25 @@ export default function SiswaIndex({
                         </h3>
                         <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
                             <div>
+                                <label htmlFor="nik-siswa" className="mb-1.5 block text-xs font-semibold text-slate-700">
+                                    NIK 16 Digit {!editingSiswa && <span className="text-rose-500">*</span>}
+                                </label>
+                                <input
+                                    id="nik-siswa"
+                                    type="text"
+                                    inputMode="numeric"
+                                    pattern="[0-9]{16}"
+                                    maxLength={16}
+                                    required={!editingSiswa}
+                                    value={form.data.nik}
+                                    onChange={(event) => form.setData('nik', event.target.value)}
+                                    placeholder="Masukkan NIK dari KK"
+                                    className="block w-full rounded-xl border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                />
+                                <InputError message={form.errors.nik} className="mt-1" />
+                            </div>
+
+                            <div>
                                 <label htmlFor="nisn-siswa" className="mb-1.5 block text-xs font-semibold text-slate-700">
                                     NISN <span className="text-rose-500">*</span>
                                 </label>
@@ -765,12 +804,11 @@ export default function SiswaIndex({
 
                             <div>
                                 <label htmlFor="email-siswa" className="mb-1.5 block text-xs font-semibold text-slate-700">
-                                    Email Akun <span className="text-rose-500">*</span>
+                                    Email Akun (opsional)
                                 </label>
                                 <input
                                     id="email-siswa"
                                     type="email"
-                                    required
                                     autoComplete="email"
                                     value={form.data.email}
                                     onChange={(event) => form.setData('email', event.target.value)}
@@ -1438,16 +1476,29 @@ export default function SiswaIndex({
             <AdminResourceModal
                 show={Boolean(resettingSiswa)}
                 title="Reset kata sandi akun siswa?"
-                description={`Kata sandi akun ${resettingSiswa?.nama_lengkap ?? 'siswa'} akan diatur ulang.`}
+                description={temporaryPassword
+                    ? `Kredensial sementara untuk ${resettingSiswa?.nama_lengkap ?? 'siswa'} hanya ditampilkan pada respons ini.`
+                    : `Kata sandi akun ${resettingSiswa?.nama_lengkap ?? 'siswa'} akan diatur ulang.`}
                 processing={resetPasswordForm.processing}
                 processingLabel="Mereset..."
-                submitLabel="Reset Password"
+                submitLabel={temporaryPassword ? 'Selesai' : 'Buat Kredensial Sementara'}
                 onClose={closeResetPassword}
                 onSubmit={submitResetPassword}
             >
-                <p className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900">
-                    Kata sandi baru adalah <span className="font-bold">password</span>. Sampaikan kata sandi ini secara aman kepada siswa terkait.
-                </p>
+                {temporaryPassword ? (
+                    <div className="flex flex-col gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950">
+                        <p>
+                            Sampaikan kata sandi ini secara aman. Siswa wajib menggantinya saat login berikutnya.
+                        </p>
+                        <code className="select-all rounded-lg bg-white px-3 py-2 text-base font-bold tracking-wider">
+                            {temporaryPassword}
+                        </code>
+                    </div>
+                ) : (
+                    <p className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900">
+                        Sistem akan membuat kata sandi acak yang hanya ditampilkan sekali. Siswa wajib menggantinya saat login berikutnya.
+                    </p>
+                )}
             </AdminResourceModal>
         </DashboardLayout>
     );

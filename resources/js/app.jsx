@@ -14,7 +14,6 @@ const withPublicSiteLayout = (page) => (
     <PublicSiteLayout>{page}</PublicSiteLayout>
 );
 const publicPageNames = new Set([
-    'Home',
     'Welcome',
     'Auth/ConfirmPassword',
     'Auth/ForgotPassword',

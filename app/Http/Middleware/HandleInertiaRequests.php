@@ -38,6 +38,8 @@ class HandleInertiaRequests extends Middleware
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),
                 'error' => fn () => $request->session()->get('error'),
+                'temporaryPassword' => fn () => $request->session()->pull('temporary_password'),
+                'temporaryPasswordStudent' => fn () => $request->session()->pull('temporary_password_student'),
             ],
             'assetUrls' => [
                 'logoSekolah' => asset('logo.png'),

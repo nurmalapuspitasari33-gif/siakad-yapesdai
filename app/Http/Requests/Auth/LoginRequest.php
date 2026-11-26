@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Auth;
 
+use Closure;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -23,12 +24,27 @@ class LoginRequest extends FormRequest
     /**
      * Get the validation rules that apply to the request.
      *
-     * @return array<string, ValidationRule|array<mixed>|string>
+     * @return array<string, Closure|ValidationRule|array<mixed>|string>
      */
     public function rules(): array
     {
         return [
-            'email' => ['required', 'string', 'email'],
+            'email' => [
+                'bail',
+                'required',
+                'string',
+                function (string $attribute, mixed $value, Closure $fail): void {
+                    if (
+                        ! is_string($value)
+                        || (
+                            preg_match('/^\d{16}$/D', $value) !== 1
+                            && filter_var($value, FILTER_VALIDATE_EMAIL) === false
+                        )
+                    ) {
+                        $fail('Masukkan email yang valid atau NIK yang terdiri dari 16 digit.');
+                    }
+                },
+            ],
             'password' => ['required', 'string'],
         ];
     }
@@ -42,7 +58,14 @@ class LoginRequest extends FormRequest
     {
         $this->ensureIsNotRateLimited();
 
-        if (! Auth::attempt($this->only('email', 'password'), $this->boolean('remember'))) {
+        $identifier = trim($this->string('email')->toString());
+        $isNik = preg_match('/^\d{16}$/D', $identifier) === 1;
+        $credentials = [
+            ($isNik ? 'nik' : 'email') => $isNik ? $identifier : Str::lower($identifier),
+            'password' => $this->input('password'),
+        ];
+
+        if (! Auth::attempt($credentials, $this->boolean('remember'))) {
             RateLimiter::hit($this->throttleKey());
 
             throw ValidationException::withMessages([

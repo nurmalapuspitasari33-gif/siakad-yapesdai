@@ -3,9 +3,12 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
+use Closure;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -30,15 +33,42 @@ class PasswordResetLinkController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $request->validate([
-            'email' => 'required|email',
+            'email' => [
+                'required',
+                'string',
+                function (string $attribute, mixed $value, Closure $fail): void {
+                    if (
+                        ! is_string($value)
+                        || (
+                            preg_match('/^\d{16}$/D', $value) !== 1
+                            && filter_var($value, FILTER_VALIDATE_EMAIL) === false
+                        )
+                    ) {
+                        $fail('Masukkan email yang valid atau NIK yang terdiri dari 16 digit.');
+                    }
+                },
+            ],
         ]);
 
-        // We will send the password reset link to this user. Once we have attempted
-        // to send the link, we will examine the response then see the message we
-        // need to show to the user. Finally, we'll send out a proper response.
-        $status = Password::sendResetLink(
-            $request->only('email')
-        );
+        $identifier = trim($request->string('email')->toString());
+        $email = $identifier;
+
+        if (preg_match('/^\d{16}$/D', $identifier) === 1) {
+            $user = User::query()->where('nik', $identifier)->first();
+
+            if (! $user?->email) {
+                return back()->with(
+                    'status',
+                    'Akun tanpa email tidak dapat menerima tautan reset. Silakan hubungi admin/operator sekolah.',
+                );
+            }
+
+            $email = $user->email;
+        } else {
+            $email = Str::lower($email);
+        }
+
+        $status = Password::sendResetLink(['email' => $email]);
 
         if ($status == Password::RESET_LINK_SENT) {
             return back()->with('status', __($status));

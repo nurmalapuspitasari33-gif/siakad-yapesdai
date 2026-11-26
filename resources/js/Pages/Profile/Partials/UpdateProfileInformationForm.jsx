@@ -15,7 +15,7 @@ export default function UpdateProfileInformation({
     const { data, setData, patch, errors, processing, recentlySuccessful } =
         useForm({
             name: user.name,
-            email: user.email,
+            email: user.email ?? '',
         });
 
     const submit = (e) => {
@@ -32,7 +32,7 @@ export default function UpdateProfileInformation({
                 </h2>
 
                 <p className="mt-1 text-sm leading-6 text-slate-600">
-                    Perbarui nama dan alamat email yang digunakan pada akun Anda.
+                    Perbarui nama dan alamat email akun. Email tidak wajib diisi.
                 </p>
             </header>
 
@@ -54,7 +54,7 @@ export default function UpdateProfileInformation({
                 </div>
 
                 <div>
-                    <InputLabel htmlFor="email" value="Alamat Email" />
+                    <InputLabel htmlFor="email" value="Alamat Email (opsional)" />
 
                     <TextInput
                         id="email"
@@ -62,14 +62,13 @@ export default function UpdateProfileInformation({
                         className="mt-1 block w-full"
                         value={data.email}
                         onChange={(e) => setData('email', e.target.value)}
-                        required
                         autoComplete="username"
                     />
 
                     <InputError className="mt-2" message={errors.email} />
                 </div>
 
-                {mustVerifyEmail && user.email_verified_at === null && (
+                {mustVerifyEmail && user.email && user.email_verified_at === null && (
                     <div>
                         <p className="mt-2 text-sm text-slate-700">
                             Alamat email Anda belum diverifikasi.

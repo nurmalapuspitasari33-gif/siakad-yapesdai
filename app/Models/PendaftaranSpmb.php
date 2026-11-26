@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Str;
 
 #[Fillable([
     'user_id',
@@ -43,6 +44,15 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 ])]
 class PendaftaranSpmb extends Model
 {
+    public static function generateNoPendaftaran(): string
+    {
+        do {
+            $number = 'SPMB-'.now()->format('Y').'-'.Str::upper(Str::random(8));
+        } while (static::query()->where('no_pendaftaran', $number)->exists());
+
+        return $number;
+    }
+
     protected function casts(): array
     {
         return [

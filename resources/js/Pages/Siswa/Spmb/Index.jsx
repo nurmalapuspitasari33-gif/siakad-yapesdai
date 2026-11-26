@@ -17,6 +17,7 @@ const currencyFormatter = new Intl.NumberFormat('id-ID', {
 });
 
 export default function SiswaSpmbIndex({
+    nik = '',
     siswa = {},
     pendaftaran = null,
     berkasUrl = null,
@@ -26,6 +27,7 @@ export default function SiswaSpmbIndex({
 }) {
     const { pengaturanSekolah = {} } = usePage().props;
     const form = useForm({
+        nik,
         ...studentIdentityDefaults(),
         ...siswa,
         program_keahlian_id: String(
@@ -85,15 +87,15 @@ export default function SiswaSpmbIndex({
 
             <div className="flex flex-col gap-6">
                 <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-                    <div className="bg-gradient-to-r from-indigo-700 to-violet-700 px-6 py-6 text-white sm:px-8">
-                        <p className="text-sm font-semibold text-indigo-200">Status hasil seleksi</p>
+                    <div className="bg-gradient-to-r from-brand-navy to-brand-blue px-6 py-6 text-white sm:px-8">
+                        <p className="text-sm font-semibold text-brand-gold">Status hasil seleksi</p>
                         <h2 className="mt-2 text-xl font-bold">
                             {pendaftaran
                                 ? statusLabels[pendaftaran.status_seleksi] ?? 'Status belum tersedia'
                                 : 'Pendaftaran belum dikirim'}
                         </h2>
                         {pendaftaran && (
-                            <p className="mt-2 text-sm text-indigo-100">
+                            <p className="mt-2 text-sm text-white/85">
                                 Nomor pendaftaran: <span className="font-semibold">{pendaftaran.no_pendaftaran}</span>
                             </p>
                         )}
@@ -145,6 +147,29 @@ export default function SiswaSpmbIndex({
                             </p>
                         </div>
                         <form onSubmit={submit} className="flex flex-col gap-5">
+                            <div>
+                                <label htmlFor="nik-spmb" className="mb-2 block text-sm font-semibold text-slate-700">
+                                    NIK sesuai Kartu Keluarga (16 digit)
+                                </label>
+                                <input
+                                    id="nik-spmb"
+                                    type="text"
+                                    inputMode="numeric"
+                                    autoComplete="off"
+                                    maxLength={16}
+                                    required
+                                    value={form.data.nik}
+                                    onChange={(event) => form.setData('nik', event.target.value)}
+                                    aria-invalid={Boolean(form.errors.nik)}
+                                    aria-describedby={form.errors.nik ? 'nik-spmb-error' : undefined}
+                                    className="block w-full rounded-xl border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                    placeholder="Masukkan 16 digit NIK"
+                                />
+                                <InputError id="nik-spmb-error" message={form.errors.nik} className="mt-2" />
+                                <p className="mt-1 text-xs text-slate-500">
+                                    NIK disimpan pada akun Anda dan tidak disalin ke biodata siswa atau data pendaftaran.
+                                </p>
+                            </div>
                             <StudentIdentityFields
                                 form={form}
                                 kategoriBeasiswas={kategoriBeasiswas}

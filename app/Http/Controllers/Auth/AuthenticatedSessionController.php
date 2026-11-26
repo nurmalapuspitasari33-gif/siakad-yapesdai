@@ -33,6 +33,10 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
+        if ($request->user()->must_change_password) {
+            return redirect()->route('profile.edit');
+        }
+
         $dashboardRoute = match ($request->user()->role) {
             'admin' => 'admin.dashboard',
             'guru' => 'guru.dashboard',

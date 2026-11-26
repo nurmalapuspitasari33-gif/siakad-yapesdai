@@ -26,9 +26,11 @@ class PasswordController extends Controller
             'password.min' => 'Kata sandi baru minimal :min karakter.',
         ]);
 
-        $request->user()->update([
+        $user = $request->user();
+        $user->forceFill([
             'password' => Hash::make($validated['password']),
-        ]);
+            'must_change_password' => false,
+        ])->save();
 
         return back();
     }

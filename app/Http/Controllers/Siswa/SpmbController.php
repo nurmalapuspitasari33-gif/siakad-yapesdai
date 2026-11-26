@@ -7,17 +7,19 @@ use App\Models\KategoriBeasiswa;
 use App\Models\PendaftaranSpmb;
 use App\Models\ProgramKeahlian;
 use App\Models\Siswa;
+use App\Models\User;
 use App\Support\StudentIdentity;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use Throwable;
 
 class SpmbController extends Controller
 {
@@ -32,6 +34,7 @@ class SpmbController extends Controller
         }
 
         return Inertia::render('Siswa/Spmb/Index', [
+            'nik' => $request->user()->nik,
             'siswa' => [
                 'nama_lengkap' => $siswa->nama_lengkap,
                 'no_wa_wali' => $siswa->no_wa_wali,
@@ -71,18 +74,21 @@ class SpmbController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $siswa = $this->candidate($request);
-        $pendaftaran = $request->user()->pendaftaranSpmbs()->latest()->first();
-        abort_unless(! $pendaftaran || $pendaftaran->status_seleksi === 'pending', 403);
+        $initialPendaftaran = $request->user()->pendaftaranSpmbs()->latest()->first();
 
         if (! $request->filled('sekolah_asal') && $request->filled('asal_sekolah')) {
             $request->merge(['sekolah_asal' => $request->input('asal_sekolah')]);
         }
 
+        $identityRules = StudentIdentity::rules($siswa);
+        unset($identityRules['sekolah_asal']);
+
         $validated = $request->validate([
+            'nik' => StudentIdentity::nikRules($request->user()),
             'sekolah_asal' => ['required', 'string', 'max:255'],
             'no_wa_wali' => ['required', 'string', 'max:30'],
             'berkas' => [
-                $pendaftaran?->berkas_path ? 'nullable' : 'required',
+                $initialPendaftaran?->berkas_path ? 'nullable' : 'required',
                 'file',
                 'mimes:pdf,jpg,jpeg',
                 'max:5120',
@@ -100,7 +106,7 @@ class SpmbController extends Controller
                 Rule::exists('konsentrasi_keahlians', 'id')
                     ->where('program_keahlian_id', $request->input('program_keahlian_id')),
             ],
-            ...StudentIdentity::rules($siswa),
+            ...$identityRules,
         ], [
             'sekolah_asal.required' => 'Asal sekolah wajib diisi.',
             'no_wa_wali.required' => 'Nomor WhatsApp wali wajib diisi.',
@@ -120,51 +126,90 @@ class SpmbController extends Controller
             return back()->with('error', 'Pas foto gagal disimpan. Silakan coba kembali.');
         }
 
-        $oldBerkasPath = $pendaftaran?->berkas_path;
-        $oldPhotoPath = $pendaftaran?->foto_siswa_path ?? $siswa->foto_siswa_path;
+        try {
+            [$oldBerkasPath, $oldPhotoPath] = DB::transaction(function () use (
+                $request,
+                $initialPendaftaran,
+                $validated,
+                $newBerkasPath,
+                $newPhotoPath,
+            ): array {
+                $pendaftaran = $initialPendaftaran
+                    ? PendaftaranSpmb::query()->lockForUpdate()->findOrFail($initialPendaftaran->id)
+                    : null;
+                $user = User::query()->lockForUpdate()->findOrFail($request->user()->id);
+                $siswa = Siswa::query()
+                    ->where('user_id', $user->id)
+                    ->lockForUpdate()
+                    ->firstOrFail();
+                abort_unless($siswa->status_siswa === 'calon_spmb', 404);
 
-        DB::transaction(function () use (
-            $request,
-            $siswa,
-            $pendaftaran,
-            $validated,
-            $newBerkasPath,
-            $newPhotoPath,
-        ): void {
-            $attributes = [
-                'asal_sekolah' => $validated['sekolah_asal'],
-                'program_keahlian_id' => $validated['program_keahlian_id'] ?? null,
-                'konsentrasi_keahlian_id' => $validated['konsentrasi_keahlian_id'] ?? null,
-                ...StudentIdentity::attributes($validated),
-            ];
+                if (! $initialPendaftaran) {
+                    $pendaftaran = $user->pendaftaranSpmbs()
+                        ->latest()
+                        ->lockForUpdate()
+                        ->first();
+                }
 
-            if (is_string($newBerkasPath)) {
-                $attributes['berkas_path'] = $newBerkasPath;
-            }
+                abort_unless(! $pendaftaran || $pendaftaran->status_seleksi === 'pending', 403);
 
-            if (is_string($newPhotoPath)) {
-                $attributes['foto_siswa_path'] = $newPhotoPath;
-            }
+                if (! $pendaftaran?->berkas_path && ! is_string($newBerkasPath)) {
+                    throw ValidationException::withMessages([
+                        'berkas' => 'Berkas persyaratan wajib diunggah.',
+                    ]);
+                }
 
-            if ($pendaftaran) {
-                $pendaftaran->update($attributes);
-            } else {
-                PendaftaranSpmb::create([
-                    ...$attributes,
-                    'user_id' => $request->user()->id,
-                    'no_pendaftaran' => 'SPMB-'.now()->format('Y').'-'.Str::upper((string) Str::uuid()),
-                    'status_seleksi' => 'pending',
+                $oldBerkasPath = $pendaftaran?->berkas_path;
+                $oldPhotoPath = $pendaftaran?->foto_siswa_path ?? $siswa->foto_siswa_path;
+                $attributes = [
+                    'asal_sekolah' => $validated['sekolah_asal'],
+                    'program_keahlian_id' => $validated['program_keahlian_id'] ?? null,
+                    'konsentrasi_keahlian_id' => $validated['konsentrasi_keahlian_id'] ?? null,
+                    ...StudentIdentity::attributes($validated),
+                ];
+
+                if (is_string($newBerkasPath)) {
+                    $attributes['berkas_path'] = $newBerkasPath;
+                }
+
+                if (is_string($newPhotoPath)) {
+                    $attributes['foto_siswa_path'] = $newPhotoPath;
+                }
+
+                if ($pendaftaran) {
+                    $pendaftaran->update($attributes);
+                } else {
+                    PendaftaranSpmb::create([
+                        ...$attributes,
+                        'user_id' => $user->id,
+                        'no_pendaftaran' => PendaftaranSpmb::generateNoPendaftaran(),
+                        'status_seleksi' => 'pending',
+                    ]);
+                }
+
+                $user->update(['nik' => $validated['nik']]);
+                $siswa->update([
+                    'no_wa_wali' => $validated['no_wa_wali'],
+                    'program_keahlian_id' => $validated['program_keahlian_id'] ?? null,
+                    'konsentrasi_keahlian_id' => $validated['konsentrasi_keahlian_id'] ?? null,
+                    ...StudentIdentity::attributes($validated),
+                    ...(is_string($newPhotoPath) ? ['foto_siswa_path' => $newPhotoPath] : []),
                 ]);
+
+                return [$oldBerkasPath, $oldPhotoPath];
+            });
+        } catch (Throwable $exception) {
+            foreach ([$newBerkasPath, $newPhotoPath] as $newPath) {
+                if (is_string($newPath) && ! Storage::disk('public')->delete($newPath)) {
+                    Log::warning('Berkas SPMB baru gagal dibersihkan setelah transaksi gagal.', [
+                        'user_id' => $request->user()->id,
+                        'path' => $newPath,
+                    ]);
+                }
             }
 
-            $siswa->update([
-                'no_wa_wali' => $validated['no_wa_wali'],
-                'program_keahlian_id' => $validated['program_keahlian_id'] ?? null,
-                'konsentrasi_keahlian_id' => $validated['konsentrasi_keahlian_id'] ?? null,
-                ...StudentIdentity::attributes($validated),
-                ...(is_string($newPhotoPath) ? ['foto_siswa_path' => $newPhotoPath] : []),
-            ]);
-        });
+            throw $exception;
+        }
 
         if ($oldBerkasPath && is_string($newBerkasPath) && ! Storage::disk('public')->delete($oldBerkasPath)) {
             Log::warning('Berkas SPMB lama gagal dihapus setelah penggantian.', [

@@ -1039,7 +1039,7 @@ class UjianController extends Controller
             'kunci_jawaban' => $type === 'pg' ? $validated['kunci_jawaban'] : 'A',
             'tipe_soal' => $type,
             'bobot' => (int) $validated['bobot'],
-            'opsi_json' => $type === 'esai' ? null : $validated['opsi_json'],
+            'opsi_json' => $type === 'esai' ? null : ($validated['opsi_json'] ?? null),
         ];
     }
 

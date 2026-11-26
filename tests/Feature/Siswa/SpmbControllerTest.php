@@ -20,7 +20,10 @@ class SpmbControllerTest extends TestCase
     public function test_candidate_can_submit_biodata_and_upload_a_spmb_document(): void
     {
         Storage::fake('public');
-        $candidate = User::factory()->create(['role' => 'siswa']);
+        $candidate = User::factory()->create([
+            'role' => 'siswa',
+            'email' => null,
+        ]);
         $category = KategoriBeasiswa::create([
             'nama_beasiswa' => 'Afirmasi Pemerintah Uji',
             'jenis_potongan' => 'persen',
@@ -49,12 +52,14 @@ class SpmbControllerTest extends TestCase
                 ->component('Siswa/Spmb/Index')
                 ->where('siswa.nama_lengkap', $siswa->nama_lengkap)
                 ->where('siswa.tipe_program', 'reguler')
+                ->where('nik', null)
                 ->has('programKeahlians', 1)
                 ->has('kategoriBeasiswas', 1)
                 ->where('pendaftaran', null));
 
         $this->actingAs($candidate)
             ->post(route('siswa.spmb.store'), [
+                'nik' => '0012345678901234',
                 'sekolah_asal' => 'SMP Negeri 1',
                 'no_wa_wali' => '081234567890',
                 'berkas' => UploadedFile::fake()->create('ijazah.pdf', 100, 'application/pdf'),
@@ -90,6 +95,10 @@ class SpmbControllerTest extends TestCase
         $siswa->refresh();
 
         $this->assertSame('pending', $pendaftaran->status_seleksi);
+        $this->assertMatchesRegularExpression('/^SPMB-\d{4}-[A-Z0-9]{8}$/', $pendaftaran->no_pendaftaran);
+        $this->assertSame('0012345678901234', $candidate->refresh()->nik);
+        $this->assertArrayNotHasKey('nik', $siswa->getAttributes());
+        $this->assertArrayNotHasKey('nik', $pendaftaran->getAttributes());
         $this->assertSame('SMP Negeri 1', $pendaftaran->asal_sekolah);
         $this->assertSame('SMP Negeri 1', $pendaftaran->sekolah_asal);
         $this->assertSame('081234567890', $siswa->no_wa_wali);
@@ -124,6 +133,65 @@ class SpmbControllerTest extends TestCase
             ->assertSessionHasErrors('berkas');
 
         $this->assertDatabaseCount('pendaftaran_spmbs', 0);
+    }
+
+    public function test_candidate_must_provide_a_sixteen_digit_nik_before_submitting(): void
+    {
+        $candidate = User::factory()->create(['role' => 'siswa']);
+        Siswa::create([
+            'user_id' => $candidate->id,
+            'nisn' => '3000000004',
+            'nama_lengkap' => 'Calon Siswa Empat',
+            'status_siswa' => 'calon_spmb',
+        ]);
+
+        $this->actingAs($candidate)
+            ->post(route('siswa.spmb.store'), [
+                'sekolah_asal' => 'SMP Negeri 4',
+                'no_wa_wali' => '081234567894',
+                'berkas' => UploadedFile::fake()->create('ijazah.pdf', 100, 'application/pdf'),
+            ])
+            ->assertSessionHasErrors('nik');
+
+        $this->assertDatabaseCount('pendaftaran_spmbs', 0);
+    }
+
+    public function test_candidate_cannot_update_a_non_pending_registration(): void
+    {
+        Storage::fake('public');
+        $candidate = User::factory()->create([
+            'role' => 'siswa',
+            'nik' => '0012345678901234',
+        ]);
+        Siswa::create([
+            'user_id' => $candidate->id,
+            'nisn' => '3000000005',
+            'nama_lengkap' => 'Calon Siswa Lima',
+            'status_siswa' => 'calon_spmb',
+        ]);
+        $pendaftaran = PendaftaranSpmb::create([
+            'user_id' => $candidate->id,
+            'no_pendaftaran' => 'SPMB-2026-AB12CD34',
+            'asal_sekolah' => 'SMP Negeri 5',
+            'berkas_path' => 'berkas-spmb/existing.pdf',
+            'status_seleksi' => 'ditolak',
+        ]);
+
+        $this->actingAs($candidate)
+            ->post(route('siswa.spmb.store'), [
+                'nik' => '0012345678901234',
+                'sekolah_asal' => 'SMP Negeri 5',
+                'no_wa_wali' => '081234567895',
+                'berkas' => UploadedFile::fake()->create('ijazah-baru.pdf', 100, 'application/pdf'),
+            ])
+            ->assertForbidden();
+
+        $this->assertSame([], Storage::disk('public')->allFiles('berkas-spmb'));
+        $this->assertDatabaseHas('pendaftaran_spmbs', [
+            'id' => $pendaftaran->id,
+            'status_seleksi' => 'ditolak',
+            'asal_sekolah' => 'SMP Negeri 5',
+        ]);
     }
 
     public function test_candidate_cannot_submit_a_concentration_from_another_program(): void

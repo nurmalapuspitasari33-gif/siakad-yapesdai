@@ -105,7 +105,7 @@ class PengaturanSekolahControllerTest extends TestCase
             ->assertRedirectToRoute('login');
     }
 
-    public function test_school_identity_is_shared_with_the_landing_page_and_student_report(): void
+    public function test_school_identity_is_shared_with_the_login_page_and_student_report(): void
     {
         PengaturanSekolah::query()->findOrFail(1)->update([
             'nama_sekolah' => 'SMA Negeri 1 Contoh',
@@ -124,9 +124,10 @@ class PengaturanSekolahControllerTest extends TestCase
             'status_siswa' => 'aktif',
         ]);
 
-        $this->get('/')
+        $this->get(route('login'))
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
+                ->component('Auth/Login')
                 ->where('pengaturanSekolah.nama_sekolah', 'SMA Negeri 1 Contoh')
                 ->where('pengaturanSekolah.alamat', 'Jl. Pendidikan No. 1')
                 ->where('pengaturanSekolah.tempat_rapor', 'Kesugihan')

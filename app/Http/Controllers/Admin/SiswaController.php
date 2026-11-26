@@ -20,6 +20,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -60,6 +61,7 @@ class SiswaController extends Controller
         'alamat_wali',
         'telepon_wali',
         'pekerjaan_wali',
+        'nik',
     ];
 
     private const INDONESIAN_MONTH_NUMBERS = [
@@ -97,7 +99,7 @@ class SiswaController extends Controller
         $siswas = Siswa::query()
             ->where('status_siswa', 'aktif')
             ->with([
-                'user:id,name,email',
+                'user:id,name,email,nik',
                 'kelas:id,nama_kelas,tahun_ajaran_id',
                 'kelas.tahunAjaran:id,nama_tahun,semester',
                 'programKeahlian:id,kode_jurusan,nama_jurusan',
@@ -111,6 +113,9 @@ class SiswaController extends Controller
             ->orderBy('nama_lengkap')
             ->paginate(10)
             ->withQueryString();
+        $siswas->getCollection()->each(static function (Siswa $siswa): void {
+            $siswa->user?->makeVisible('nik');
+        });
 
         $tanpaKelasCount = Siswa::query()
             ->where('status_siswa', 'aktif')
@@ -167,6 +172,7 @@ class SiswaController extends Controller
                 'alamat_wali',
                 'telepon_wali',
                 'pekerjaan_wali',
+                'nik',
             ],
         );
         $activeYearId = TahunAjaran::query()->where('is_aktif', true)->value('id');
@@ -186,6 +192,11 @@ class SiswaController extends Controller
                 ->get(['id', 'nama_kelas', 'program_keahlian_id', 'konsentrasi_keahlian_id'])
                 ->groupBy(fn (Kelas $kelas): string => mb_strtolower($kelas->nama_kelas))
             : collect();
+        $importNiks = collect($rows)
+            ->pluck('data.nik')
+            ->filter(static fn (mixed $value): bool => is_string($value) && $value !== '')
+            ->unique()
+            ->values();
         $importNisns = collect($rows)
             ->pluck('data.nisn')
             ->filter(static fn (mixed $value): bool => is_string($value) && $value !== '')
@@ -205,11 +216,23 @@ class SiswaController extends Controller
             ->unique()
             ->values();
         $existingStudentRelations = [
-            'user:id,email',
+            'user:id,name,email,nik',
             'programKeahlian:id,kode_jurusan,nama_jurusan',
             'konsentrasiKeahlian:id,program_keahlian_id,kode_konsentrasi,nama_konsentrasi',
         ];
         $existingStudents = collect();
+
+        if ($importNiks->isNotEmpty()) {
+            $existingStudents = $existingStudents->merge(
+                Siswa::query()
+                    ->with($existingStudentRelations)
+                    ->whereHas(
+                        'user',
+                        fn (Builder $query): Builder => $query->whereIn('nik', $importNiks->all()),
+                    )
+                    ->get(),
+            );
+        }
 
         if ($importNisns->isNotEmpty()) {
             $existingStudents = $existingStudents->merge(
@@ -245,6 +268,9 @@ class SiswaController extends Controller
         }
 
         $existingStudents = $existingStudents->unique('id')->values();
+        $existingStudentsByNik = $existingStudents
+            ->filter(static fn (Siswa $student): bool => $student->user?->nik !== null)
+            ->keyBy(static fn (Siswa $student): string => $student->user->nik);
         $existingStudentsByNisn = $existingStudents
             ->filter(static fn (Siswa $student): bool => $student->nisn !== null)
             ->keyBy(static fn (Siswa $student): string => mb_strtolower($student->nisn));
@@ -264,6 +290,7 @@ class SiswaController extends Controller
         }
 
         $errors = [];
+        $seenNiks = [];
         $seenNisns = [];
         $seenNis = [];
         $seenEmails = [];
@@ -273,12 +300,24 @@ class SiswaController extends Controller
         foreach ($rows as $item) {
             $rowNumber = $item['row'];
             $data = $item['data'];
+            $nikKey = $data['nik'] !== null ? trim($data['nik']) : null;
             $nisnKey = $data['nisn'] !== null ? mb_strtolower($data['nisn']) : null;
             $nisKey = $data['nis'] !== null ? mb_strtolower($data['nis']) : null;
             $emailKey = $data['email'] !== null ? mb_strtolower($data['email']) : null;
-            $existingStudent = $nisnKey !== null ? $existingStudentsByNisn->get($nisnKey) : null;
-            $existingStudent ??= $nisKey !== null ? $existingStudentsByNis->get($nisKey) : null;
-            $existingStudent ??= $emailKey !== null ? $existingStudentsByEmail->get($emailKey) : null;
+            $matchingStudents = collect([
+                $nikKey !== null ? $existingStudentsByNik->get($nikKey) : null,
+                $nisnKey !== null ? $existingStudentsByNisn->get($nisnKey) : null,
+                $nisKey !== null ? $existingStudentsByNis->get($nisKey) : null,
+                $emailKey !== null ? $existingStudentsByEmail->get($emailKey) : null,
+            ])->filter()->unique('id')->values();
+
+            if ($matchingStudents->count() > 1) {
+                $errors[] = "Baris {$rowNumber}: NIK dan identitas lain merujuk ke akun siswa yang berbeda.";
+
+                continue;
+            }
+
+            $existingStudent = $matchingStudents->first();
 
             if ($existingStudent !== null) {
                 if (isset($seenStudentIds[$existingStudent->id])) {
@@ -287,6 +326,7 @@ class SiswaController extends Controller
 
                 $seenStudentIds[$existingStudent->id] = true;
                 $existingData = [
+                    'nik' => $existingStudent->user?->nik,
                     'nisn' => $existingStudent->nisn,
                     'nis' => $existingStudent->nis,
                     'email' => $existingStudent->user?->email,
@@ -348,14 +388,19 @@ class SiswaController extends Controller
             $nisnUniqueRule = Rule::unique('siswas', 'nisn');
             $nisUniqueRule = Rule::unique('siswas', 'nis');
             $emailUniqueRule = Rule::unique('users', 'email');
+            $nikUniqueRule = Rule::unique('users', 'nik');
+            $nikRules = StudentIdentity::nikRules();
 
             if ($existingStudent !== null) {
                 $nisnUniqueRule->ignore($existingStudent);
                 $nisUniqueRule->ignore($existingStudent);
                 $emailUniqueRule->ignore($existingStudent->user);
+                $nikUniqueRule->ignore($existingStudent->user);
+                $nikRules = ['nullable', 'string', 'digits:16', $nikUniqueRule];
             }
 
             $validator = Validator::make($data, [
+                'nik' => $nikRules,
                 'nisn' => ['nullable', 'string', 'max:255', $nisnUniqueRule],
                 'nis' => ['nullable', 'string', 'max:255', $nisUniqueRule],
                 'nama_lengkap' => ['required', 'string', 'max:255'],
@@ -439,6 +484,14 @@ class SiswaController extends Controller
                 }
 
                 $seenNisns[$nisnKey] = true;
+            }
+
+            if ($data['nik'] !== null) {
+                if (isset($seenNiks[$nikKey])) {
+                    $errors[] = "Baris {$rowNumber}: NIK duplikat di dalam file.";
+                }
+
+                $seenNiks[$nikKey] = true;
             }
 
             if ($data['email'] !== null) {
@@ -547,11 +600,15 @@ class SiswaController extends Controller
                     $user = $existingStudent->user;
                     $userAttributes = [
                         'name' => $data['nama_lengkap'],
-                        'email' => $data['email'],
+                        'email' => $data['email'] ?? null,
                     ];
 
-                    if ($user->email !== $data['email']) {
+                    if ($user->email !== ($data['email'] ?? null)) {
                         $userAttributes['email_verified_at'] = null;
+                    }
+
+                    if ($data['nik'] !== null) {
+                        $userAttributes['nik'] = $data['nik'];
                     }
 
                     $user->forceFill($userAttributes)->save();
@@ -562,12 +619,13 @@ class SiswaController extends Controller
 
                 $user = User::create([
                     'name' => $data['nama_lengkap'],
-                    'email' => $data['email'],
+                    'email' => $data['email'] ?? null,
+                    'nik' => $data['nik'],
                     'password' => 'password',
                     'role' => 'siswa',
                 ]);
 
-                if ($data['email'] !== null) {
+                if (($data['email'] ?? null) !== null) {
                     $user->forceFill(['email_verified_at' => now()])->save();
                 }
 
@@ -596,9 +654,10 @@ class SiswaController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
+            'nik' => StudentIdentity::nikRules(),
             'nisn' => ['required', 'string', 'max:255', Rule::unique('siswas', 'nisn')],
             'nama_lengkap' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')],
+            'email' => ['nullable', 'string', 'lowercase', 'email', 'max:255', Rule::unique('users', 'email')],
             'password' => ['required', 'string', 'min:8'],
             'kelas_id' => ['nullable', 'integer', Rule::exists('kelas', 'id')],
             'no_wa_wali' => ['nullable', 'string', 'max:30'],
@@ -608,7 +667,9 @@ class SiswaController extends Controller
             'nisn.required' => 'NISN wajib diisi.',
             'nisn.unique' => 'NISN sudah digunakan.',
             'nama_lengkap.required' => 'Nama lengkap wajib diisi.',
-            'email.required' => 'Email wajib diisi.',
+            'nik.required' => 'NIK wajib diisi.',
+            'nik.digits' => 'NIK harus terdiri dari 16 digit.',
+            'nik.unique' => 'NIK sudah digunakan.',
             'email.unique' => 'Email sudah digunakan.',
             'password.required' => 'Kata sandi wajib diisi.',
             'password.min' => 'Kata sandi minimal 8 karakter.',
@@ -623,11 +684,14 @@ class SiswaController extends Controller
         DB::transaction(function () use ($validated, $photoPath): void {
             $user = User::create([
                 'name' => $validated['nama_lengkap'],
-                'email' => $validated['email'],
+                'email' => $validated['email'] ?? null,
+                'nik' => $validated['nik'],
                 'password' => $validated['password'],
                 'role' => 'siswa',
             ]);
-            $user->forceFill(['email_verified_at' => now()])->save();
+            if (($validated['email'] ?? null) !== null) {
+                $user->forceFill(['email_verified_at' => now()])->save();
+            }
 
             Siswa::create([
                 'user_id' => $user->id,
@@ -652,9 +716,15 @@ class SiswaController extends Controller
         $siswa->load('user');
 
         $validated = $request->validate([
+            'nik' => [
+                'nullable',
+                'string',
+                'digits:16',
+                Rule::unique('users', 'nik')->ignore($siswa->user),
+            ],
             'nisn' => ['required', 'string', 'max:255', Rule::unique('siswas', 'nisn')->ignore($siswa)],
             'nama_lengkap' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($siswa->user)],
+            'email' => ['nullable', 'string', 'lowercase', 'email', 'max:255', Rule::unique('users', 'email')->ignore($siswa->user)],
             'password' => ['nullable', 'string', 'min:8'],
             'kelas_id' => ['nullable', 'integer', Rule::exists('kelas', 'id')],
             'no_wa_wali' => ['nullable', 'string', 'max:30'],
@@ -664,7 +734,8 @@ class SiswaController extends Controller
             'nisn.required' => 'NISN wajib diisi.',
             'nisn.unique' => 'NISN sudah digunakan.',
             'nama_lengkap.required' => 'Nama lengkap wajib diisi.',
-            'email.required' => 'Email wajib diisi.',
+            'nik.digits' => 'NIK harus terdiri dari 16 digit.',
+            'nik.unique' => 'NIK sudah digunakan.',
             'email.unique' => 'Email sudah digunakan.',
             'password.min' => 'Kata sandi minimal 8 karakter.',
         ]);
@@ -680,11 +751,18 @@ class SiswaController extends Controller
         DB::transaction(function () use ($siswa, $validated, $newPhotoPath): void {
             $userData = [
                 'name' => $validated['nama_lengkap'],
-                'email' => $validated['email'],
             ];
 
-            if ($siswa->user->email !== $validated['email']) {
-                $userData['email_verified_at'] = null;
+            if (array_key_exists('email', $validated)) {
+                $userData['email'] = $validated['email'];
+
+                if ($siswa->user->email !== $validated['email']) {
+                    $userData['email_verified_at'] = null;
+                }
+            }
+
+            if (! empty($validated['nik'])) {
+                $userData['nik'] = $validated['nik'];
             }
 
             if (! empty($validated['password'])) {
@@ -792,12 +870,17 @@ class SiswaController extends Controller
     {
         abort_unless($siswa->status_siswa === 'aktif', 404);
 
+        $temporaryPassword = Str::password(16);
+
         $siswa->user->forceFill([
-            'password' => Hash::make('password'),
+            'password' => Hash::make($temporaryPassword),
+            'must_change_password' => true,
         ])->save();
 
         return to_route('admin.siswa.index')
-            ->with('success', 'Kata sandi akun siswa berhasil direset menjadi password.');
+            ->with('success', 'Kredensial sementara berhasil dibuat.')
+            ->with('temporary_password', $temporaryPassword)
+            ->with('temporary_password_student', $siswa->id);
     }
 
     private function normalizeStudentImportDate(mixed $value): mixed

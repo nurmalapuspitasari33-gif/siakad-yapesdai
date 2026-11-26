@@ -23,11 +23,15 @@ export default function ResetPassword({ token, email }) {
 
     return (
         <GuestLayout>
-            <Head title="Reset Password" />
+            <Head title="Reset Kata Sandi" />
+
+            <p className="mb-5 text-sm leading-6 text-slate-600">
+                Buat kata sandi baru untuk akun Anda. Akun tanpa email perlu menghubungi admin/operator sekolah untuk bantuan reset.
+            </p>
 
             <form onSubmit={submit}>
                 <div>
-                    <InputLabel htmlFor="email" value="Email" />
+                    <InputLabel htmlFor="email" value="Email akun" />
 
                     <TextInput
                         id="email"
@@ -43,7 +47,7 @@ export default function ResetPassword({ token, email }) {
                 </div>
 
                 <div className="mt-4">
-                    <InputLabel htmlFor="password" value="Password" />
+                    <InputLabel htmlFor="password" value="Kata sandi baru" />
 
                     <TextInput
                         id="password"
@@ -62,7 +66,7 @@ export default function ResetPassword({ token, email }) {
                 <div className="mt-4">
                     <InputLabel
                         htmlFor="password_confirmation"
-                        value="Confirm Password"
+                        value="                        Konfirmasi Kata Sandi"
                     />
 
                     <TextInput
@@ -85,7 +89,7 @@ export default function ResetPassword({ token, email }) {
 
                 <div className="mt-4 flex items-center justify-end">
                     <PrimaryButton className="ms-4" disabled={processing}>
-                        Reset Password
+                        Simpan Kata Sandi
                     </PrimaryButton>
                 </div>
             </form>

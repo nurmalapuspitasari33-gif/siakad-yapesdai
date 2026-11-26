@@ -96,17 +96,17 @@ export default function Login({ canResetPassword = true, status = null }) {
         <>
             <Head title="Login | YAPESDAI" />
 
-            <div className="relative flex min-h-[calc(100vh-5rem)] flex-1 flex-col bg-[#F8FAFC] font-public tracking-tight text-slate-900 antialiased lg:h-[calc(100vh-5rem)] lg:min-h-0">
-                <main className="relative isolate flex min-h-0 flex-1 flex-col overflow-hidden bg-gradient-to-br from-emerald-50/80 via-white to-teal-50/50">
-                    <div className="pointer-events-none absolute -right-36 top-12 -z-10 h-96 w-96 rounded-full bg-emerald-200/30 opacity-40 blur-3xl" />
-                    <div className="pointer-events-none absolute -bottom-28 -left-20 -z-10 h-80 w-[60%] rounded-[50%] bg-teal-100/70 opacity-40 blur-2xl" />
+            <div className="relative flex flex-1 flex-col bg-slate-50 font-public tracking-tight text-slate-900 antialiased">
+                <main className="relative isolate flex flex-1 flex-col overflow-hidden bg-gradient-to-br from-blue-50/80 via-white to-amber-50/40">
+                    <div className="pointer-events-none absolute -right-36 top-12 -z-10 h-96 w-96 rounded-full bg-brand-gold/20 opacity-50 blur-3xl" />
+                    <div className="pointer-events-none absolute -bottom-28 -left-20 -z-10 h-80 w-[60%] rounded-[50%] bg-blue-100/70 opacity-50 blur-2xl" />
 
-                    <section className="relative mx-auto grid w-full flex-1 grid-cols-1 items-center gap-8 px-6 py-8 sm:px-8 lg:grid-cols-12 lg:gap-10 lg:px-10 lg:py-2">
+                    <section className="relative mx-auto grid w-full max-w-7xl flex-1 grid-cols-1 items-center gap-8 px-6 py-8 sm:px-8 lg:grid-cols-12 lg:gap-10 lg:px-10 lg:py-8">
                         <div className="lg:col-span-6">
-                            <p className="text-2xl font-semibold tracking-normal text-emerald-700 sm:text-3xl">
+                            <p className="text-2xl font-semibold tracking-normal text-brand-blue sm:text-3xl">
                                 Selamat Datang
                             </p>
-                            <h1 className="mt-2 text-4xl font-extrabold leading-tight tracking-tight text-slate-900 sm:text-5xl">
+                            <h1 className="mt-2 font-display text-4xl font-extrabold leading-tight tracking-tight text-brand-navy sm:text-5xl">
                                 di Sistem Informasi YAPESDAI
                             </h1>
                             <p className="mt-4 max-w-xl text-base leading-7 text-slate-600">
@@ -120,7 +120,7 @@ export default function Login({ canResetPassword = true, status = null }) {
                                     { type: 'support', label: 'Dukungan Profesional' },
                                 ].map((benefit) => (
                                     <div key={benefit.type} className="flex flex-col items-start gap-3">
-                                        <span className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/80 bg-white/80 text-emerald-700 shadow-sm ring-1 ring-slate-900/5 backdrop-blur-md">
+                                        <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-brand-gold/50 bg-white text-brand-blue shadow-sm">
                                             <BenefitIcon type={benefit.type} />
                                         </span>
                                         <span className="text-xs font-semibold leading-5 text-slate-600 sm:text-sm">
@@ -132,16 +132,16 @@ export default function Login({ canResetPassword = true, status = null }) {
                         </div>
 
                         <div className="flex justify-center lg:col-span-6 lg:justify-end">
-                            <div className="w-full max-w-md rounded-[2rem] border border-white bg-white/85 p-6 shadow-[0_20px_50px_rgb(0,0,0,0.06)] ring-1 ring-slate-900/5 backdrop-blur-2xl sm:p-8 lg:p-4">
+                            <div className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_20px_50px_rgb(11,44,89,0.10)] sm:p-8 lg:p-7">
                                 <div className="text-center">
-                                    <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-white bg-emerald-50/90 text-emerald-800 shadow-sm ring-1 ring-emerald-900/5 lg:h-12 lg:w-12">
+                                    <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-brand-gold/60 bg-amber-50 text-brand-navy shadow-sm lg:h-12 lg:w-12">
                                         <FieldIcon type="password" />
                                     </span>
-                                    <h2 className="mt-4 text-2xl font-bold tracking-tight text-slate-900 lg:mt-2">
+                                    <h2 className="mt-4 font-display text-2xl font-bold tracking-tight text-brand-navy lg:mt-2">
                                         Login Akun
                                     </h2>
                                     <p className="mt-1 text-sm text-slate-500">
-                                        Masukkan email dan password Anda
+                                        Masukkan NIK 16 digit atau email dan password Anda
                                     </p>
                                 </div>
 
@@ -154,7 +154,7 @@ export default function Login({ canResetPassword = true, status = null }) {
                                 <form onSubmit={submit} className="mt-6 flex flex-col gap-4 lg:mt-3 lg:gap-2">
                                     <div>
                                         <label htmlFor="email" className="block text-sm font-semibold text-slate-700">
-                                            Email
+                                            NIK atau email
                                         </label>
                                         <div className="relative mt-2 lg:mt-1">
                                             <span className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-slate-400">
@@ -163,16 +163,17 @@ export default function Login({ canResetPassword = true, status = null }) {
                                             <input
                                                 id="email"
                                                 name="email"
-                                                type="email"
+                                                type="text"
                                                 autoComplete="username"
+                                                inputMode="text"
                                                 autoFocus
                                                 required
                                                 value={data.email}
                                                 onChange={(event) => setData('email', event.target.value)}
                                                 aria-invalid={Boolean(errors.email)}
                                                 aria-describedby={errors.email ? 'email-error' : undefined}
-                                                className="block w-full rounded-2xl border border-transparent bg-slate-100/70 py-3.5 pl-12 pr-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-emerald-600 focus:bg-white focus:ring-4 focus:ring-emerald-600/10 lg:py-2.5"
-                                                placeholder="nama@email.com"
+                                                className="block w-full rounded-xl border border-slate-200 bg-slate-50 py-3.5 pl-12 pr-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-brand-blue focus:bg-white focus:ring-4 focus:ring-brand-blue/10 lg:py-2.5"
+                                                placeholder="NIK 16 digit atau nama@email.com"
                                             />
                                         </div>
                                         <InputError id="email-error" message={errors.email} className="mt-2" />
@@ -196,7 +197,7 @@ export default function Login({ canResetPassword = true, status = null }) {
                                                 onChange={(event) => setData('password', event.target.value)}
                                                 aria-invalid={Boolean(errors.password)}
                                                 aria-describedby={errors.password ? 'password-error' : undefined}
-                                                className="block w-full rounded-2xl border border-transparent bg-slate-100/70 py-3.5 pl-12 pr-12 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-emerald-600 focus:bg-white focus:ring-4 focus:ring-emerald-600/10 lg:py-2.5"
+                                                className="block w-full rounded-xl border border-slate-200 bg-slate-50 py-3.5 pl-12 pr-12 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-brand-blue focus:bg-white focus:ring-4 focus:ring-brand-blue/10 lg:py-2.5"
                                                 placeholder="Masukkan kata sandi"
                                             />
                                             <button
@@ -204,7 +205,7 @@ export default function Login({ canResetPassword = true, status = null }) {
                                                 onClick={() => setShowPassword((isVisible) => !isVisible)}
                                                 aria-label={showPassword ? 'Sembunyikan password' : 'Tampilkan password'}
                                                 aria-pressed={showPassword}
-                                                className="absolute inset-y-0 right-0 inline-flex items-center rounded-r-2xl px-4 text-emerald-700 transition hover:text-emerald-950 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-emerald-600"
+                                                className="absolute inset-y-0 right-0 inline-flex items-center rounded-r-xl px-4 text-brand-blue transition hover:text-brand-navy focus:outline-none focus:ring-2 focus:ring-inset focus:ring-brand-blue"
                                             >
                                                 <PasswordToggleIcon visible={showPassword} />
                                             </button>
@@ -219,7 +220,7 @@ export default function Login({ canResetPassword = true, status = null }) {
                                                 name="remember"
                                                 checked={data.remember}
                                                 onChange={(event) => setData('remember', event.target.checked)}
-                                                className="h-4 w-4 rounded border-slate-300 text-emerald-700 focus:ring-emerald-600"
+                                                className="h-4 w-4 rounded border-slate-300 text-brand-blue focus:ring-brand-blue"
                                             />
                                             Ingat saya
                                         </label>
@@ -227,7 +228,7 @@ export default function Login({ canResetPassword = true, status = null }) {
                                             <Link
                                                 href={route('password.request')}
                                                 prefetch
-                                                className="text-sm font-semibold text-emerald-800 transition hover:text-emerald-950 focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:ring-offset-2"
+                                                className="text-sm font-semibold text-brand-blue transition hover:text-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-blue focus:ring-offset-2"
                                             >
                                                 Lupa kata sandi?
                                             </Link>
@@ -237,7 +238,7 @@ export default function Login({ canResetPassword = true, status = null }) {
                                     <button
                                         type="submit"
                                         disabled={processing}
-                                        className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-emerald-800 px-5 py-3.5 text-sm font-semibold text-white shadow-md shadow-emerald-900/15 transition hover:-translate-y-0.5 hover:bg-emerald-900 focus:outline-none focus:ring-4 focus:ring-emerald-700/15 disabled:cursor-not-allowed disabled:opacity-60 lg:min-h-10 lg:py-2"
+                                        className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-brand-blue px-5 py-3.5 text-sm font-semibold text-white shadow-md shadow-brand-navy/20 transition hover:-translate-y-0.5 hover:bg-brand-navy focus:outline-none focus:ring-4 focus:ring-brand-blue/20 disabled:cursor-not-allowed disabled:opacity-60 lg:min-h-10 lg:py-2"
                                     >
                                         {processing ? 'Memproses...' : 'Masuk →'}
                                     </button>
@@ -250,7 +251,7 @@ export default function Login({ canResetPassword = true, status = null }) {
                                 </div>
                                 <GoogleAuthButton
                                     label="Masuk dengan Google"
-                                    className="min-h-12 border-slate-200/80 bg-white/90 py-3 text-slate-700 backdrop-blur-md hover:bg-white lg:min-h-9 lg:py-1.5"
+                                    className="min-h-12 border-slate-200 bg-white py-3 text-slate-700 hover:border-brand-blue/40 hover:bg-blue-50 lg:min-h-9 lg:py-1.5"
                                 />
                                 {googleError && (
                                     <p
@@ -263,7 +264,7 @@ export default function Login({ canResetPassword = true, status = null }) {
 
                                 <a
                                     href={contactHref}
-                                    className="mt-5 inline-flex w-full items-center justify-center gap-2 text-sm font-semibold text-emerald-800 transition hover:text-emerald-950 focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:ring-offset-2 lg:mt-2"
+                                    className="mt-5 inline-flex w-full items-center justify-center gap-2 text-sm font-semibold text-brand-blue transition hover:text-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-blue focus:ring-offset-2 lg:mt-2"
                                 >
                                     <BenefitIcon type="support" />
                                     Hubungi Admin

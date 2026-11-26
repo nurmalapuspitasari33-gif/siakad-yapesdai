@@ -8,6 +8,7 @@ import UpdateProfileInformationForm from './Partials/UpdateProfileInformationFor
 export default function Edit({
     mustVerifyEmail,
     status,
+    mustChangePassword = false,
     isWaliKelas = false,
     waliKelasName = '',
     isCandidate = false,
@@ -34,6 +35,15 @@ export default function Edit({
             <Head title="Pengaturan Akun" />
 
             <div className="flex flex-col gap-6">
+                {mustChangePassword && (
+                    <div
+                        role="alert"
+                        className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm leading-6 text-amber-900"
+                    >
+                        Kata sandi sementara wajib diganti sebelum Anda dapat menggunakan fitur lain.
+                    </div>
+                )}
+
                 <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
                     <UpdateProfileInformationForm
                         mustVerifyEmail={mustVerifyEmail}

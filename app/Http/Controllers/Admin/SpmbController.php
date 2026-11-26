@@ -149,7 +149,6 @@ class SpmbController extends Controller
                 Rule::exists('konsentrasi_keahlians', 'id')
                     ->where('program_keahlian_id', $request->input('program_keahlian_id')),
             ],
-            'sekolah_asal' => ['required', 'string', 'max:255'],
         ], [
             'nama_lengkap.required' => 'Nama lengkap wajib diisi.',
             'nisn.required' => 'NISN wajib diisi.',

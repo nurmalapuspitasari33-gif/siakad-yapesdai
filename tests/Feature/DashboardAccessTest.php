@@ -128,6 +128,7 @@ class DashboardAccessTest extends TestCase
 
     public function test_active_student_dashboard_shows_class_schedule_bills_and_upcoming_exams(): void
     {
+        $this->travelTo('2026-11-23 09:00:00 UTC');
         $this->seed();
 
         $activeUser = User::query()->where('email', 'siswa@sekolah.sch.id')->firstOrFail();
@@ -141,7 +142,7 @@ class DashboardAccessTest extends TestCase
             'guru_id' => $teacher->id,
             'kelas_id' => $class->id,
             'judul_ujian' => 'Ujian Matematika',
-            'waktu_mulai' => now()->addDay(),
+            'waktu_mulai' => now()->addHour(),
             'durasi_menit' => 60,
             'acak_soal' => false,
         ]);
@@ -174,9 +175,8 @@ class DashboardAccessTest extends TestCase
             ->where('siswa.kelas', 'X IPA 1')
             ->where('tahunAjaranAktif.nama_tahun', '2026/2027')
             ->where('tahunAjaranAktif.semester', 'ganjil')
-            ->has('jadwals', 2)
+            ->has('jadwals', 1)
             ->where('jadwals.0.mata_pelajaran', 'Matematika')
-            ->where('jadwals.1.mata_pelajaran', 'Bahasa Indonesia')
             ->has('tagihans', 1)
             ->where('tagihans.0.status', 'belum_lunas')
             ->has('ujians', 2)

@@ -26,6 +26,7 @@ class ProfileController extends Controller
         return Inertia::render('Profile/Edit', [
             'mustVerifyEmail' => $user instanceof MustVerifyEmail,
             'status' => session('status'),
+            'mustChangePassword' => $user->must_change_password,
             'isWaliKelas' => $kelasWalianAktif->isNotEmpty(),
             'waliKelasName' => $kelasWalianAktif->pluck('nama_kelas')->implode(', '),
             'isCandidate' => $user->role === 'siswa' && $user->siswa?->status_siswa === 'calon_spmb',
@@ -37,7 +38,8 @@ class ProfileController extends Controller
      */
     public function update(ProfileUpdateRequest $request): RedirectResponse
     {
-        $request->user()->fill($request->validated());
+        $validated = $request->validated();
+        $request->user()->fill($validated);
 
         if ($request->user()->isDirty('email')) {
             $request->user()->email_verified_at = null;
