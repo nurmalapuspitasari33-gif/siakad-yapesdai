@@ -1,5 +1,7 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, usePage } from '@inertiajs/react';
 import { useState } from 'react';
+
+const DEFAULT_HERO_KICKER = 'SISTEM PENERIMAAN MURID BARU (SPMB) • YAPESDAI';
 
 function ArrowIcon({ direction = 'right' }) {
     return (
@@ -71,8 +73,8 @@ const defaultRequirements = [
         deskripsi: 'Pas foto calon murid dengan tampilan yang jelas.',
     },
     {
-        judul: 'Surat Keterangan Sehat',
-        deskripsi: 'Termasuk keterangan bebas buta warna untuk kompetensi keahlian terkait.',
+        judul: 'Surat Keterangan Sehat / Bebas Buta Warna',
+        deskripsi: 'Surat sehat dan keterangan bebas buta warna untuk kompetensi keahlian terkait.',
     },
 ];
 
@@ -82,7 +84,7 @@ const defaultProcessSteps = [
         deskripsi: 'Daftarkan akun menggunakan NIK yang tercantum pada Kartu Keluarga.',
     },
     {
-        judul: 'Lengkapi Biodata & Pilih Kompetensi Keahlian',
+        judul: 'Lengkapi Biodata & Pilih Jurusan',
         deskripsi: 'Isi data diri, asal sekolah, dan pilihan kompetensi keahlian.',
     },
     {
@@ -94,6 +96,52 @@ const defaultProcessSteps = [
         deskripsi: 'Cetak bukti pendaftaran dan pantau status verifikasi secara berkala.',
     },
 ];
+
+function StatisticsIcon({ name }) {
+    const icons = {
+        competencies: (
+            <>
+                <path d="M2 9.5 12 4l10 5.5-10 5.5L2 9.5Z" />
+                <path d="M6 12v5c3.5 2.5 8.5 2.5 12 0v-5M22 9.5V16" />
+            </>
+        ),
+        pathways: (
+            <>
+                <circle cx="6" cy="6" r="2" />
+                <circle cx="18" cy="18" r="2" />
+                <path d="M8 6h3a3 3 0 0 1 3 3v6a3 3 0 0 0 3 3h1M6 8v6a3 3 0 0 0 3 3h2" />
+            </>
+        ),
+        registration: (
+            <>
+                <rect x="3" y="5" width="18" height="16" rx="2" />
+                <path d="M16 3v4M8 3v4M3 11h18M8 15h3M8 18h6" />
+            </>
+        ),
+        identity: (
+            <>
+                <path d="M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11Z" />
+                <circle cx="12" cy="9" r="2" />
+                <path d="M8.5 16a3.5 3.5 0 0 1 7 0" />
+            </>
+        ),
+    };
+
+    return (
+        <svg
+            className="h-5 w-5"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.7"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+        >
+            {icons[name]}
+        </svg>
+    );
+}
 
 export default function Welcome({
     auth = {},
@@ -127,9 +175,40 @@ export default function Welcome({
         ...(processSteps[index] ?? {}),
         number: String(index + 1).padStart(2, '0'),
     }));
-    const whatsappNumber = (portalContacts.nomor_whatsapp ?? '').replace(/\D/g, '').replace(/^0/, '62');
+    const sharedSettings = usePage().props.pengaturanSekolah ?? {};
+    const helpdeskPhone = portalContacts.nomor_telepon || sharedSettings.telepon || '0282695626';
+    const whatsappNumber = (portalContacts.nomor_whatsapp || helpdeskPhone).replace(/\D/g, '').replace(/^0/, '62');
     const whatsappHref = whatsappNumber ? `https://wa.me/${whatsappNumber}` : null;
-    const helpdeskPhone = portalContacts.nomor_telepon || '0282695626';
+    const helpdeskEmail = portalContacts.email || sharedSettings.email;
+    const helpdeskAddress = portalContacts.alamat || sharedSettings.alamat;
+    const registrationIsOpen = Boolean(statistics.registration_open);
+    const statisticsItems = [
+        {
+            label: 'Kompetensi Keahlian',
+            value: statistics.competencies ?? 0,
+            icon: 'competencies',
+        },
+        {
+            label: 'Jalur Seleksi',
+            value: Math.max(3, Number(statistics.pathways) || 0),
+            icon: 'pathways',
+        },
+        {
+            label: 'Status Gelombang',
+            value: wave?.nama_gelombang ?? (registrationIsOpen ? 'Pendaftaran Dibuka' : 'Pendaftaran Ditutup'),
+            icon: 'registration',
+        },
+        {
+            label: 'Pendaftaran Online',
+            value: 'NIK 16 Digit',
+            icon: 'identity',
+        },
+    ];
+    const academicYearLabel = wave?.tahun_ajaran
+        || tahunAjaranAktif?.nama_tahun
+        || tahunAjaranAktif?.tahun;
+    const registrationStatus = wave?.status_label
+        || (registrationIsOpen ? 'Pendaftaran Dibuka' : 'Pendaftaran Ditutup');
 
     const changeSlide = (direction) => {
         setActiveSlide((current) => (
@@ -142,49 +221,61 @@ export default function Welcome({
             <Head title="YAPESDAI | Portal SPMB" />
 
             <main className="bg-white font-public text-slate-900">
-                <div className="mx-auto mt-6 max-w-6xl px-4 sm:px-6">
-                    <section
-                        id="beranda"
-                        aria-label="Informasi utama SPMB"
-                        className="relative isolate h-[380px] scroll-mt-32 overflow-hidden border border-slate-200 bg-gradient-to-br from-slate-50 via-white to-amber-50 shadow-sm sm:h-[420px]"
+                <section
+                    id="beranda"
+                    aria-label="Informasi utama SPMB"
+                    className="relative isolate h-[400px] w-full scroll-mt-32 overflow-hidden rounded-t-none rounded-b-3xl bg-gradient-to-br from-slate-50 via-white to-amber-50 shadow-sm md:h-[460px] md:rounded-b-[2.5rem]"
+                >
+                    <div
+                        className="absolute inset-0 flex h-full w-full transition-transform duration-500 ease-in-out"
+                        style={{ transform: `translateX(-${activeSlide * 100}%)` }}
                     >
-                        <div
-                            className="absolute inset-0 flex h-full w-full transition-transform duration-500 ease-in-out"
-                            style={{ transform: `translateX(-${activeSlide * 100}%)` }}
-                        >
-                            {displaySlides.map((slide, index) => (
+                        {displaySlides.map((slide, index) => {
+                            const hasImage = Boolean(slide?.gambar_url);
+
+                            return (
                                 <div
                                     key={slide?.id ?? `default-slide-${index}`}
                                     aria-hidden={activeSlide !== index}
                                     className="relative flex h-full w-full shrink-0 items-center bg-gradient-to-br from-slate-50 via-white to-amber-50"
                                 >
-                                    {slide?.gambar_url && (
+                                    {hasImage && (
                                         <>
                                             <img
                                                 src={slide.gambar_url}
                                                 alt=""
                                                 className="absolute inset-0 h-full w-full object-cover"
                                             />
-                                            <div className="absolute inset-0 bg-gradient-to-r from-white via-white/95 to-white/35" />
+                                            <div className="absolute inset-0 bg-gradient-to-r from-[#0B2447]/90 via-[#0B2447]/65 to-transparent" />
                                         </>
                                     )}
 
                                     <div className="relative z-10 flex h-full w-full items-center px-14 py-8 sm:px-20 sm:py-12">
                                         {slide ? (
                                             <div className="max-w-2xl">
-                                                <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#004A99] sm:text-sm">
-                                                    {slide.kicker}
+                                                <p className={`text-xs font-bold uppercase tracking-[0.16em] sm:text-sm ${
+                                                    hasImage ? 'text-amber-300' : 'text-[#004A99]'
+                                                }`}>
+                                                    {slide.kicker || DEFAULT_HERO_KICKER}
                                                 </p>
-                                                <h1 className="mt-4 font-display text-3xl font-extrabold leading-tight tracking-tight text-[#0B2C59] sm:text-4xl lg:text-5xl">
+                                                <h1 className={`mt-4 font-display text-3xl font-extrabold leading-tight tracking-tight sm:text-4xl lg:text-5xl ${
+                                                    hasImage ? 'text-white' : 'text-[#0B2C59]'
+                                                }`}>
                                                     {slide.judul}
                                                 </h1>
-                                                <p className="mt-4 max-w-xl text-sm leading-6 text-slate-700 sm:text-base sm:leading-7">
+                                                <p className={`mt-4 max-w-xl text-sm leading-6 sm:text-base sm:leading-7 ${
+                                                    hasImage ? 'text-white/90' : 'text-slate-700'
+                                                }`}>
                                                     {slide.subjudul}
                                                 </p>
                                                 <Link
                                                     href={slide.cta_url || registerHref}
                                                     tabIndex={activeSlide === index ? undefined : -1}
-                                                    className="mt-7 inline-flex min-h-11 items-center gap-2 rounded-full bg-[#0B2C59] px-6 py-3 text-sm font-bold uppercase tracking-wide text-white shadow-md transition hover:bg-[#004A99] focus:outline-none focus:ring-4 focus:ring-[#FACC15]/50"
+                                                    className={`mt-7 inline-flex min-h-11 items-center gap-2 rounded-full px-6 py-3 text-sm font-bold uppercase tracking-wide shadow-md transition focus:outline-none focus:ring-4 focus:ring-[#FACC15]/50 ${
+                                                        hasImage
+                                                            ? 'bg-amber-400 text-[#0B2447] hover:bg-amber-300'
+                                                            : 'bg-[#0B2C59] text-white hover:bg-[#004A99]'
+                                                    }`}
                                                 >
                                                     {slide.cta_label || 'Daftar Sekarang'}
                                                     <ArrowIcon />
@@ -193,85 +284,107 @@ export default function Welcome({
                                         ) : (
                                             <div className="max-w-xl">
                                                 <p className="text-sm font-bold uppercase tracking-[0.16em] text-[#004A99]">
-                                                    Portal SPMB
+                                                    {DEFAULT_HERO_KICKER}
                                                 </p>
                                                 <h1 className="mt-4 font-display text-3xl font-extrabold leading-tight text-[#0B2C59] sm:text-4xl">
                                                     Informasi Penerimaan Murid Baru
                                                 </h1>
                                                 <p className="mt-4 text-sm leading-6 text-slate-700">
-                                                    Konten penerimaan akan ditampilkan setelah dikelola oleh administrator sekolah.
+                                                    Informasi SPMB dan pilihan kompetensi keahlian YAPESDAI.
                                                 </p>
                                             </div>
                                         )}
                                     </div>
                                 </div>
-                            ))}
-                        </div>
+                            );
+                        })}
+                    </div>
 
-                        {slides.length > 1 && (
+                    {slides.length > 1 && (
+                        <>
+                            <button
+                                type="button"
+                                aria-label="Slide sebelumnya"
+                                onClick={() => changeSlide(-1)}
+                                className="absolute left-4 top-1/2 z-20 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/85 text-[#0B2C59] shadow-md backdrop-blur-md transition hover:bg-white focus:outline-none focus:ring-4 focus:ring-[#FACC15]/50 md:left-8"
+                            >
+                                <ArrowIcon direction="left" />
+                            </button>
+                            <button
+                                type="button"
+                                aria-label="Slide berikutnya"
+                                onClick={() => changeSlide(1)}
+                                className="absolute right-4 top-1/2 z-20 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/85 text-[#0B2C59] shadow-md backdrop-blur-md transition hover:bg-white focus:outline-none focus:ring-4 focus:ring-[#FACC15]/50 md:right-8"
+                            >
+                                <ArrowIcon />
+                            </button>
+                        </>
+                    )}
+                </section>
+
+                {slides.length > 0 && (
+                    <div className="mx-auto my-3 flex max-w-6xl items-center justify-center gap-2 px-4">
+                        {slides.map((slide, index) => (
+                            <button
+                                key={slide.id}
+                                type="button"
+                                aria-label={`Tampilkan slide ${index + 1}`}
+                                aria-pressed={activeSlide === index}
+                                onClick={() => setActiveSlide(index)}
+                                className={`h-2.5 transition-all ${
+                                    activeSlide === index ? 'w-8 rounded-full bg-[#0B2C59]' : 'w-2.5 rounded-full bg-slate-300'
+                                }`}
+                            />
+                        ))}
+                    </div>
+                )}
+
+                <section
+                    aria-label="Ringkasan penerimaan"
+                    className="relative mx-auto mt-6 max-w-6xl overflow-hidden rounded-2xl border-t-2 border-amber-400 bg-gradient-to-r from-[#0B2447] via-[#12366B] to-[#0B2447] text-white shadow-xl shadow-slate-900/15"
+                >
+                    <div
+                        aria-hidden="true"
+                        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,rgba(250,204,21,0.12),transparent_38%),radial-gradient(ellipse_at_bottom_right,rgba(56,189,248,0.12),transparent_42%)]"
+                    />
+                    <div className="relative grid grid-cols-2 sm:grid-cols-4">
+                        {statisticsItems.map((item) => (
+                            <div
+                                key={item.label}
+                                className="flex min-h-32 flex-col items-center justify-center border-b border-white/10 px-3 py-5 text-center transition-colors hover:bg-white/[0.05] sm:border-b-0 sm:border-r sm:border-white/10 sm:last:border-r-0"
+                            >
+                                <span className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl border border-white/15 bg-white/10 text-amber-300">
+                                    <StatisticsIcon name={item.icon} />
+                                </span>
+                                <p className="text-base font-extrabold text-white sm:text-xl">{item.value}</p>
+                                <p className="mt-1 text-[10px] font-bold uppercase tracking-wide text-blue-100 sm:text-xs">
+                                    {item.label}
+                                </p>
+                            </div>
+                        ))}
+                    </div>
+                    <div className="relative flex flex-wrap items-center justify-center gap-x-2 gap-y-1 border-t border-white/15 px-4 py-2 text-center text-xs text-blue-100">
+                        {academicYearLabel && <span>Tahun Ajaran {academicYearLabel}</span>}
+                        {academicYearLabel && <span aria-hidden="true">·</span>}
+                        <span className="inline-flex items-center gap-2">
+                            {registrationIsOpen && (
+                                <span className="relative flex h-2.5 w-2.5" aria-hidden="true">
+                                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-300 opacity-75" />
+                                    <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-400" />
+                                </span>
+                            )}
+                            {registrationStatus}
+                        </span>
+                        {wave && (
                             <>
-                                <button
-                                    type="button"
-                                    aria-label="Slide sebelumnya"
-                                    onClick={() => changeSlide(-1)}
-                                    className="absolute left-3 top-1/2 z-20 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white text-[#0B2C59] shadow-md transition hover:bg-amber-50 focus:outline-none focus:ring-4 focus:ring-[#FACC15]/50 sm:left-5"
-                                >
-                                    <ArrowIcon direction="left" />
-                                </button>
-                                <button
-                                    type="button"
-                                    aria-label="Slide berikutnya"
-                                    onClick={() => changeSlide(1)}
-                                    className="absolute right-3 top-1/2 z-20 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white text-[#0B2C59] shadow-md transition hover:bg-amber-50 focus:outline-none focus:ring-4 focus:ring-[#FACC15]/50 sm:right-5"
-                                >
-                                    <ArrowIcon />
-                                </button>
+                                <span aria-hidden="true">·</span>
+                                <span>Kuota {wave.kuota}</span>
                             </>
                         )}
-                    </section>
+                    </div>
+                </section>
 
-                    {slides.length > 0 && (
-                        <div className="my-3 flex items-center justify-center gap-2 bg-white">
-                            {slides.map((slide, index) => (
-                                <button
-                                    key={slide.id}
-                                    type="button"
-                                    aria-label={`Tampilkan slide ${index + 1}`}
-                                    aria-pressed={activeSlide === index}
-                                    onClick={() => setActiveSlide(index)}
-                                    className={`h-2.5 transition-all ${
-                                        activeSlide === index ? 'w-8 rounded-full bg-[#0B2C59]' : 'w-2.5 rounded-full bg-slate-300'
-                                    }`}
-                                />
-                            ))}
-                        </div>
-                    )}
-
-                    <section aria-label="Ringkasan penerimaan" className="rounded-2xl bg-[#0B2C59] text-white shadow-sm">
-                        <div className="grid grid-cols-2 divide-x divide-white/15 sm:grid-cols-4">
-                            {[
-                                { label: 'Kompetensi Keahlian', value: statistics.competencies ?? 0 },
-                                { label: 'Jalur Seleksi', value: statistics.pathways ?? 0 },
-                                { label: wave?.nama_gelombang ?? 'Pendaftaran Ditutup', value: statistics.registration ?? 'Pendaftaran Ditutup' },
-                                { label: 'Pendaftaran Online', value: 'NIK 16 Digit' },
-                            ].map((item) => (
-                                <div key={item.label} className="flex min-h-24 flex-col items-center justify-center gap-1 px-3 py-5 text-center sm:min-h-32">
-                                    <p className="text-lg font-extrabold text-white sm:text-2xl">{item.value}</p>
-                                    <p className="text-[10px] font-bold uppercase tracking-wide text-blue-100 sm:text-xs">
-                                        {item.label}
-                                    </p>
-                                </div>
-                            ))}
-                        </div>
-                        {wave && (
-                            <p className="border-t border-white/15 px-4 py-2 text-center text-xs text-blue-100">
-                                Tahun Ajaran {wave.tahun_ajaran} · {wave.status_label} · Kuota {wave.kuota}
-                            </p>
-                        )}
-                    </section>
-                </div>
-
-                <section id="kompetensi-keahlian" className="scroll-mt-32 px-4 py-12 sm:px-6 sm:py-16">
+                <section id="kompetensi-keahlian" className="scroll-mt-32 px-4 py-10 sm:px-6 sm:py-12">
                     <div className="mx-auto max-w-6xl">
                         <div className="flex items-center gap-3">
                             <SectionMark />
@@ -317,7 +430,7 @@ export default function Welcome({
                     </div>
                 </section>
 
-                <section id="jalur-seleksi" className="scroll-mt-32 bg-slate-50 px-4 py-12 sm:px-6 sm:py-16">
+                <section id="jalur-seleksi" className="scroll-mt-32 bg-slate-50 px-4 py-10 sm:px-6 sm:py-12">
                     <div className="mx-auto max-w-6xl">
                         <div className="flex items-center gap-3">
                             <SectionMark />
@@ -353,7 +466,7 @@ export default function Welcome({
                                         {pathway.jadwal_kuota && (
                                             <p className="mt-3 text-xs font-semibold text-slate-700">{pathway.jadwal_kuota}</p>
                                         )}
-                                        {isRegistrationOpen ? (
+                                        {pathway.status_buka ? (
                                             <Link href={registerHref} className="mt-5 inline-flex w-fit items-center gap-2 rounded-full bg-brand-navy px-4 py-2 text-sm font-bold text-white transition hover:bg-brand-blue">
                                                 Daftar Jalur Ini <ArrowIcon />
                                             </Link>
@@ -365,14 +478,11 @@ export default function Welcome({
                                     </article>
                                 );
                             })}
-                            {displayPathways.length === 0 && (
-                                <p className="text-sm text-slate-600">Informasi jalur seleksi sedang disiapkan.</p>
-                            )}
                         </div>
                     </div>
                 </section>
 
-                <section id="persyaratan-biaya" className="scroll-mt-32 px-4 py-12 sm:px-6 sm:py-16">
+                <section id="persyaratan-biaya" className="scroll-mt-32 px-4 py-10 sm:px-6 sm:py-12">
                     <div className="mx-auto grid max-w-6xl gap-10 lg:grid-cols-[1.2fr_0.8fr]">
                         <div>
                             <div className="flex items-center gap-3">
@@ -403,31 +513,26 @@ export default function Welcome({
                         <aside className="rounded-2xl bg-[#0B2C59] p-6 text-white sm:p-8">
                             <p className="text-xs font-bold uppercase tracking-[0.14em] text-blue-200">Bantuan pendaftaran</p>
                             <h3 className="mt-2 font-display text-xl font-bold">Hubungi Panitia SPMB</h3>
-                            {portalContacts.nomor_whatsapp ? (
-                                <a
-                                    href={whatsappHref}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="mt-5 inline-flex min-h-11 items-center justify-center rounded-full bg-white px-5 py-2.5 text-sm font-bold text-[#0B2C59] transition hover:bg-amber-50"
-                                >
-                                    WhatsApp {portalContacts.nomor_whatsapp}
-                                </a>
-                            ) : (
-                                <a
-                                    href={`tel:${helpdeskPhone}`}
-                                    className="mt-5 inline-flex min-h-11 items-center justify-center rounded-full bg-white px-5 py-2.5 text-sm font-bold text-[#0B2C59] transition hover:bg-amber-50"
-                                >
-                                    Hubungi Panitia · {helpdeskPhone}
+                            <a
+                                href={whatsappHref}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="mt-5 inline-flex min-h-11 items-center justify-center rounded-full bg-white px-5 py-2.5 text-sm font-bold text-[#0B2C59] transition hover:bg-amber-50"
+                            >
+                                WhatsApp {portalContacts.nomor_whatsapp || helpdeskPhone}
+                            </a>
+                            {helpdeskEmail && (
+                                <a href={`mailto:${helpdeskEmail}`} className="mt-4 block break-all text-sm text-blue-100 hover:text-white">
+                                    {helpdeskEmail}
                                 </a>
                             )}
-                            {portalContacts.email && <p className="mt-4 break-all text-sm text-blue-100">{portalContacts.email}</p>}
-                            {portalContacts.alamat && <p className="mt-2 text-sm leading-6 text-blue-100">{portalContacts.alamat}</p>}
-                            {portalContacts.nomor_telepon && <p className="mt-2 text-sm text-blue-100">Telepon: {portalContacts.nomor_telepon}</p>}
+                            {helpdeskAddress && <p className="mt-2 text-sm leading-6 text-blue-100">{helpdeskAddress}</p>}
+                            <p className="mt-2 text-sm text-blue-100">Telepon: {helpdeskPhone}</p>
                         </aside>
                     </div>
                 </section>
 
-                <section id="alur-pendaftaran" className="scroll-mt-32 bg-blue-50/60 px-4 py-12 sm:px-6 sm:py-16">
+                <section id="alur-pendaftaran" className="scroll-mt-32 bg-blue-50/60 px-4 py-10 sm:px-6 sm:py-12">
                     <div className="mx-auto max-w-6xl">
                         <div className="flex items-center gap-3">
                             <SectionMark />

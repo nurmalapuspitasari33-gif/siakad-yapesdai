@@ -1,5 +1,4 @@
 import { Link, usePage } from '@inertiajs/react';
-import MagneticItem from '@/Components/MagneticMenu';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 const navigationItems = [
@@ -11,12 +10,72 @@ const navigationItems = [
 ];
 
 export default function PublicSiteHeader() {
-    const { props } = usePage();
+    const { component, props } = usePage();
     const auth = props.auth ?? {};
     const tahunAjaranAktif = props.tahunAjaranAktif;
     const [activeSection, setActiveSection] = useState('#beranda');
     const [activePill, setActivePill] = useState({ left: 0, top: 0, width: 0, height: 0 });
+    const headerRef = useRef(null);
     const navigationItemRefs = useRef({});
+    const scrollAnimationRef = useRef(null);
+
+    const scrollToSection = (href) => {
+        const section = document.getElementById(href.slice(1));
+
+        if (!section) {
+            return;
+        }
+
+        if (scrollAnimationRef.current !== null) {
+            window.cancelAnimationFrame(scrollAnimationRef.current);
+        }
+
+        const startPosition = window.scrollY;
+        const headerHeight = headerRef.current?.offsetHeight ?? 0;
+        const targetPosition = Math.max(
+            0,
+            startPosition + section.getBoundingClientRect().top - headerHeight - 24,
+        );
+
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            window.scrollTo(0, targetPosition);
+
+            return;
+        }
+
+        const duration = 700;
+        let startTime = null;
+        const animateScroll = (timestamp) => {
+            startTime ??= timestamp;
+            const progress = Math.min((timestamp - startTime) / duration, 1);
+            const easedProgress = progress < 0.5
+                ? 4 * progress ** 3
+                : 1 - ((-2 * progress + 2) ** 3) / 2;
+
+            window.scrollTo(
+                0,
+                startPosition + (targetPosition - startPosition) * easedProgress,
+            );
+
+            if (progress < 1) {
+                scrollAnimationRef.current = window.requestAnimationFrame(animateScroll);
+            } else {
+                scrollAnimationRef.current = null;
+            }
+        };
+
+        scrollAnimationRef.current = window.requestAnimationFrame(animateScroll);
+    };
+
+    const handleNavigationClick = (event, href) => {
+        if (component !== 'Welcome') {
+            return;
+        }
+
+        event.preventDefault();
+        setActiveSection(href);
+        scrollToSection(href);
+    };
 
     useEffect(() => {
         let animationFrame = null;
@@ -56,6 +115,10 @@ export default function PublicSiteHeader() {
             if (animationFrame !== null) {
                 window.cancelAnimationFrame(animationFrame);
             }
+
+            if (scrollAnimationRef.current !== null) {
+                window.cancelAnimationFrame(scrollAnimationRef.current);
+            }
         };
     }, []);
 
@@ -82,7 +145,7 @@ export default function PublicSiteHeader() {
     }, [activeSection]);
 
     return (
-        <header className="sticky top-0 z-40 text-white shadow-lg">
+        <header ref={headerRef} className="sticky top-0 z-40 text-white shadow-lg">
             <div className="bg-[#0B2C59]">
                 <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
                     <Link href={route('home')} aria-label="YAPESDAI — Portal SPMB" className="flex min-w-0 items-center gap-3">
@@ -119,14 +182,13 @@ export default function PublicSiteHeader() {
                         }}
                     />
                     {navigationItems.map((item) => (
-                        <MagneticItem
+                        <a
                             key={item.href}
-                            component="a"
                             ref={(element) => {
                                 navigationItemRefs.current[item.href] = element;
                             }}
                             href={`${route('home')}${item.href}`}
-                            onClick={() => setActiveSection(item.href)}
+                            onClick={(event) => handleNavigationClick(event, item.href)}
                             aria-current={activeSection === item.href ? 'location' : undefined}
                             className={`relative z-10 whitespace-nowrap rounded-md px-3.5 py-1.5 text-xs font-bold transition-colors ${
                                 activeSection === item.href
@@ -135,12 +197,12 @@ export default function PublicSiteHeader() {
                             }`}
                         >
                             {item.label}
-                        </MagneticItem>
+                        </a>
                     ))}
                     </nav>
-                    <MagneticItem component={Link} href={auth.user ? route('dashboard') : route('register')} className="inline-flex shrink-0 items-center justify-center rounded-full bg-white px-5 py-1.5 text-[10px] font-extrabold uppercase tracking-wide text-[#0B2C59] transition-colors hover:bg-amber-100 sm:text-xs">
+                    <Link href={auth.user ? route('dashboard') : route('register')} className="inline-flex shrink-0 items-center justify-center rounded-full bg-white px-5 py-1.5 text-[10px] font-extrabold uppercase tracking-wide text-[#0B2C59] transition-colors hover:bg-amber-100 sm:text-xs">
                         Daftar Sekarang
-                    </MagneticItem>
+                    </Link>
                 </div>
             </div>
         </header>
