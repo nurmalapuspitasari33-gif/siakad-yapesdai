@@ -3,9 +3,8 @@ import PublicSiteHeader from '@/Components/PublicSiteHeader';
 import { Link, usePage } from '@inertiajs/react';
 
 export default function PublicSiteLayout({ children }) {
-    const { component, props } = usePage();
+    const { component } = usePage();
     const isPortal = component === 'Welcome';
-    const assetUrls = props.assetUrls ?? {};
 
     if (isPortal) {
         return (
@@ -25,12 +24,12 @@ export default function PublicSiteLayout({ children }) {
             <div className="relative z-10 flex min-h-screen flex-col">
                 <header className="mx-auto flex w-full max-w-7xl items-center justify-center gap-3 px-5 py-5 text-center sm:px-8">
                     <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white p-1.5 shadow-lg">
-                        <img src={assetUrls.logoSekolah || '/logo.png'} alt="" className="h-full w-full object-contain" />
+                        <img src="/yapesdai.png" alt="" className="h-full w-full object-contain" />
                     </span>
                     <div className="min-w-0 text-white">
-                        <p className="truncate font-display text-sm font-extrabold uppercase tracking-wide sm:text-lg">SMK AL MU&apos;ALLIM KESUGIHAN</p>
-                        <p className="mt-0.5 text-xs font-medium text-white/75">
-                            Yayasan Pengembangan Sumberdaya Insani (YAPESDAI)
+                        <p className="truncate font-display text-sm font-extrabold uppercase tracking-wide sm:text-lg">YAPESDAI</p>
+                        <p className="mt-0.5 text-xs font-medium text-brand-gold">
+                            Yayasan Pengembangan Sumberdaya Insani
                         </p>
                     </div>
                 </header>

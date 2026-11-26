@@ -180,9 +180,7 @@ function DashboardFrame({
 }) {
     const {
         auth = {},
-        assetUrls = {},
         flash = {},
-        pengaturanSekolah = {},
         tahunAjaranAktif = null,
     } = usePage().props;
     const user = auth?.user;
@@ -330,8 +328,6 @@ function DashboardFrame({
                         isNavigationOpen={isNavigationOpen}
                         isSidebarCollapsed={isSidebarCollapsed}
                         onClose={() => setIsNavigationOpen(false)}
-                        schoolName={pengaturanSekolah?.nama_sekolah}
-                        logoUrl={assetUrls.logoSekolah}
                     />
                 )}
 

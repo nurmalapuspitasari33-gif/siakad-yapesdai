@@ -117,6 +117,7 @@ export default function SpmbCmsIndex({ gelombangs = [], banners = [], contents =
 
     const openBannerForm = (banner = null) => {
         setEditingBanner(banner);
+        bannerForm.transform((data) => data);
         bannerForm.clearErrors();
         bannerForm.setData(banner ? {
             kicker: banner.kicker,
@@ -135,9 +136,17 @@ export default function SpmbCmsIndex({ gelombangs = [], banners = [], contents =
         const options = { preserveScroll: true, onSuccess: () => openBannerForm() };
 
         if (editingBanner) {
-            bannerForm.put(route('admin.spmb-cms.banner.update', editingBanner.id), options);
+            bannerForm
+                .transform((data) => ({ ...data, _method: 'put' }))
+                .post(route('admin.spmb-cms.banner.update', editingBanner.id), {
+                    ...options,
+                    forceFormData: true,
+                });
         } else {
-            bannerForm.post(route('admin.spmb-cms.banner.store'), options);
+            bannerForm.post(route('admin.spmb-cms.banner.store'), {
+                ...options,
+                forceFormData: true,
+            });
         }
     };
 

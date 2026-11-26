@@ -1,4 +1,4 @@
-import { Head, Link, usePage } from '@inertiajs/react';
+import { Head, Link } from '@inertiajs/react';
 import { useState } from 'react';
 
 function ArrowIcon({ direction = 'right' }) {
@@ -40,13 +40,7 @@ export default function Welcome({
     portalContacts = {},
     tahunAjaranAktif = null,
 }) {
-    const { props } = usePage();
-    const pengaturanSekolah = props.pengaturanSekolah ?? {};
     const [activeSlide, setActiveSlide] = useState(0);
-    const schoolName = pengaturanSekolah.nama_sekolah
-        && pengaturanSekolah.nama_sekolah !== 'Nama Sekolah'
-        ? pengaturanSekolah.nama_sekolah
-        : "SMK Al Mu'allim Kesugihan";
     const displaySlides = slides.length > 0 ? slides : [null];
     const registerHref = auth?.user || !canRegister ? route('login') : route('register');
     const whatsappNumber = (portalContacts.nomor_whatsapp ?? '').replace(/\D/g, '').replace(/^0/, '62');
@@ -60,7 +54,7 @@ export default function Welcome({
 
     return (
         <>
-            <Head title={`SPMB | ${schoolName}`} />
+            <Head title="YAPESDAI | Portal SPMB" />
 
             <main className="bg-white font-public text-slate-900">
                 <div className="mx-auto mt-6 max-w-6xl px-4 sm:px-6">

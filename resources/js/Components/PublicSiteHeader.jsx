@@ -10,24 +10,23 @@ const navigationItems = [
 
 export default function PublicSiteHeader() {
     const { props } = usePage();
-    const assetUrls = props.assetUrls ?? {};
-    const pengaturanSekolah = props.pengaturanSekolah ?? {};
     const auth = props.auth ?? {};
     const tahunAjaranAktif = props.tahunAjaranAktif;
-    const schoolName = pengaturanSekolah.nama_sekolah
-        && pengaturanSekolah.nama_sekolah !== 'Nama Sekolah'
-        ? pengaturanSekolah.nama_sekolah
-        : "SMK Al Mu'allim Kesugihan";
 
     return (
         <header className="sticky top-0 z-40 text-white shadow-lg">
             <div className="bg-[#0B2C59]">
                 <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
-                    <Link href={route('home')} aria-label={`${schoolName} — Portal SPMB`} className="flex min-w-0 items-center gap-3">
+                    <Link href={route('home')} aria-label="YAPESDAI — Portal SPMB" className="flex min-w-0 items-center gap-3">
                         <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-white p-1.5">
-                            <img src={assetUrls.logoSekolah || '/logo.png'} alt="" className="h-full w-full object-contain" />
+                            <img src="/yapesdai.png" alt="" className="h-full w-full object-contain" />
                         </span>
-                        <span className="truncate font-display text-sm font-extrabold sm:text-base">SPMB {schoolName}</span>
+                        <span className="min-w-0">
+                            <span className="block truncate font-display text-sm font-extrabold sm:text-base">YAPESDAI</span>
+                            <span className="block truncate text-[10px] font-medium text-brand-gold sm:text-xs">
+                                Yayasan Pengembangan Sumberdaya Insani
+                            </span>
+                        </span>
                     </Link>
                     <div className="flex shrink-0 items-center gap-3">
                         <span className="hidden text-xs font-medium text-amber-300 sm:block">

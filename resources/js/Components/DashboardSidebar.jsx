@@ -5,8 +5,6 @@ export default function DashboardSidebar({
     isNavigationOpen,
     isSidebarCollapsed,
     onClose,
-    schoolName,
-    logoUrl,
 }) {
     const isAccountPage = route().current('profile.edit');
 
@@ -34,20 +32,20 @@ export default function DashboardSidebar({
                     href="/"
                     prefetch
                     className="mb-7 flex items-center gap-3 rounded-2xl px-2 py-1"
-                    aria-label={`${schoolName ?? 'SIAKAD Sekolah'}, beranda`}
+                    aria-label="YAPESDAI, beranda"
                     onClick={onClose}
                 >
                     <img
-                        src={logoUrl}
+                        src="/yapesdai.png"
                         alt=""
                         className="h-10 w-10 shrink-0 rounded-xl border border-white/20 bg-white object-contain p-1"
                     />
                     <span className="min-w-0">
                         <span className="block break-words text-[13px] font-bold leading-4 text-white">
-                            {schoolName ?? 'SIAKAD Sekolah'}
+                            YAPESDAI
                         </span>
-                        <span className="block text-xs text-white/65">
-                            Portal akademik terpadu
+                        <span className="block text-xs text-brand-gold">
+                            Yayasan Pengembangan Sumberdaya Insani
                         </span>
                     </span>
                 </Link>
