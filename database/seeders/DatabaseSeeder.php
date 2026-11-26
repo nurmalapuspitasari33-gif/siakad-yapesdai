@@ -28,6 +28,7 @@ class DatabaseSeeder extends Seeder
         $this->call(KategoriBeasiswaSeeder::class);
         $this->call(EkstrakurikulerSeeder::class);
         $this->call(ProgramKeahlianSeeder::class);
+        $this->call(SpmbCmsSeeder::class);
 
         $tahunAjaran = TahunAjaran::updateOrCreate(
             ['nama_tahun' => '2026/2027', 'semester' => 'ganjil'],

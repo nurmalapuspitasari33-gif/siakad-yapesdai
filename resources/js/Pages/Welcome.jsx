@@ -1,57 +1,44 @@
 import { Head, Link, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 
-const slides = [
-    {
-        kicker: "Sistem Penerimaan Murid Baru (SPMB) • SMK Al Mu'allim Kesugihan",
-        headline: 'Wujudkan Masa Depan Vokasi Unggul, Kompeten, dan Berakhlak Mulia.',
-        description: 'Pendaftaran peserta didik baru berbasis NIK kini lebih cepat, transparan, dan terintegrasi langsung dengan Sistem Informasi Akademik sekolah.',
-    },
-    {
-        kicker: 'Belajar terarah, siap melangkah',
-        headline: 'Siap Kerja, Santun dalam Sikap, Tangguh di Era Industri.',
-        description: 'Pilih kompetensi keahlian sesuai minatmu, lengkapi berkas secara daring, dan pantau status seleksi dari mana saja.',
-    },
-];
+function ArrowIcon({ direction = 'right' }) {
+    return (
+        <svg
+            aria-hidden="true"
+            className={`h-4 w-4 ${direction === 'left' ? 'rotate-180' : ''}`}
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+        >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14m-6-6 6 6-6 6" />
+        </svg>
+    );
+}
 
-const pathways = [
-    {
-        title: 'Reguler',
-        description: 'Jalur umum bagi calon murid yang ingin memilih kompetensi keahlian sesuai minat.',
-        icon: '01',
-    },
-    {
-        title: 'Prestasi',
-        description: 'Jalur untuk calon murid dengan capaian akademik maupun nonakademik.',
-        icon: '02',
-    },
-    {
-        title: 'Beasiswa / Afirmasi',
-        description: 'Informasi kategori bantuan dan ketentuan dapat dikonfirmasi kepada panitia.',
-        icon: '03',
-    },
-];
-
-const processSteps = [
-    'Buat Akun dengan NIK KK',
-    'Lengkapi Biodata & Jurusan',
-    'Unggah Foto Berkas Persyaratan',
-    'Cetak Bukti Formulir & Pantau Verifikasi',
-];
-
-const requiredDocuments = [
-    'Kartu Keluarga',
-    'Akta Kelahiran',
-    'Ijazah atau SKL',
-    'Pas foto',
-];
+function SectionMark() {
+    return (
+        <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-blue-50 text-brand-blue">
+            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="m12 2 2.6 6.1L21 11l-6.4 2.9L12 20l-2.6-6.1L3 11l6.4-2.9L12 2Zm7 14 .9 2.1L22 19l-2.1.9L19 22l-.9-2.1L16 19l2.1-.9L19 16Z" />
+            </svg>
+        </span>
+    );
+}
 
 export default function Welcome({
     auth = {},
     canLogin = true,
     canRegister = true,
     programKeahlians = [],
+    slides = [],
+    pathways = [],
+    requirements = [],
+    processSteps = [],
+    wave = null,
     statistics = {},
+    portalContacts = {},
+    tahunAjaranAktif = null,
 }) {
     const { props } = usePage();
     const pengaturanSekolah = props.pengaturanSekolah ?? {};
@@ -60,236 +47,292 @@ export default function Welcome({
         && pengaturanSekolah.nama_sekolah !== 'Nama Sekolah'
         ? pengaturanSekolah.nama_sekolah
         : "SMK Al Mu'allim Kesugihan";
-    const spp = Number(pengaturanSekolah.tarif_spp_reguler ?? 0);
+    const currentSlide = slides[activeSlide] ?? null;
     const registerHref = auth?.user || !canRegister ? route('login') : route('register');
+    const whatsappNumber = (portalContacts.nomor_whatsapp ?? '').replace(/\D/g, '').replace(/^0/, '62');
+    const whatsappHref = whatsappNumber ? `https://wa.me/${whatsappNumber}` : null;
+
+    const changeSlide = (direction) => {
+        setActiveSlide((current) => (
+            slides.length === 0 ? 0 : (current + direction + slides.length) % slides.length
+        ));
+    };
 
     return (
         <>
             <Head title={`SPMB | ${schoolName}`} />
 
             <main className="bg-white font-public text-slate-900">
-                <section id="beranda" className="relative isolate scroll-mt-24 overflow-hidden bg-gradient-to-br from-brand-navy via-[#123f77] to-brand-blue text-white">
-                    <div className="pointer-events-none absolute -right-24 -top-20 -z-10 h-96 w-96 rounded-full bg-brand-gold/20 blur-3xl" />
-                    <div className="pointer-events-none absolute -bottom-32 left-1/4 -z-10 h-80 w-80 rounded-full bg-cyan-300/10 blur-3xl" />
-                    <div className="mx-auto grid min-h-[480px] max-w-7xl items-center gap-8 px-5 py-14 sm:px-8 lg:grid-cols-[1.2fr_0.8fr] lg:py-20">
-                        <div>
-                            <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-xs font-semibold tracking-wide text-white/95">
-                                <span className="h-2 w-2 rounded-full bg-brand-gold" />
-                                {slides[activeSlide].kicker}
-                            </span>
-                            <h1 className="mt-6 max-w-3xl font-display text-4xl font-extrabold leading-tight tracking-tight sm:text-5xl lg:text-6xl">
-                                {slides[activeSlide].headline}
-                            </h1>
-                            <p className="mt-5 max-w-2xl text-base leading-7 text-blue-50 sm:text-lg">
-                                {slides[activeSlide].description}
-                            </p>
-                            <div className="mt-8 flex flex-wrap gap-3">
-                                <Link
-                                    href={registerHref}
-                                    className="inline-flex min-h-12 items-center justify-center rounded-full bg-brand-gold px-6 py-3 text-sm font-bold text-brand-navy shadow-lg transition hover:-translate-y-0.5 hover:bg-yellow-300"
-                                >
-                                    {auth?.user || !canRegister ? 'Masuk SIAKAD' : 'Daftar Sekarang'}
-                                    <span className="ml-2" aria-hidden="true">→</span>
-                                </Link>
-                                {canLogin && (
-                                    <Link
-                                        href={route('login')}
-                                        className="inline-flex min-h-12 items-center justify-center rounded-full border border-white/40 px-6 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
-                                    >
-                                        Cek Status / Login Akun
-                                    </Link>
-                                )}
-                            </div>
-                            <div className="mt-7 flex items-center gap-3">
-                                {slides.map((slide, index) => (
-                                    <button
-                                        key={slide.headline}
-                                        type="button"
-                                        aria-label={`Tampilkan slide ${index + 1}`}
-                                        aria-pressed={activeSlide === index}
-                                        onClick={() => setActiveSlide(index)}
-                                        className={`h-2.5 rounded-full transition-all ${activeSlide === index ? 'w-10 bg-brand-gold' : 'w-2.5 bg-white/50'}`}
-                                    />
-                                ))}
+                <div className="mx-auto mt-6 max-w-6xl px-4 sm:px-6">
+                    <section
+                        id="beranda"
+                        aria-label="Informasi utama SPMB"
+                        className="relative isolate flex min-h-[350px] scroll-mt-32 overflow-hidden rounded-t-2xl border border-slate-200 bg-gradient-to-br from-blue-50 via-white to-amber-50 shadow-sm sm:min-h-[390px]"
+                    >
+                        {currentSlide?.gambar_url && (
+                            <>
+                                <img
+                                    src={currentSlide.gambar_url}
+                                    alt=""
+                                    className="absolute inset-0 z-0 h-full w-full object-cover"
+                                />
+                                <div className="absolute inset-0 z-0 bg-gradient-to-r from-white via-white/95 to-white/35" />
+                            </>
+                        )}
+
+                        {slides.length > 1 && (
+                            <>
                                 <button
                                     type="button"
-                                    onClick={() => setActiveSlide((current) => (current + 1) % slides.length)}
-                                    className="ml-2 rounded-full px-3 py-1 text-xs font-semibold text-white/90 hover:bg-white/10"
+                                    aria-label="Slide sebelumnya"
+                                    onClick={() => changeSlide(-1)}
+                                    className="absolute left-3 top-1/2 z-20 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white text-brand-blue shadow-md transition hover:bg-blue-50 sm:left-5"
                                 >
-                                    Slide berikutnya
+                                    <ArrowIcon direction="left" />
                                 </button>
-                            </div>
-                        </div>
+                                <button
+                                    type="button"
+                                    aria-label="Slide berikutnya"
+                                    onClick={() => changeSlide(1)}
+                                    className="absolute right-3 top-1/2 z-20 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white text-brand-blue shadow-md transition hover:bg-blue-50 sm:right-5"
+                                >
+                                    <ArrowIcon />
+                                </button>
+                            </>
+                        )}
 
-                        <div className="mx-auto w-full max-w-sm">
-                            <div className="rounded-[2rem] border border-white/20 bg-white/10 p-4 shadow-2xl backdrop-blur">
-                                <div className="flex aspect-[4/3] flex-col items-center justify-center rounded-[1.5rem] bg-white p-8 text-center text-brand-navy">
-                                    <img src="/logo.png" alt="" className="h-28 w-28 object-contain" />
-                                    <p className="mt-4 font-display text-lg font-extrabold">{schoolName}</p>
-                                    <p className="mt-1 text-xs font-semibold tracking-wide text-slate-600">
-                                        Yayasan Pengembangan Sumberdaya Insani
+                        <div className="relative z-10 flex w-full items-center px-14 py-12 sm:px-20 sm:py-14">
+                            {currentSlide ? (
+                                <div className="max-w-2xl">
+                                    <p className="text-xs font-bold uppercase tracking-[0.16em] text-brand-blue sm:text-sm">
+                                        {currentSlide.kicker}
+                                    </p>
+                                    <h1 className="mt-4 font-display text-3xl font-extrabold leading-tight tracking-tight text-blue-900 sm:text-4xl lg:text-5xl">
+                                        {currentSlide.judul}
+                                    </h1>
+                                    <p className="mt-4 max-w-xl text-sm leading-6 text-slate-700 sm:text-base sm:leading-7">
+                                        {currentSlide.subjudul}
+                                    </p>
+                                    <Link
+                                        href={currentSlide.cta_url || registerHref}
+                                        className="mt-7 inline-flex min-h-11 items-center gap-2 rounded-full bg-blue-900 px-6 py-3 text-sm font-bold uppercase tracking-wide text-white shadow-md transition hover:bg-brand-blue"
+                                    >
+                                        {currentSlide.cta_label || 'Daftar Sekarang'}
+                                        <ArrowIcon />
+                                    </Link>
+                                </div>
+                            ) : (
+                                <div className="max-w-xl">
+                                    <p className="text-sm font-bold uppercase tracking-[0.16em] text-brand-blue">
+                                        Portal SPMB
+                                    </p>
+                                    <h1 className="mt-4 font-display text-3xl font-extrabold leading-tight text-blue-900 sm:text-4xl">
+                                        Informasi Penerimaan Murid Baru
+                                    </h1>
+                                    <p className="mt-4 text-sm leading-6 text-slate-700">
+                                        Konten penerimaan akan ditampilkan setelah dikelola oleh administrator sekolah.
                                     </p>
                                 </div>
-                                <p className="px-3 pb-2 pt-4 text-center text-sm font-medium leading-6 text-blue-50">
-                                    Satu akun dengan NIK untuk proses pendaftaran yang terhubung dengan layanan akademik.
-                                </p>
-                            </div>
+                            )}
                         </div>
-                    </div>
-                </section>
+                    </section>
 
-                <section aria-label="Ringkasan penerimaan" className="bg-brand-navy text-white">
-                    <div className="mx-auto grid max-w-7xl grid-cols-1 divide-y divide-white/15 px-5 sm:grid-cols-3 sm:divide-x sm:divide-y-0 sm:px-8">
-                        {[
-                            { label: 'Kompetensi Keahlian', value: statistics.competencies ?? programKeahlians.length },
-                            { label: 'Jalur Seleksi', value: statistics.pathways ?? pathways.length },
-                            { label: 'Status Gelombang', value: statistics.registration ?? 'Informasi tersedia' },
-                        ].map((item) => (
-                            <div key={item.label} className="flex min-h-24 flex-col justify-center gap-1 px-5 py-5 text-center sm:px-8">
-                                <p className="text-xl font-extrabold text-brand-gold">{item.value}</p>
-                                <p className="text-xs font-semibold uppercase tracking-wide text-white/80">{item.label}</p>
-                            </div>
-                        ))}
-                    </div>
-                </section>
+                    {slides.length > 1 && (
+                        <div className="flex h-6 items-center justify-center gap-2 bg-white">
+                            {slides.map((slide, index) => (
+                                <button
+                                    key={slide.id}
+                                    type="button"
+                                    aria-label={`Tampilkan slide ${index + 1}`}
+                                    aria-pressed={activeSlide === index}
+                                    onClick={() => setActiveSlide(index)}
+                                    className={`h-2.5 rounded-full transition-all ${
+                                        activeSlide === index ? 'w-7 bg-brand-navy' : 'w-2.5 bg-slate-300'
+                                    }`}
+                                />
+                            ))}
+                        </div>
+                    )}
 
-                <section id="kompetensi-keahlian" className="scroll-mt-24 bg-slate-50 px-5 py-16 sm:px-8">
-                    <div className="mx-auto max-w-7xl">
-                        <div className="max-w-2xl">
-                            <p className="text-xs font-bold uppercase tracking-[0.18em] text-brand-blue">Arah keahlian</p>
-                            <h2 className="mt-3 font-display text-3xl font-extrabold tracking-tight text-brand-navy">
-                                Pilih kompetensi sesuai minat dan cita-cita
-                            </h2>
-                            <p className="mt-3 text-sm leading-6 text-slate-600">
-                                Kenali program dan konsentrasi yang tersedia. Panitia akan membantu memastikan pilihan sesuai kuota tahun berjalan.
+                    <section aria-label="Ringkasan penerimaan" className="rounded-b-2xl bg-[#1D356B] text-white shadow-sm">
+                        <div className="grid grid-cols-2 divide-x divide-white/15 sm:grid-cols-4">
+                            {[
+                                { label: 'Kompetensi Keahlian', value: statistics.competencies ?? 0 },
+                                { label: 'Jalur Seleksi', value: statistics.pathways ?? 0 },
+                                { label: wave?.nama_gelombang ?? 'Pendaftaran Ditutup', value: statistics.registration ?? 'Pendaftaran Ditutup' },
+                                { label: 'Pendaftaran Online', value: 'NIK 16 Digit' },
+                            ].map((item) => (
+                                <div key={item.label} className="flex min-h-24 flex-col items-center justify-center gap-1 px-3 py-5 text-center sm:min-h-32">
+                                    <p className="text-lg font-extrabold text-white sm:text-2xl">{item.value}</p>
+                                    <p className="text-[10px] font-bold uppercase tracking-wide text-blue-100 sm:text-xs">
+                                        {item.label}
+                                    </p>
+                                </div>
+                            ))}
+                        </div>
+                        {wave && (
+                            <p className="border-t border-white/15 px-4 py-2 text-center text-xs text-blue-100">
+                                Tahun Ajaran {wave.tahun_ajaran} · {wave.status_label} · Kuota {wave.kuota}
                             </p>
+                        )}
+                    </section>
+                </div>
+
+                <section id="kompetensi-keahlian" className="scroll-mt-32 px-4 py-12 sm:px-6 sm:py-16">
+                    <div className="mx-auto max-w-6xl">
+                        <div className="flex items-center gap-3">
+                            <SectionMark />
+                            <div>
+                                <p className="text-xs font-bold uppercase tracking-[0.14em] text-brand-blue">Program keahlian</p>
+                                <h2 className="font-display text-xl font-extrabold text-[#1D356B] sm:text-2xl">
+                                    Kompetensi Keahlian
+                                </h2>
+                            </div>
                         </div>
-                        <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                            {programKeahlians.length > 0 ? programKeahlians.map((program) => (
+                        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                            {programKeahlians.map((program) => (
                                 <article key={program.id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                                     <span className="inline-flex rounded-lg bg-blue-50 px-3 py-1 text-xs font-bold text-brand-blue">
                                         {program.kode_jurusan}
                                     </span>
-                                    <h3 className="mt-4 font-display text-lg font-bold text-slate-900">{program.nama_jurusan}</h3>
+                                    <h3 className="mt-3 font-display text-lg font-bold text-slate-900">{program.nama_jurusan}</h3>
                                     <ul className="mt-3 flex flex-col gap-2 text-sm text-slate-600">
                                         {(program.konsentrasi_keahlians ?? []).map((concentration) => (
-                                            <li key={concentration.id} className="flex gap-2">
-                                                <span className="text-brand-gold">•</span>
-                                                {concentration.nama_konsentrasi}
-                                            </li>
+                                            <li key={concentration.id}>{concentration.nama_konsentrasi}</li>
                                         ))}
                                     </ul>
                                 </article>
-                            )) : (
-                                <p className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-sm text-slate-600">
-                                    Daftar kompetensi keahlian akan ditampilkan setelah data program diperbarui oleh sekolah.
-                                </p>
+                            ))}
+                            {programKeahlians.length === 0 && (
+                                <p className="text-sm text-slate-600">Informasi kompetensi keahlian belum tersedia.</p>
                             )}
                         </div>
                     </div>
                 </section>
 
-                <section id="jalur-seleksi" className="scroll-mt-24 px-5 py-16 sm:px-8">
-                    <div className="mx-auto max-w-7xl">
-                        <p className="text-xs font-bold uppercase tracking-[0.18em] text-brand-blue">Pendaftaran yang dibuka</p>
-                        <div className="mt-3 flex flex-wrap items-end justify-between gap-4">
+                <section id="jalur-seleksi" className="scroll-mt-32 bg-slate-50 px-4 py-12 sm:px-6 sm:py-16">
+                    <div className="mx-auto max-w-6xl">
+                        <div className="flex items-center gap-3">
+                            <SectionMark />
                             <div>
-                                <h2 className="font-display text-3xl font-extrabold tracking-tight text-brand-navy">Jalur penerimaan</h2>
-                                <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-                                    Ketentuan dan kuota tiap jalur mengikuti informasi resmi panitia SPMB.
-                                </p>
+                                <p className="text-xs font-bold uppercase tracking-[0.14em] text-brand-blue">Informasi penerimaan</p>
+                                <h2 className="font-display text-xl font-extrabold text-[#1D356B] sm:text-2xl">
+                                    Pendaftaran yang Dibuka
+                                </h2>
                             </div>
-                            <Link href={route('register')} className="text-sm font-bold text-brand-blue hover:text-brand-navy">
-                                Mulai pendaftaran →
-                            </Link>
                         </div>
-                        <div className="mt-8 grid gap-4 md:grid-cols-3">
+                        <div className="mt-6 grid gap-4 md:grid-cols-3">
                             {pathways.map((pathway) => (
-                                <article key={pathway.title} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                                    <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-amber-50 text-sm font-extrabold text-brand-blue ring-1 ring-brand-gold/40">
-                                        {pathway.icon}
-                                    </span>
-                                    <h3 className="mt-4 font-display text-lg font-bold text-slate-900">{pathway.title}</h3>
-                                    <p className="mt-2 text-sm leading-6 text-slate-600">{pathway.description}</p>
+                                <article key={pathway.judul} className="flex flex-col rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                                    <div className="flex items-start justify-between gap-3">
+                                        <h3 className="font-display text-lg font-bold text-slate-900">{pathway.judul}</h3>
+                                        <span className={`rounded-full px-3 py-1 text-xs font-bold ${
+                                            pathway.status_buka && statistics.registration_open
+                                                ? 'bg-emerald-50 text-emerald-800'
+                                                : 'bg-slate-100 text-slate-700'
+                                        }`}>
+                                            {pathway.status_buka && statistics.registration_open ? 'Dibuka' : 'Ditutup'}
+                                        </span>
+                                    </div>
+                                    {pathway.badge && <p className="mt-2 text-xs font-semibold text-brand-blue">{pathway.badge}</p>}
+                                    <p className="mt-3 flex-1 text-sm leading-6 text-slate-600">{pathway.deskripsi}</p>
+                                    {pathway.jadwal_kuota && (
+                                        <p className="mt-3 text-xs font-semibold text-slate-700">{pathway.jadwal_kuota}</p>
+                                    )}
+                                    {pathway.status_buka && statistics.registration_open ? (
+                                        <Link href={registerHref} className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-brand-blue hover:text-brand-navy">
+                                            Daftar jalur ini <ArrowIcon />
+                                        </Link>
+                                    ) : (
+                                        <span className="mt-5 text-sm font-semibold text-slate-500">Pendaftaran belum tersedia</span>
+                                    )}
                                 </article>
                             ))}
+                            {pathways.length === 0 && (
+                                <p className="text-sm text-slate-600">Informasi jalur seleksi belum tersedia.</p>
+                            )}
                         </div>
                     </div>
                 </section>
 
-                <section id="persyaratan-biaya" className="scroll-mt-24 bg-blue-50/70 px-5 py-16 sm:px-8">
-                    <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-2">
+                <section id="persyaratan-biaya" className="scroll-mt-32 px-4 py-12 sm:px-6 sm:py-16">
+                    <div className="mx-auto grid max-w-6xl gap-10 lg:grid-cols-[1.2fr_0.8fr]">
                         <div>
-                            <p className="text-xs font-bold uppercase tracking-[0.18em] text-brand-blue">Siapkan dari sekarang</p>
-                            <h2 className="mt-3 font-display text-3xl font-extrabold tracking-tight text-brand-navy">Persyaratan & informasi biaya</h2>
-                            <p className="mt-3 text-sm leading-6 text-slate-600">
-                                Unggah foto dokumen yang terbaca jelas. Besaran biaya dan ketentuan akhir dikonfirmasi oleh panitia.
-                            </p>
+                            <div className="flex items-center gap-3">
+                                <SectionMark />
+                                <div>
+                                    <p className="text-xs font-bold uppercase tracking-[0.14em] text-brand-blue">Dokumen dan informasi</p>
+                                    <h2 className="font-display text-xl font-extrabold text-[#1D356B] sm:text-2xl">
+                                        Persyaratan &amp; Biaya
+                                    </h2>
+                                </div>
+                            </div>
                             <ul className="mt-6 grid gap-3 sm:grid-cols-2">
-                                {requiredDocuments.map((document) => (
-                                    <li key={document} className="flex items-center gap-3 rounded-xl border border-blue-100 bg-white px-4 py-3 text-sm font-semibold text-slate-700">
-                                        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-50 text-emerald-700">✓</span>
-                                        {document}
+                                {requirements.map((item, index) => (
+                                    <li key={`${item.judul}-${index}`} className="rounded-xl border border-slate-200 bg-white p-4">
+                                        <p className="font-bold text-slate-900">{item.judul}</p>
+                                        {item.deskripsi && <p className="mt-1 text-sm leading-5 text-slate-600">{item.deskripsi}</p>}
                                     </li>
                                 ))}
+                                {requirements.length === 0 && (
+                                    <li className="text-sm text-slate-600">Persyaratan belum tersedia.</li>
+                                )}
                             </ul>
                         </div>
-                        <div className="rounded-3xl bg-brand-navy p-7 text-white shadow-xl sm:p-9">
-                            <p className="text-xs font-bold uppercase tracking-[0.18em] text-brand-gold">Informasi awal</p>
-                            <h3 className="mt-3 font-display text-2xl font-bold">Transparan sejak pendaftaran</h3>
-                            <div className="mt-6 flex flex-col gap-4 text-sm leading-6 text-blue-50">
-                                <p>
-                                    {spp > 0
-                                        ? `Informasi SPP reguler yang tercatat saat ini: Rp${new Intl.NumberFormat('id-ID').format(spp)} per bulan.`
-                                        : 'Rincian biaya pendidikan akan disampaikan oleh panitia sesuai kebijakan sekolah.'}
-                                </p>
-                                <p>Jangan mengirim pembayaran kepada pihak yang tidak tercantum dalam pengumuman resmi sekolah.</p>
-                            </div>
-                            <a
-                                href={`tel:${pengaturanSekolah.telepon || '0282695626'}`}
-                                className="mt-7 inline-flex min-h-11 items-center justify-center rounded-full bg-brand-gold px-5 py-2.5 text-sm font-bold text-brand-navy hover:bg-yellow-300"
-                            >
-                                Hubungi Panitia
-                            </a>
-                        </div>
+                        <aside className="rounded-2xl bg-[#1D356B] p-6 text-white sm:p-8">
+                            <p className="text-xs font-bold uppercase tracking-[0.14em] text-blue-200">Bantuan pendaftaran</p>
+                            <h3 className="mt-2 font-display text-xl font-bold">Hubungi Panitia SPMB</h3>
+                            {portalContacts.nomor_whatsapp ? (
+                                <a
+                                    href={whatsappHref}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="mt-5 inline-flex min-h-11 items-center justify-center rounded-full bg-white px-5 py-2.5 text-sm font-bold text-[#1D356B] transition hover:bg-blue-50"
+                                >
+                                    WhatsApp {portalContacts.nomor_whatsapp}
+                                </a>
+                            ) : (
+                                <p className="mt-4 text-sm leading-6 text-blue-100">Informasi kontak panitia belum tersedia.</p>
+                            )}
+                            {portalContacts.email && <p className="mt-4 break-all text-sm text-blue-100">{portalContacts.email}</p>}
+                            {portalContacts.alamat && <p className="mt-2 text-sm leading-6 text-blue-100">{portalContacts.alamat}</p>}
+                            {portalContacts.nomor_telepon && <p className="mt-2 text-sm text-blue-100">Telepon: {portalContacts.nomor_telepon}</p>}
+                        </aside>
                     </div>
                 </section>
 
-                <section id="alur-pendaftaran" className="scroll-mt-24 px-5 py-16 sm:px-8">
-                    <div className="mx-auto max-w-7xl">
-                        <div className="mx-auto max-w-2xl text-center">
-                            <p className="text-xs font-bold uppercase tracking-[0.18em] text-brand-blue">Mudah dan terarah</p>
-                            <h2 className="mt-3 font-display text-3xl font-extrabold tracking-tight text-brand-navy">Alur pendaftaran berbasis NIK</h2>
-                            <p className="mt-3 text-sm leading-6 text-slate-600">
-                                Gunakan NIK 16 digit sesuai Kartu Keluarga sebagai identitas akun. Email tidak wajib.
-                            </p>
+                <section id="alur-pendaftaran" className="scroll-mt-32 bg-blue-50/60 px-4 py-12 sm:px-6 sm:py-16">
+                    <div className="mx-auto max-w-6xl">
+                        <div className="flex items-center gap-3">
+                            <SectionMark />
+                            <div>
+                                <p className="text-xs font-bold uppercase tracking-[0.14em] text-brand-blue">Langkah demi langkah</p>
+                                <h2 className="font-display text-xl font-extrabold text-[#1D356B] sm:text-2xl">
+                                    Alur Pendaftaran SPMB
+                                </h2>
+                            </div>
                         </div>
-                        <ol className="mt-9 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                        <ol className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                             {processSteps.map((step, index) => (
-                                <li key={step} className="relative rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                                    <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-blue text-sm font-extrabold text-white">
+                                <li key={`${step.judul}-${index}`} className="rounded-2xl border border-blue-100 bg-white p-5 shadow-sm">
+                                    <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-brand-blue text-sm font-extrabold text-white">
                                         {index + 1}
                                     </span>
-                                    <h3 className="mt-4 font-display font-bold text-slate-900">{step}</h3>
-                                    <p className="mt-2 text-xs leading-5 text-slate-600">
-                                        {index === 0
-                                            ? 'Buat akun dengan NIK 16 digit dari Kartu Keluarga.'
-                                            : index === 1
-                                                ? 'Isi data diri, asal sekolah, dan pilihan keahlian.'
-                                                : index === 2
-                                                    ? 'Unggah hingga 20 foto persyaratan dengan jelas.'
-                                                    : 'Cetak bukti pendaftaran dan cek status seleksi.'}
-                                    </p>
+                                    <h3 className="mt-4 font-bold text-slate-900">{step.judul}</h3>
+                                    <p className="mt-2 text-sm leading-6 text-slate-600">{step.deskripsi}</p>
                                 </li>
                             ))}
                         </ol>
-                        <div className="mt-9 text-center">
+                        <div className="mt-8 text-center">
                             <Link
                                 href={registerHref}
-                                className="inline-flex min-h-12 items-center justify-center rounded-full bg-brand-blue px-7 py-3 text-sm font-bold text-white shadow-md transition hover:bg-brand-navy"
+                                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-brand-blue px-6 py-3 text-sm font-bold text-white transition hover:bg-brand-navy"
                             >
-                                {auth?.user || !canRegister ? 'Login SIAKAD' : 'Daftar Sekarang'}
+                                Daftar Sekarang <ArrowIcon />
                             </Link>
+                            <p className="mt-2 text-xs text-slate-600">
+                                {tahunAjaranAktif?.label ?? 'Tahun ajaran aktif belum ditetapkan'}
+                            </p>
                         </div>
                     </div>
                 </section>

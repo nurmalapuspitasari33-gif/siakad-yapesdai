@@ -10,6 +10,7 @@ use Illuminate\Support\Str;
 
 #[Fillable([
     'user_id',
+    'gelombang_spmb_id',
     'program_keahlian_id',
     'konsentrasi_keahlian_id',
     'no_pendaftaran',
@@ -65,6 +66,11 @@ class PendaftaranSpmb extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function gelombangSpmb(): BelongsTo
+    {
+        return $this->belongsTo(GelombangSpmb::class, 'gelombang_spmb_id');
     }
 
     public function programKeahlian(): BelongsTo

@@ -10,6 +10,7 @@ export default function roleNavigationItems(role, activeItem, options = {}) {
         { id: 'ujian', label: 'Monitoring Ujian', href: route('admin.ujian.index') },
         { id: 'hasil-ujian', label: 'Hasil Ujian', href: route('admin.hasil-ujian.index') },
         { id: 'spmb', label: 'Pendaftaran SPMB', sectionTitle: 'SPMB & Keuangan', href: route('admin.spmb.index') },
+        { id: 'spmb-cms', label: 'Gelombang & Konten SPMB', href: route('admin.spmb-cms.index') },
         { id: 'beasiswa', label: 'Kategori Beasiswa', href: route('admin.beasiswa.index') },
         { id: 'tagihan', label: 'Tagihan', href: route('admin.tagihan.index') },
         { id: 'laporan', label: 'Laporan', href: route('admin.laporan.index') },

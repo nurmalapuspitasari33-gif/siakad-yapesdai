@@ -3,6 +3,7 @@
 namespace Tests\Feature\Siswa;
 
 use App\Models\KategoriBeasiswa;
+use App\Models\GelombangSpmb;
 use App\Models\PendaftaranSpmb;
 use App\Models\ProgramKeahlian;
 use App\Models\Siswa;
@@ -20,6 +21,7 @@ class SpmbControllerTest extends TestCase
     public function test_candidate_can_submit_biodata_and_upload_multiple_spmb_photos(): void
     {
         Storage::fake('public');
+        $wave = $this->createOpenWave();
         $candidate = User::factory()->create([
             'role' => 'siswa',
             'email' => null,
@@ -99,6 +101,7 @@ class SpmbControllerTest extends TestCase
         $siswa->refresh();
 
         $this->assertSame('pending', $pendaftaran->status_seleksi);
+        $this->assertSame($wave->id, $pendaftaran->gelombang_spmb_id);
         $this->assertMatchesRegularExpression('/^SPMB-\d{4}-[A-Z0-9]{8}$/', $pendaftaran->no_pendaftaran);
         $this->assertSame('0012345678901234', $candidate->refresh()->nik);
         $this->assertArrayNotHasKey('nik', $siswa->getAttributes());
@@ -335,5 +338,41 @@ class SpmbControllerTest extends TestCase
             ->assertSessionHasErrors('konsentrasi_keahlian_id');
 
         $this->assertDatabaseCount('pendaftaran_spmbs', 0);
+    }
+
+    public function test_candidate_cannot_create_a_registration_when_no_wave_is_open(): void
+    {
+        Storage::fake('public');
+        $candidate = User::factory()->create(['role' => 'siswa', 'nik' => '0012345678901259']);
+        Siswa::create([
+            'user_id' => $candidate->id,
+            'nisn' => '3000000059',
+            'nama_lengkap' => 'Calon Siswa Sembilan',
+            'status_siswa' => 'calon_spmb',
+        ]);
+
+        $this->actingAs($candidate)
+            ->post(route('siswa.spmb.store'), [
+                'nik' => '0012345678901259',
+                'sekolah_asal' => 'SMP Negeri',
+                'no_wa_wali' => '081234567899',
+                'foto_berkas' => [UploadedFile::fake()->image('kk.jpg', 300, 400)],
+            ])
+            ->assertForbidden();
+
+        $this->assertDatabaseCount('pendaftaran_spmbs', 0);
+        $this->assertSame([], Storage::disk('public')->allFiles('berkas-spmb/foto'));
+    }
+
+    private function createOpenWave(): GelombangSpmb
+    {
+        return GelombangSpmb::create([
+            'nama_gelombang' => 'Gelombang Uji',
+            'tahun_ajaran' => '2026/2027',
+            'tanggal_mulai' => today()->subDay(),
+            'tanggal_selesai' => today()->addMonth(),
+            'kuota' => 100,
+            'is_active' => true,
+        ]);
     }
 }

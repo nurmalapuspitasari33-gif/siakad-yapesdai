@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Siswa;
 
 use App\Http\Controllers\Controller;
 use App\Models\KategoriBeasiswa;
+use App\Models\GelombangSpmb;
 use App\Models\PendaftaranSpmb;
 use App\Models\PendaftaranSpmbBerkas;
 use App\Models\ProgramKeahlian;
@@ -47,6 +48,7 @@ class SpmbController extends Controller
                 'no_pendaftaran' => $pendaftaran->no_pendaftaran,
                 'asal_sekolah' => $pendaftaran->sekolah_asal ?? $pendaftaran->asal_sekolah,
                 'status_seleksi' => $pendaftaran->status_seleksi,
+                'gelombang' => $pendaftaran->gelombangSpmb?->nama_gelombang,
                 'can_edit' => $pendaftaran->status_seleksi === 'pending',
                 'has_berkas' => (bool) ($pendaftaran->berkas_path || $pendaftaran->berkas->isNotEmpty()),
                 'berkas' => $pendaftaran->berkas->map(fn (PendaftaranSpmbBerkas $berkas): array => [
@@ -252,9 +254,13 @@ class SpmbController extends Controller
                 if ($pendaftaran) {
                     $pendaftaran->update($attributes);
                 } else {
+                    $wave = GelombangSpmb::query()->open()->lockForUpdate()->first();
+                    abort_if(! $wave, 403, 'Pendaftaran SPMB sedang ditutup.');
+
                     $pendaftaran = PendaftaranSpmb::create([
                         ...$attributes,
                         'user_id' => $user->id,
+                        'gelombang_spmb_id' => $wave->id,
                         'no_pendaftaran' => PendaftaranSpmb::generateNoPendaftaran(),
                         'status_seleksi' => 'pending',
                     ]);

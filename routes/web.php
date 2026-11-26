@@ -12,6 +12,7 @@ use App\Http\Controllers\Admin\PengaturanSekolahController;
 use App\Http\Controllers\Admin\ProgramKeahlianController;
 use App\Http\Controllers\Admin\SiswaController as AdminSiswaController;
 use App\Http\Controllers\Admin\SpmbController as AdminSpmbController;
+use App\Http\Controllers\Admin\SpmbCmsController;
 use App\Http\Controllers\Admin\TagihanController as AdminTagihanController;
 use App\Http\Controllers\Admin\TahunAjaranController;
 use App\Http\Controllers\Admin\UjianController as AdminUjianController;
@@ -109,6 +110,23 @@ Route::middleware(['auth', 'force-password-change', 'verified', 'role:admin'])
             ->parameters(['siswa' => 'siswa']);
 
         Route::get('spmb', [AdminSpmbController::class, 'index'])->name('spmb.index');
+        Route::get('spmb-cms', [SpmbCmsController::class, 'index'])->name('spmb-cms.index');
+        Route::post('spmb-cms/gelombang', [SpmbCmsController::class, 'storeWave'])->name('spmb-cms.gelombang.store');
+        Route::put('spmb-cms/gelombang/{gelombang}', [SpmbCmsController::class, 'updateWave'])
+            ->name('spmb-cms.gelombang.update');
+        Route::patch('spmb-cms/gelombang/{gelombang}/aktifkan', [SpmbCmsController::class, 'activateWave'])
+            ->name('spmb-cms.gelombang.activate');
+        Route::patch('spmb-cms/gelombang/{gelombang}/tutup', [SpmbCmsController::class, 'closeWave'])
+            ->name('spmb-cms.gelombang.close');
+        Route::delete('spmb-cms/gelombang/{gelombang}', [SpmbCmsController::class, 'destroyWave'])
+            ->name('spmb-cms.gelombang.destroy');
+        Route::post('spmb-cms/banner', [SpmbCmsController::class, 'storeBanner'])->name('spmb-cms.banner.store');
+        Route::put('spmb-cms/banner/{banner}', [SpmbCmsController::class, 'updateBanner'])
+            ->name('spmb-cms.banner.update');
+        Route::delete('spmb-cms/banner/{banner}', [SpmbCmsController::class, 'destroyBanner'])
+            ->name('spmb-cms.banner.destroy');
+        Route::put('spmb-cms/konten', [SpmbCmsController::class, 'updateContents'])
+            ->name('spmb-cms.contents.update');
         Route::put('spmb/{spmb}', [AdminSpmbController::class, 'update'])->name('spmb.update');
         Route::delete('spmb/{spmb}', [AdminSpmbController::class, 'destroy'])->name('spmb.destroy');
         Route::patch('spmb/{spmb}/terima', [AdminSpmbController::class, 'accept'])->name('spmb.accept');

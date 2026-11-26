@@ -13,76 +13,54 @@ export default function PublicSiteHeader() {
     const assetUrls = props.assetUrls ?? {};
     const pengaturanSekolah = props.pengaturanSekolah ?? {};
     const auth = props.auth ?? {};
+    const tahunAjaranAktif = props.tahunAjaranAktif;
     const schoolName = pengaturanSekolah.nama_sekolah
         && pengaturanSekolah.nama_sekolah !== 'Nama Sekolah'
         ? pengaturanSekolah.nama_sekolah
         : "SMK Al Mu'allim Kesugihan";
 
     return (
-        <header className="sticky top-0 z-40 border-b border-white/10 bg-brand-navy text-white shadow-lg">
-            <div className="mx-auto flex min-h-[76px] max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
-                <Link
-                    href={route('home')}
-                    aria-label={`${schoolName} — Portal SPMB`}
-                    className="flex min-w-0 items-center gap-3"
-                >
-                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-white p-1.5">
-                        <img
-                            src={assetUrls.logoSekolah || '/logo.png'}
-                            alt=""
-                            className="h-full w-full object-contain"
-                        />
-                    </span>
-                    <span className="min-w-0">
-                        <span className="block truncate font-display text-sm font-extrabold sm:text-base">
-                            SPMB {schoolName}
+        <header className="sticky top-0 z-40 text-white shadow-lg">
+            <div className="bg-[#0B2149]">
+                <div className="mx-auto flex min-h-[68px] max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+                    <Link href={route('home')} aria-label={`${schoolName} — Portal SPMB`} className="flex min-w-0 items-center gap-3">
+                        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-white p-1.5">
+                            <img src={assetUrls.logoSekolah || '/logo.png'} alt="" className="h-full w-full object-contain" />
                         </span>
-                        <span className="mt-0.5 hidden text-[11px] text-white/70 sm:block">
-                            YAPESDAI · Portal Penerimaan Murid Baru
+                        <span className="truncate font-display text-sm font-extrabold sm:text-base">SPMB {schoolName}</span>
+                    </Link>
+                    <div className="flex shrink-0 items-center gap-3">
+                        <span className="hidden text-xs font-medium text-blue-100 sm:block">
+                            {tahunAjaranAktif?.label ?? 'Tahun ajaran aktif belum ditetapkan'}
                         </span>
-                    </span>
-                </Link>
-
-                <nav aria-label="Navigasi utama" className="hidden items-center gap-1 xl:flex">
+                        <Link href={auth.user ? route('dashboard') : route('login')} className="rounded-full border border-white/35 px-4 py-2 text-xs font-bold transition hover:bg-white/10">
+                            Login SIAKAD
+                        </Link>
+                    </div>
+                </div>
+            </div>
+            <div className="bg-[#2B4C8C]">
+                <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-2 sm:px-6 lg:px-8">
+                    <nav aria-label="Navigasi utama" className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto">
                     {navigationItems.map((item) => (
                         <a
                             key={item.href}
-                            href={item.href}
-                            className="rounded-lg px-2.5 py-2 text-xs font-semibold text-white/85 transition hover:bg-white/10 hover:text-brand-gold"
+                            href={`${route('home')}${item.href}`}
+                            className={`whitespace-nowrap rounded px-3 py-2 text-xs font-bold transition ${
+                                item.label === 'Beranda'
+                                    ? 'bg-white text-[#0B2149]'
+                                    : 'text-white hover:bg-white/10'
+                            }`}
                         >
                             {item.label}
                         </a>
                     ))}
-                </nav>
-
-                <div className="flex shrink-0 items-center gap-2">
-                    <Link
-                        href={auth.user ? route('dashboard') : route('register')}
-                        className="inline-flex min-h-10 items-center justify-center rounded-full bg-brand-gold px-3.5 py-2 text-xs font-bold text-brand-navy transition hover:bg-yellow-300 sm:px-4 sm:text-sm"
-                    >
-                        {auth.user ? 'Dashboard' : 'Daftar Sekarang'}
-                    </Link>
-                    <Link
-                        href={auth.user ? route('dashboard') : route('login')}
-                        className="hidden min-h-10 items-center justify-center rounded-full border border-white/40 px-4 py-2 text-xs font-semibold text-white transition hover:bg-white/10 sm:inline-flex"
-                    >
-                        {auth.user ? 'SIAKAD' : 'Login SIAKAD'}
+                    </nav>
+                    <Link href={auth.user ? route('dashboard') : route('register')} className="inline-flex min-h-9 shrink-0 items-center justify-center rounded-full bg-white px-4 py-2 text-[10px] font-extrabold uppercase tracking-wide text-[#0B2149] transition hover:bg-blue-50 sm:px-5 sm:text-xs">
+                        Daftar Sekarang
                     </Link>
                 </div>
             </div>
-            <nav aria-label="Navigasi portal" className="overflow-x-auto border-t border-white/10 px-2 py-2 xl:hidden">
-                <div className="mx-auto flex w-max items-center gap-1">
-                    {navigationItems.map((item) => (
-                        <a
-                            key={item.href}
-                            href={item.href}
-                            className="whitespace-nowrap rounded-lg px-3 py-1.5 text-[11px] font-semibold text-white/85 transition hover:bg-white/10 hover:text-brand-gold"
-                        >
-                            {item.label}
-                        </a>
-                    ))}
-                </div>
-            </nav>
         </header>
     );
 }

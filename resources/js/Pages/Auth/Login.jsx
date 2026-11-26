@@ -135,7 +135,7 @@ export default function Login({ canResetPassword = true, status = null }) {
 
             <div className="mt-6 flex flex-col gap-3 border-t border-slate-200 pt-5 text-center text-sm text-slate-600">
                 <p>
-                    Calon murid baru?{' '}
+                    Belum punya akun?{' '}
                     <Link href={route('register')} className="font-bold text-brand-blue hover:text-brand-navy">
                         Daftar SPMB di sini
                     </Link>

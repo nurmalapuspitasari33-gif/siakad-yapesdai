@@ -6,11 +6,6 @@ export default function PublicSiteLayout({ children }) {
     const { component, props } = usePage();
     const isPortal = component === 'Welcome';
     const assetUrls = props.assetUrls ?? {};
-    const pengaturanSekolah = props.pengaturanSekolah ?? {};
-    const schoolName = pengaturanSekolah.nama_sekolah
-        && pengaturanSekolah.nama_sekolah !== 'Nama Sekolah'
-        ? pengaturanSekolah.nama_sekolah
-        : "SMK Al Mu'allim Kesugihan";
 
     if (isPortal) {
         return (
@@ -24,19 +19,16 @@ export default function PublicSiteLayout({ children }) {
 
     return (
         <div className="relative flex min-h-screen flex-col overflow-hidden bg-slate-950 font-public text-slate-900">
-            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_15%_15%,rgba(0,74,153,0.65),transparent_48%),radial-gradient(ellipse_at_85%_85%,rgba(200,155,37,0.18),transparent_45%),linear-gradient(135deg,#07172f,#0b2c59_55%,#102d50)]" />
-            <div className="pointer-events-none absolute inset-0 bg-slate-950/35" />
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_16%_22%,rgba(30,58,138,0.72),transparent_48%),radial-gradient(ellipse_at_82%_82%,rgba(200,155,37,0.18),transparent_40%),linear-gradient(135deg,#07152f,#0b2149_55%,#142a48)]" />
+            <div className="pointer-events-none absolute inset-0 opacity-20 [background-image:linear-gradient(135deg,transparent_45%,rgba(255,255,255,0.12)_45.2%,transparent_45.5%),linear-gradient(45deg,transparent_60%,rgba(255,255,255,0.08)_60.2%,transparent_60.5%)]" />
+            <div className="pointer-events-none absolute inset-0 bg-slate-950/30" />
             <div className="relative z-10 flex min-h-screen flex-col">
-                <header className="mx-auto flex w-full max-w-7xl items-center gap-3 px-5 py-5 sm:px-8">
+                <header className="mx-auto flex w-full max-w-7xl items-center justify-center gap-3 px-5 py-5 text-center sm:px-8">
                     <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white p-1.5 shadow-lg">
-                        <img
-                            src={assetUrls.logoSekolah || '/logo.png'}
-                            alt=""
-                            className="h-full w-full object-contain"
-                        />
+                        <img src={assetUrls.logoSekolah || '/logo.png'} alt="" className="h-full w-full object-contain" />
                     </span>
                     <div className="min-w-0 text-white">
-                        <p className="truncate font-display text-base font-extrabold sm:text-lg">{schoolName}</p>
+                        <p className="truncate font-display text-sm font-extrabold uppercase tracking-wide sm:text-lg">SMK AL MU&apos;ALLIM KESUGIHAN</p>
                         <p className="mt-0.5 text-xs font-medium text-white/75">
                             Yayasan Pengembangan Sumberdaya Insani (YAPESDAI)
                         </p>

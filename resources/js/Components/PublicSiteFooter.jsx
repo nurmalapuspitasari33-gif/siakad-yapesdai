@@ -4,13 +4,16 @@ export default function PublicSiteFooter() {
     const { props } = usePage();
     const assetUrls = props.assetUrls ?? {};
     const pengaturanSekolah = props.pengaturanSekolah ?? {};
+    const portalContacts = props.portalContacts ?? {};
     const schoolName = pengaturanSekolah.nama_sekolah
         && pengaturanSekolah.nama_sekolah !== 'Nama Sekolah'
         ? pengaturanSekolah.nama_sekolah
         : "SMK Al Mu'allim Kesugihan";
-    const contactHref = pengaturanSekolah.email
-        ? `mailto:${pengaturanSekolah.email}`
-        : `tel:${pengaturanSekolah.telepon || '0282695626'}`;
+    const contactHref = portalContacts.email
+        ? `mailto:${portalContacts.email}`
+        : portalContacts.nomor_whatsapp
+            ? `https://wa.me/${portalContacts.nomor_whatsapp.replace(/\D/g, '').replace(/^0/, '62')}`
+            : `tel:${portalContacts.nomor_telepon || pengaturanSekolah.telepon || '0282695626'}`;
 
     return (
         <footer className="shrink-0 border-t-4 border-brand-gold bg-brand-navy text-white">
@@ -55,18 +58,18 @@ export default function PublicSiteFooter() {
                         Kontak
                     </h2>
                     <div className="mt-3 flex flex-col items-start gap-2 text-sm text-white/80">
-                        {pengaturanSekolah.alamat && <p>{pengaturanSekolah.alamat}</p>}
-                        {pengaturanSekolah.telepon && (
-                            <a href={`tel:${pengaturanSekolah.telepon}`} className="transition hover:text-brand-gold">
-                                {pengaturanSekolah.telepon}
+                        {(portalContacts.alamat || pengaturanSekolah.alamat) && <p>{portalContacts.alamat || pengaturanSekolah.alamat}</p>}
+                        {(portalContacts.nomor_telepon || pengaturanSekolah.telepon) && (
+                            <a href={`tel:${portalContacts.nomor_telepon || pengaturanSekolah.telepon}`} className="transition hover:text-brand-gold">
+                                {portalContacts.nomor_telepon || pengaturanSekolah.telepon}
                             </a>
                         )}
-                        {pengaturanSekolah.email && (
+                        {(portalContacts.email || portalContacts.nomor_whatsapp) && (
                             <a href={contactHref} className="break-all transition hover:text-brand-gold">
-                                {pengaturanSekolah.email}
+                                {portalContacts.email || `WhatsApp ${portalContacts.nomor_whatsapp}`}
                             </a>
                         )}
-                        {!pengaturanSekolah.telepon && !pengaturanSekolah.email && (
+                        {!portalContacts.nomor_telepon && !portalContacts.email && !portalContacts.nomor_whatsapp && !pengaturanSekolah.telepon && !pengaturanSekolah.email && (
                             <a href={contactHref} className="transition hover:text-brand-gold">
                                 Hubungi sekolah
                             </a>
