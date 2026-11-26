@@ -199,6 +199,9 @@ export default function Welcome({
     const helpdeskEmail = portalContacts.email || sharedSettings.email;
     const helpdeskAddress = portalContacts.alamat || sharedSettings.alamat;
     const registrationIsOpen = Boolean(statistics.registration_open);
+    const waveDateRange = wave?.tanggal_mulai && wave?.tanggal_selesai
+        ? `${wave.tanggal_mulai} – ${wave.tanggal_selesai}`
+        : 'JADWAL PENDAFTARAN AKTIF';
     const statisticsItems = [
         {
             label: 'Program Keahlian',
@@ -211,7 +214,7 @@ export default function Welcome({
             icon: 'pathways',
         },
         {
-            label: 'Status Gelombang',
+            label: waveDateRange,
             value: wave?.nama_gelombang ?? (registrationIsOpen ? 'Pendaftaran Dibuka' : 'Pendaftaran Ditutup'),
             icon: 'registration',
         },

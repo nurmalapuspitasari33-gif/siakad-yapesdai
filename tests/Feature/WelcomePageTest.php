@@ -23,6 +23,8 @@ class WelcomePageTest extends TestCase
                 ->component('Welcome')
                 ->where('canLogin', true)
                 ->where('canRegister', true)
+                ->where('wave.tanggal_mulai', '01/11/2026')
+                ->where('wave.tanggal_selesai', '31/07/2027')
                 ->where('statistics.pathways', 3)
                 ->where('statistics.registration_open', true)
                 ->has('slides', 2)

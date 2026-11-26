@@ -71,8 +71,8 @@ class SpmbPortalController extends Controller
             'wave' => $wave ? [
                 'nama_gelombang' => $wave->nama_gelombang,
                 'tahun_ajaran' => $wave->tahun_ajaran,
-                'tanggal_mulai' => $wave->tanggal_mulai->format('d-m-Y'),
-                'tanggal_selesai' => $wave->tanggal_selesai->format('d-m-Y'),
+                'tanggal_mulai' => $wave->tanggal_mulai?->format('d/m/Y'),
+                'tanggal_selesai' => $wave->tanggal_selesai?->format('d/m/Y'),
                 'kuota' => $wave->kuota,
                 'status_label' => $registrationOpen ? 'Pendaftaran Dibuka' : 'Pendaftaran Ditutup',
             ] : null,
