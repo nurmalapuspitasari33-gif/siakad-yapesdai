@@ -268,7 +268,7 @@ export default function Welcome({
                     onTouchStart={() => setIsHeroPaused(true)}
                     onTouchEnd={() => setIsHeroPaused(false)}
                     onTouchCancel={() => setIsHeroPaused(false)}
-                    className="relative isolate h-[400px] w-full scroll-mt-32 overflow-hidden rounded-t-none rounded-b-3xl bg-gradient-to-br from-slate-50 via-white to-amber-50 shadow-sm md:h-[460px] md:rounded-b-[2.5rem]"
+                    className="relative isolate flex min-h-[500px] w-full items-center scroll-mt-32 overflow-hidden rounded-t-none rounded-b-3xl bg-gradient-to-br from-slate-50 via-white to-amber-50 py-14 shadow-sm sm:min-h-[480px] md:h-[480px] md:rounded-b-[2.5rem] md:py-0"
                 >
                     <div
                         className="absolute inset-0 flex h-full w-full transition-transform duration-500 ease-in-out"
@@ -294,20 +294,20 @@ export default function Welcome({
                                         </>
                                     )}
 
-                                    <div className="relative z-10 flex h-full w-full items-center pl-16 pr-14 py-8 md:pl-20 md:pr-20 sm:py-12">
+                                    <div className="relative z-10 flex h-full w-full items-center px-10 sm:px-14 md:px-20">
                                         {slide ? (
-                                            <div className="max-w-2xl">
+                                            <div className="w-full max-w-5xl space-y-3 sm:space-y-4">
                                                 <p className={`text-xs font-bold uppercase tracking-[0.16em] sm:text-sm ${
                                                     hasImage ? 'text-amber-300' : 'text-[#004A99]'
                                                 }`}>
                                                     {slide.kicker || DEFAULT_HERO_KICKER}
                                                 </p>
-                                                <h1 className={`mt-4 font-display text-3xl font-extrabold leading-tight tracking-tight sm:text-4xl lg:text-5xl ${
+                                                <h1 className={`font-display text-3xl font-extrabold leading-tight tracking-tight sm:text-4xl lg:text-5xl ${
                                                     hasImage ? 'text-white' : 'text-[#0B2C59]'
                                                 }`}>
                                                     {slide.judul}
                                                 </h1>
-                                                <p className={`mt-4 max-w-xl text-sm leading-6 sm:text-base sm:leading-7 ${
+                                                <p className={`max-w-xl text-sm leading-6 sm:text-base sm:leading-7 ${
                                                     hasImage ? 'text-white/90' : 'text-slate-700'
                                                 }`}>
                                                     {slide.subjudul}
@@ -315,7 +315,7 @@ export default function Welcome({
                                                 <Link
                                                     href={slide.cta_url || registerHref}
                                                     tabIndex={activeSlide === index ? undefined : -1}
-                                                    className={`mt-7 inline-flex min-h-11 items-center gap-2 rounded-full px-6 py-3 text-sm font-bold uppercase tracking-wide shadow-md transition focus:outline-none focus:ring-4 focus:ring-[#FACC15]/50 ${
+                                                    className={`inline-flex min-h-11 items-center gap-2 rounded-full px-6 py-3 text-sm font-bold uppercase tracking-wide shadow-md transition focus:outline-none focus:ring-4 focus:ring-[#FACC15]/50 ${
                                                         hasImage
                                                             ? 'bg-amber-400 text-[#0B2447] hover:bg-amber-300'
                                                             : 'bg-[#0B2C59] text-white hover:bg-[#004A99]'
@@ -326,14 +326,14 @@ export default function Welcome({
                                                 </Link>
                                             </div>
                                         ) : (
-                                            <div className="max-w-xl">
+                                            <div className="w-full max-w-5xl space-y-3 sm:space-y-4">
                                                 <p className="text-sm font-bold uppercase tracking-[0.16em] text-[#004A99]">
                                                     {DEFAULT_HERO_KICKER}
                                                 </p>
-                                                <h1 className="mt-4 font-display text-3xl font-extrabold leading-tight text-[#0B2C59] sm:text-4xl">
+                                                <h1 className="font-display text-3xl font-extrabold leading-tight text-[#0B2C59] sm:text-4xl">
                                                     Informasi Penerimaan Murid Baru
                                                 </h1>
-                                                <p className="mt-4 text-sm leading-6 text-slate-700">
+                                                <p className="text-sm leading-6 text-slate-700">
                                                     Informasi SPMB dan pilihan program keahlian YAPESDAI.
                                                 </p>
                                             </div>
