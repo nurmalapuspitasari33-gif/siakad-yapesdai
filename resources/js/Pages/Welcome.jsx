@@ -47,7 +47,7 @@ export default function Welcome({
         && pengaturanSekolah.nama_sekolah !== 'Nama Sekolah'
         ? pengaturanSekolah.nama_sekolah
         : "SMK Al Mu'allim Kesugihan";
-    const currentSlide = slides[activeSlide] ?? null;
+    const displaySlides = slides.length > 0 ? slides : [null];
     const registerHref = auth?.user || !canRegister ? route('login') : route('register');
     const whatsappNumber = (portalContacts.nomor_whatsapp ?? '').replace(/\D/g, '').replace(/^0/, '62');
     const whatsappHref = whatsappNumber ? `https://wa.me/${whatsappNumber}` : null;
@@ -67,18 +67,67 @@ export default function Welcome({
                     <section
                         id="beranda"
                         aria-label="Informasi utama SPMB"
-                        className="relative isolate flex min-h-[350px] scroll-mt-32 overflow-hidden rounded-t-2xl border border-slate-200 bg-gradient-to-br from-blue-50 via-white to-amber-50 shadow-sm sm:min-h-[390px]"
+                        className="relative isolate h-[380px] scroll-mt-32 overflow-hidden border border-slate-200 bg-gradient-to-br from-slate-50 via-white to-amber-50 shadow-sm sm:h-[420px]"
                     >
-                        {currentSlide?.gambar_url && (
-                            <>
-                                <img
-                                    src={currentSlide.gambar_url}
-                                    alt=""
-                                    className="absolute inset-0 z-0 h-full w-full object-cover"
-                                />
-                                <div className="absolute inset-0 z-0 bg-gradient-to-r from-white via-white/95 to-white/35" />
-                            </>
-                        )}
+                        <div
+                            className="absolute inset-0 flex h-full w-full transition-transform duration-500 ease-in-out"
+                            style={{ transform: `translateX(-${activeSlide * 100}%)` }}
+                        >
+                            {displaySlides.map((slide, index) => (
+                                <div
+                                    key={slide?.id ?? `default-slide-${index}`}
+                                    aria-hidden={activeSlide !== index}
+                                    className="relative flex h-full w-full shrink-0 items-center bg-gradient-to-br from-slate-50 via-white to-amber-50"
+                                >
+                                    {slide?.gambar_url && (
+                                        <>
+                                            <img
+                                                src={slide.gambar_url}
+                                                alt=""
+                                                className="absolute inset-0 h-full w-full object-cover"
+                                            />
+                                            <div className="absolute inset-0 bg-gradient-to-r from-white via-white/95 to-white/35" />
+                                        </>
+                                    )}
+
+                                    <div className="relative z-10 flex h-full w-full items-center px-14 py-8 sm:px-20 sm:py-12">
+                                        {slide ? (
+                                            <div className="max-w-2xl">
+                                                <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#004A99] sm:text-sm">
+                                                    {slide.kicker}
+                                                </p>
+                                                <h1 className="mt-4 font-display text-3xl font-extrabold leading-tight tracking-tight text-[#0B2C59] sm:text-4xl lg:text-5xl">
+                                                    {slide.judul}
+                                                </h1>
+                                                <p className="mt-4 max-w-xl text-sm leading-6 text-slate-700 sm:text-base sm:leading-7">
+                                                    {slide.subjudul}
+                                                </p>
+                                                <Link
+                                                    href={slide.cta_url || registerHref}
+                                                    tabIndex={activeSlide === index ? undefined : -1}
+                                                    className="mt-7 inline-flex min-h-11 items-center gap-2 rounded-full bg-[#0B2C59] px-6 py-3 text-sm font-bold uppercase tracking-wide text-white shadow-md transition hover:bg-[#004A99] focus:outline-none focus:ring-4 focus:ring-[#FACC15]/50"
+                                                >
+                                                    {slide.cta_label || 'Daftar Sekarang'}
+                                                    <ArrowIcon />
+                                                </Link>
+                                            </div>
+                                        ) : (
+                                            <div className="max-w-xl">
+                                                <p className="text-sm font-bold uppercase tracking-[0.16em] text-[#004A99]">
+                                                    Portal SPMB
+                                                </p>
+                                                <h1 className="mt-4 font-display text-3xl font-extrabold leading-tight text-[#0B2C59] sm:text-4xl">
+                                                    Informasi Penerimaan Murid Baru
+                                                </h1>
+                                                <p className="mt-4 text-sm leading-6 text-slate-700">
+                                                    Konten penerimaan akan ditampilkan setelah dikelola oleh administrator sekolah.
+                                                </p>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
 
                         {slides.length > 1 && (
                             <>
@@ -86,7 +135,7 @@ export default function Welcome({
                                     type="button"
                                     aria-label="Slide sebelumnya"
                                     onClick={() => changeSlide(-1)}
-                                    className="absolute left-3 top-1/2 z-20 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white text-brand-blue shadow-md transition hover:bg-blue-50 sm:left-5"
+                                    className="absolute left-3 top-1/2 z-20 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white text-[#0B2C59] shadow-md transition hover:bg-amber-50 focus:outline-none focus:ring-4 focus:ring-[#FACC15]/50 sm:left-5"
                                 >
                                     <ArrowIcon direction="left" />
                                 </button>
@@ -94,51 +143,16 @@ export default function Welcome({
                                     type="button"
                                     aria-label="Slide berikutnya"
                                     onClick={() => changeSlide(1)}
-                                    className="absolute right-3 top-1/2 z-20 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white text-brand-blue shadow-md transition hover:bg-blue-50 sm:right-5"
+                                    className="absolute right-3 top-1/2 z-20 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white text-[#0B2C59] shadow-md transition hover:bg-amber-50 focus:outline-none focus:ring-4 focus:ring-[#FACC15]/50 sm:right-5"
                                 >
                                     <ArrowIcon />
                                 </button>
                             </>
                         )}
-
-                        <div className="relative z-10 flex w-full items-center px-14 py-12 sm:px-20 sm:py-14">
-                            {currentSlide ? (
-                                <div className="max-w-2xl">
-                                    <p className="text-xs font-bold uppercase tracking-[0.16em] text-brand-blue sm:text-sm">
-                                        {currentSlide.kicker}
-                                    </p>
-                                    <h1 className="mt-4 font-display text-3xl font-extrabold leading-tight tracking-tight text-blue-900 sm:text-4xl lg:text-5xl">
-                                        {currentSlide.judul}
-                                    </h1>
-                                    <p className="mt-4 max-w-xl text-sm leading-6 text-slate-700 sm:text-base sm:leading-7">
-                                        {currentSlide.subjudul}
-                                    </p>
-                                    <Link
-                                        href={currentSlide.cta_url || registerHref}
-                                        className="mt-7 inline-flex min-h-11 items-center gap-2 rounded-full bg-blue-900 px-6 py-3 text-sm font-bold uppercase tracking-wide text-white shadow-md transition hover:bg-brand-blue"
-                                    >
-                                        {currentSlide.cta_label || 'Daftar Sekarang'}
-                                        <ArrowIcon />
-                                    </Link>
-                                </div>
-                            ) : (
-                                <div className="max-w-xl">
-                                    <p className="text-sm font-bold uppercase tracking-[0.16em] text-brand-blue">
-                                        Portal SPMB
-                                    </p>
-                                    <h1 className="mt-4 font-display text-3xl font-extrabold leading-tight text-blue-900 sm:text-4xl">
-                                        Informasi Penerimaan Murid Baru
-                                    </h1>
-                                    <p className="mt-4 text-sm leading-6 text-slate-700">
-                                        Konten penerimaan akan ditampilkan setelah dikelola oleh administrator sekolah.
-                                    </p>
-                                </div>
-                            )}
-                        </div>
                     </section>
 
-                    {slides.length > 1 && (
-                        <div className="flex h-6 items-center justify-center gap-2 bg-white">
+                    {slides.length > 0 && (
+                        <div className="my-3 flex items-center justify-center gap-2 bg-white">
                             {slides.map((slide, index) => (
                                 <button
                                     key={slide.id}
@@ -146,15 +160,15 @@ export default function Welcome({
                                     aria-label={`Tampilkan slide ${index + 1}`}
                                     aria-pressed={activeSlide === index}
                                     onClick={() => setActiveSlide(index)}
-                                    className={`h-2.5 rounded-full transition-all ${
-                                        activeSlide === index ? 'w-7 bg-brand-navy' : 'w-2.5 bg-slate-300'
+                                    className={`h-2.5 transition-all ${
+                                        activeSlide === index ? 'w-8 rounded-full bg-[#0B2C59]' : 'w-2.5 rounded-full bg-slate-300'
                                     }`}
                                 />
                             ))}
                         </div>
                     )}
 
-                    <section aria-label="Ringkasan penerimaan" className="rounded-b-2xl bg-[#1D356B] text-white shadow-sm">
+                    <section aria-label="Ringkasan penerimaan" className="rounded-2xl bg-[#0B2C59] text-white shadow-sm">
                         <div className="grid grid-cols-2 divide-x divide-white/15 sm:grid-cols-4">
                             {[
                                 { label: 'Kompetensi Keahlian', value: statistics.competencies ?? 0 },
@@ -184,7 +198,7 @@ export default function Welcome({
                             <SectionMark />
                             <div>
                                 <p className="text-xs font-bold uppercase tracking-[0.14em] text-brand-blue">Program keahlian</p>
-                                <h2 className="font-display text-xl font-extrabold text-[#1D356B] sm:text-2xl">
+                                <h2 className="font-display text-xl font-extrabold text-[#0B2C59] sm:text-2xl">
                                     Kompetensi Keahlian
                                 </h2>
                             </div>
@@ -216,7 +230,7 @@ export default function Welcome({
                             <SectionMark />
                             <div>
                                 <p className="text-xs font-bold uppercase tracking-[0.14em] text-brand-blue">Informasi penerimaan</p>
-                                <h2 className="font-display text-xl font-extrabold text-[#1D356B] sm:text-2xl">
+                                <h2 className="font-display text-xl font-extrabold text-[#0B2C59] sm:text-2xl">
                                     Pendaftaran yang Dibuka
                                 </h2>
                             </div>
@@ -262,7 +276,7 @@ export default function Welcome({
                                 <SectionMark />
                                 <div>
                                     <p className="text-xs font-bold uppercase tracking-[0.14em] text-brand-blue">Dokumen dan informasi</p>
-                                    <h2 className="font-display text-xl font-extrabold text-[#1D356B] sm:text-2xl">
+                                    <h2 className="font-display text-xl font-extrabold text-[#0B2C59] sm:text-2xl">
                                         Persyaratan &amp; Biaya
                                     </h2>
                                 </div>
@@ -279,7 +293,7 @@ export default function Welcome({
                                 )}
                             </ul>
                         </div>
-                        <aside className="rounded-2xl bg-[#1D356B] p-6 text-white sm:p-8">
+                        <aside className="rounded-2xl bg-[#0B2C59] p-6 text-white sm:p-8">
                             <p className="text-xs font-bold uppercase tracking-[0.14em] text-blue-200">Bantuan pendaftaran</p>
                             <h3 className="mt-2 font-display text-xl font-bold">Hubungi Panitia SPMB</h3>
                             {portalContacts.nomor_whatsapp ? (
@@ -287,7 +301,7 @@ export default function Welcome({
                                     href={whatsappHref}
                                     target="_blank"
                                     rel="noreferrer"
-                                    className="mt-5 inline-flex min-h-11 items-center justify-center rounded-full bg-white px-5 py-2.5 text-sm font-bold text-[#1D356B] transition hover:bg-blue-50"
+                                    className="mt-5 inline-flex min-h-11 items-center justify-center rounded-full bg-white px-5 py-2.5 text-sm font-bold text-[#0B2C59] transition hover:bg-amber-50"
                                 >
                                     WhatsApp {portalContacts.nomor_whatsapp}
                                 </a>
@@ -307,7 +321,7 @@ export default function Welcome({
                             <SectionMark />
                             <div>
                                 <p className="text-xs font-bold uppercase tracking-[0.14em] text-brand-blue">Langkah demi langkah</p>
-                                <h2 className="font-display text-xl font-extrabold text-[#1D356B] sm:text-2xl">
+                                <h2 className="font-display text-xl font-extrabold text-[#0B2C59] sm:text-2xl">
                                     Alur Pendaftaran SPMB
                                 </h2>
                             </div>
