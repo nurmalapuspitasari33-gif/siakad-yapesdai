@@ -117,7 +117,7 @@ class RaporWaliControllerTest extends TestCase
             'nilai_uts' => 80,
             'nilai_uas' => 90,
             'nilai_akhir' => 80,
-            'capaian_kompetensi' => 'Memahami materi.',
+            'capaian_kompetensi' => "Wali Kelas: Memahami materi.\nGuru Pengampu Kedua: Memahami materi.",
         ]);
         $otherTeacher = Guru::create([
             'user_id' => User::factory()->create(['role' => 'guru'])->id,
@@ -125,9 +125,9 @@ class RaporWaliControllerTest extends TestCase
             'nama_lengkap' => 'Guru Pengampu Kedua',
         ]);
         foreach ([
-            [$wali, 70],
-            [$otherTeacher, 90],
-        ] as [$teacher, $score]) {
+            [$wali, 70, 'Memahami materi.'],
+            [$otherTeacher, 90, 'Memahami materi.'],
+        ] as [$teacher, $score, $description]) {
             NilaiGuru::create([
                 'tahun_ajaran_id' => $tahunAjaran->id,
                 'siswa_id' => $student->id,
@@ -135,6 +135,7 @@ class RaporWaliControllerTest extends TestCase
                 'mapel_id' => $mapel->id,
                 'guru_id' => $teacher->id,
                 'nilai_akhir' => $score,
+                'capaian_kompetensi' => $description,
             ]);
         }
         CatatanRapor::create([

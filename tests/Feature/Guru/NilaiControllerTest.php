@@ -58,7 +58,7 @@ class NilaiControllerTest extends TestCase
             'siswa_id' => $student->id,
             'mapel_id' => $mapel->id,
             'nilai_akhir' => 80,
-            'capaian_kompetensi' => 'Guru Matematika: Memahami konsep dengan baik.',
+            'capaian_kompetensi' => 'Memahami konsep dengan baik.',
         ]);
     }
 
@@ -180,7 +180,7 @@ class NilaiControllerTest extends TestCase
             'nilai_tugas' => 50,
             'nilai_uts' => 50,
             'nilai_uas' => 50,
-            'capaian_kompetensi' => 'Guru Matematika: Menerapkan konsep secara mandiri.',
+            'capaian_kompetensi' => 'Menerapkan konsep secara mandiri.',
         ]);
     }
 
@@ -250,6 +250,7 @@ class NilaiControllerTest extends TestCase
             'siswa_id' => $student->id,
             'mapel_id' => $mapel->id,
             'nilai_akhir' => 85,
+            'capaian_kompetensi' => "Menguasai dasar materi.\nMenerapkan materi.",
         ]);
 
         $this->actingAs($firstTeacherUser)
@@ -268,6 +269,7 @@ class NilaiControllerTest extends TestCase
                 'nilai' => [[
                     'siswa_id' => $student->id,
                     'nilai_akhir' => 100,
+                    'capaian_kompetensi' => 'Menguasai dasar materi.',
                 ]],
             ])
             ->assertRedirect();
@@ -278,6 +280,7 @@ class NilaiControllerTest extends TestCase
             'siswa_id' => $student->id,
             'mapel_id' => $mapel->id,
             'nilai_akhir' => 90,
+            'capaian_kompetensi' => 'Menguasai dasar materi.',
         ]);
     }
 

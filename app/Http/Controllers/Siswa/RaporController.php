@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Siswa;
 use App\Http\Controllers\Controller;
 use App\Models\CatatanRapor;
 use App\Models\Nilai;
+use App\Models\NilaiGuru;
 use App\Models\PengaturanSekolah;
 use App\Models\TahunAjaran;
 use App\Support\StudentReportData;
@@ -59,6 +60,11 @@ class RaporController extends Controller
                 'mataPelajaran:id,kode_mapel,nama_mapel,kelompok_mapel',
             ])
             ->get();
+        $nilaiGurusByYearAndSubject = NilaiGuru::query()
+            ->where('siswa_id', $siswa->id)
+            ->whereIn('tahun_ajaran_id', $nilais->pluck('tahun_ajaran_id')->unique())
+            ->get(['tahun_ajaran_id', 'siswa_id', 'mapel_id', 'capaian_kompetensi'])
+            ->groupBy(fn (NilaiGuru $nilaiGuru): string => "{$nilaiGuru->tahun_ajaran_id}:{$nilaiGuru->mapel_id}");
         $catatanRapors = CatatanRapor::query()
             ->where('siswa_id', $siswa->id)
             ->get()
@@ -106,7 +112,12 @@ class RaporController extends Controller
             ?? null;
 
         $allRapor = $yearIds
-            ->map(function (int|string $tahunAjaranId) use ($catatanRapors, $nilaiByYear, $tahunAjarans): array {
+            ->map(function (int|string $tahunAjaranId) use (
+                $catatanRapors,
+                $nilaiByYear,
+                $tahunAjarans,
+                $nilaiGurusByYearAndSubject,
+            ): array {
                 $tahunAjaranId = (int) $tahunAjaranId;
                 $tahunAjaran = $tahunAjarans->get($tahunAjaranId);
                 $catatan = $catatanRapors->get($tahunAjaranId);
@@ -116,13 +127,20 @@ class RaporController extends Controller
                     'tahun_ajaran' => $tahunAjaran?->nama_tahun,
                     'semester' => $tahunAjaran?->semester,
                     'mata_pelajaran' => ($nilaiByYear->get($tahunAjaranId, collect()))
-                        ->map(fn (Nilai $nilai): array => [
-                            'kode_mapel' => $nilai->mataPelajaran?->kode_mapel,
-                            'nama_mapel' => $nilai->mataPelajaran?->nama_mapel,
-                            'kelompok_mapel' => $nilai->mataPelajaran?->kelompok_mapel,
-                            'nilai_akhir' => $nilai->nilai_akhir,
-                            'capaian_kompetensi' => $nilai->capaian_kompetensi,
-                        ])
+                        ->map(function (Nilai $nilai) use ($tahunAjaranId, $nilaiGurusByYearAndSubject): array {
+                            $contributions = $nilaiGurusByYearAndSubject
+                                ->get("{$tahunAjaranId}:{$nilai->mapel_id}", collect());
+
+                            return [
+                                'kode_mapel' => $nilai->mataPelajaran?->kode_mapel,
+                                'nama_mapel' => $nilai->mataPelajaran?->nama_mapel,
+                                'kelompok_mapel' => $nilai->mataPelajaran?->kelompok_mapel,
+                                'nilai_akhir' => $nilai->nilai_akhir,
+                                'capaian_kompetensi' => $contributions->isNotEmpty()
+                                    ? NilaiGuru::combineCompetencyDescriptions($contributions)
+                                    : $nilai->capaian_kompetensi,
+                            ];
+                        })
                         ->sortBy('nama_mapel')
                         ->values(),
                     'catatan_rapor' => [

@@ -419,7 +419,6 @@ class NilaiController extends Controller
             ->where('kelas_id', $classId)
             ->where('mapel_id', $subjectId)
             ->whereIn('siswa_id', $studentIds)
-            ->with('guru:id,nama_lengkap')
             ->get()
             ->groupBy('siswa_id');
 
@@ -442,15 +441,9 @@ class NilaiController extends Controller
                 $reportScore->nilai_uas = 0;
             }
 
-            $competencyNotes = $contributions
-                ->filter(fn (NilaiGuru $contribution): bool => filled($contribution->capaian_kompetensi))
-                ->map(fn (NilaiGuru $contribution): string => ($contribution->guru?->nama_lengkap ?? 'Guru')
-                    .': '.$contribution->capaian_kompetensi)
-                ->implode("\n");
-
             $reportScore->fill([
                 'nilai_akhir' => round((float) $contributions->avg('nilai_akhir'), 2),
-                'capaian_kompetensi' => $competencyNotes !== '' ? $competencyNotes : null,
+                'capaian_kompetensi' => NilaiGuru::combineCompetencyDescriptions($contributions),
             ])->save();
         }
     }

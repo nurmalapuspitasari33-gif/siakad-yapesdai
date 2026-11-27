@@ -3,9 +3,11 @@
 namespace Tests\Feature\Siswa;
 
 use App\Models\CatatanRapor;
+use App\Models\Guru;
 use App\Models\Kelas;
 use App\Models\MataPelajaran;
 use App\Models\Nilai;
+use App\Models\NilaiGuru;
 use App\Models\PengaturanSekolah;
 use App\Models\ProgramKeahlian;
 use App\Models\Siswa;
@@ -79,6 +81,11 @@ class RaporControllerTest extends TestCase
             'kode_mapel' => 'MAT-001',
             'nama_mapel' => 'Matematika',
         ]);
+        $teacher = Guru::create([
+            'user_id' => User::factory()->create(['role' => 'guru'])->id,
+            'nip' => '19870001',
+            'nama_lengkap' => 'Guru Matematika',
+        ]);
         Nilai::create([
             'tahun_ajaran_id' => $tahunAjaran->id,
             'siswa_id' => $student->id,
@@ -86,6 +93,15 @@ class RaporControllerTest extends TestCase
             'nilai_tugas' => 70,
             'nilai_uts' => 80,
             'nilai_uas' => 90,
+            'nilai_akhir' => 80,
+            'capaian_kompetensi' => 'Guru Matematika: Menerapkan konsep secara mandiri.',
+        ]);
+        NilaiGuru::create([
+            'tahun_ajaran_id' => $tahunAjaran->id,
+            'siswa_id' => $student->id,
+            'kelas_id' => $kelas->id,
+            'mapel_id' => $mapel->id,
+            'guru_id' => $teacher->id,
             'nilai_akhir' => 80,
             'capaian_kompetensi' => 'Menerapkan konsep secara mandiri.',
         ]);

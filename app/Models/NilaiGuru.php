@@ -17,6 +17,20 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 ])]
 class NilaiGuru extends Model
 {
+    /**
+     * @param  iterable<NilaiGuru>  $contributions
+     */
+    public static function combineCompetencyDescriptions(iterable $contributions): ?string
+    {
+        $descriptions = collect($contributions)
+            ->map(fn (NilaiGuru $contribution): ?string => $contribution->capaian_kompetensi)
+            ->filter(fn (?string $description): bool => filled($description))
+            ->unique(fn (string $description): string => trim($description))
+            ->values();
+
+        return $descriptions->isNotEmpty() ? $descriptions->implode("\n") : null;
+    }
+
     public function tahunAjaran(): BelongsTo
     {
         return $this->belongsTo(TahunAjaran::class);

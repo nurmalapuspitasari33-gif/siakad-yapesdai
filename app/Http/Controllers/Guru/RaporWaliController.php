@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\CatatanRapor;
 use App\Models\Ekstrakurikuler;
 use App\Models\Jadwal;
+use App\Models\Nilai;
+use App\Models\NilaiGuru;
 use App\Models\PengaturanSekolah;
 use App\Models\PresensiKelas;
 use App\Models\Siswa;
@@ -117,20 +119,23 @@ class RaporWaliController extends Controller
                 'id' => $siswa->id,
                 'wali_kelas_nama' => $guru->nama_lengkap,
                 'wali_niky' => $guru->nip,
-                'nilai' => $siswa->nilais->mapWithKeys(fn ($nilai): array => [
-                    $nilai->mapel_id => [
+                'nilai' => $siswa->nilais->mapWithKeys(function (Nilai $nilai) use ($siswa): array {
+                    $contributions = $siswa->nilaiGurus->where('mapel_id', $nilai->mapel_id);
+
+                    return [$nilai->mapel_id => [
                         'nilai_akhir' => $nilai->nilai_akhir,
-                        'capaian_kompetensi' => $nilai->capaian_kompetensi,
-                        'kontribusi_guru' => $siswa->nilaiGurus
-                            ->where('mapel_id', $nilai->mapel_id)
+                        'capaian_kompetensi' => $contributions->isNotEmpty()
+                            ? NilaiGuru::combineCompetencyDescriptions($contributions)
+                            : $nilai->capaian_kompetensi,
+                        'kontribusi_guru' => $contributions
                             ->map(fn ($contribution): array => [
                                 'guru_id' => $contribution->guru_id,
                                 'nama_guru' => $contribution->guru?->nama_lengkap ?? 'Guru',
                                 'nilai_akhir' => $contribution->nilai_akhir,
                             ])
                             ->values(),
-                    ],
-                ]),
+                    ]];
+                }),
                 'has_nilai' => $scores->isNotEmpty(),
                 'jumlah_nilai' => $jumlahNilai,
                 'rata_rata' => $scores->isNotEmpty()
