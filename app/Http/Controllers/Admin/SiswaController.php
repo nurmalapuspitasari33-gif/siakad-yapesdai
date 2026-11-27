@@ -658,9 +658,13 @@ class SiswaController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
+        $request->merge([
+            'nisn' => blank($request->input('nisn')) ? null : $request->input('nisn'),
+        ]);
+
         $validated = $request->validate([
-            'nik' => StudentIdentity::nikRules(),
-            'nisn' => ['required', 'string', 'max:255', Rule::unique('siswas', 'nisn')],
+            'nik' => ['nullable', 'string', 'digits:16', Rule::unique('users', 'nik')],
+            'nisn' => ['nullable', 'string', 'max:255', Rule::unique('siswas', 'nisn')],
             'nama_lengkap' => ['required', 'string', 'max:255'],
             'email' => ['nullable', 'string', 'lowercase', 'email', 'max:255', Rule::unique('users', 'email')],
             'password' => ['required', 'string', 'min:8'],
@@ -669,10 +673,8 @@ class SiswaController extends Controller
             ...$this->programRules($request),
             ...StudentIdentity::rules(),
         ], [
-            'nisn.required' => 'NISN wajib diisi.',
             'nisn.unique' => 'NISN sudah digunakan.',
             'nama_lengkap.required' => 'Nama lengkap wajib diisi.',
-            'nik.required' => 'NIK wajib diisi.',
             'nik.digits' => 'NIK harus terdiri dari 16 digit.',
             'nik.unique' => 'NIK sudah digunakan.',
             'email.unique' => 'Email sudah digunakan.',
@@ -690,7 +692,7 @@ class SiswaController extends Controller
             $user = User::create([
                 'name' => $validated['nama_lengkap'],
                 'email' => $validated['email'] ?? null,
-                'nik' => $validated['nik'],
+                'nik' => $validated['nik'] ?? null,
                 'password' => $validated['password'],
                 'role' => 'siswa',
             ]);
@@ -719,6 +721,9 @@ class SiswaController extends Controller
     {
         abort_unless($siswa->status_siswa === 'aktif', 404);
         $siswa->load('user');
+        $request->merge([
+            'nisn' => blank($request->input('nisn')) ? null : $request->input('nisn'),
+        ]);
 
         $validated = $request->validate([
             'nik' => [
@@ -727,7 +732,7 @@ class SiswaController extends Controller
                 'digits:16',
                 Rule::unique('users', 'nik')->ignore($siswa->user),
             ],
-            'nisn' => ['required', 'string', 'max:255', Rule::unique('siswas', 'nisn')->ignore($siswa)],
+            'nisn' => ['nullable', 'string', 'max:255', Rule::unique('siswas', 'nisn')->ignore($siswa->id)],
             'nama_lengkap' => ['required', 'string', 'max:255'],
             'email' => ['nullable', 'string', 'lowercase', 'email', 'max:255', Rule::unique('users', 'email')->ignore($siswa->user)],
             'password' => ['nullable', 'string', 'min:8'],
@@ -736,7 +741,6 @@ class SiswaController extends Controller
             ...$this->programRules($request),
             ...StudentIdentity::rules($siswa),
         ], [
-            'nisn.required' => 'NISN wajib diisi.',
             'nisn.unique' => 'NISN sudah digunakan.',
             'nama_lengkap.required' => 'Nama lengkap wajib diisi.',
             'nik.digits' => 'NIK harus terdiri dari 16 digit.',

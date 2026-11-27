@@ -264,19 +264,9 @@ class SiswaControllerTest extends TestCase
             ->assertRedirect(route('siswa.dashboard'));
     }
 
-    public function test_new_student_requires_a_unique_sixteen_digit_nik(): void
+    public function test_new_student_accepts_an_optional_nik_and_validates_it_when_provided(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
-
-        $this->actingAs($admin)
-            ->post(route('admin.siswa.store'), [
-                'nisn' => '1000000089',
-                'nama_lengkap' => 'Tanpa NIK',
-                'email' => '',
-                'password' => 'password123',
-                'tipe_program' => 'reguler',
-            ])
-            ->assertSessionHasErrors(['nik' => 'NIK wajib diisi.']);
 
         $this->actingAs($admin)
             ->post(route('admin.siswa.store'), [
@@ -306,6 +296,66 @@ class SiswaControllerTest extends TestCase
                 'tipe_program' => 'reguler',
             ])
             ->assertSessionHasErrors(['nik' => 'NIK sudah digunakan.']);
+    }
+
+    public function test_admin_can_create_student_without_nisn_or_nik(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $this->actingAs($admin)
+            ->post(route('admin.siswa.store'), [
+                'nik' => '',
+                'nisn' => '',
+                'nama_lengkap' => 'Siswa Tanpa NISN',
+                'email' => '',
+                'password' => 'password123',
+                'tipe_program' => 'reguler',
+            ])
+            ->assertRedirect(route('admin.siswa.index', absolute: false));
+
+        $student = Siswa::query()->where('nama_lengkap', 'Siswa Tanpa NISN')->firstOrFail();
+
+        $this->assertNull($student->nisn);
+        $this->assertNull($student->user->nik);
+    }
+
+    public function test_admin_can_remove_student_nisn_and_still_cannot_use_another_students_nisn(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $firstUser = User::factory()->create(['role' => 'siswa']);
+        $firstStudent = Siswa::create([
+            'user_id' => $firstUser->id,
+            'nisn' => '1000000093',
+            'nama_lengkap' => 'Siswa Pertama',
+            'status_siswa' => 'aktif',
+        ]);
+        $secondUser = User::factory()->create(['role' => 'siswa']);
+        $secondStudent = Siswa::create([
+            'user_id' => $secondUser->id,
+            'nisn' => '1000000094',
+            'nama_lengkap' => 'Siswa Kedua',
+            'status_siswa' => 'aktif',
+        ]);
+
+        $this->actingAs($admin)
+            ->put(route('admin.siswa.update', $firstStudent), [
+                'nik' => '',
+                'nisn' => '',
+                'nama_lengkap' => 'Siswa Pertama Diperbarui',
+                'email' => '',
+                'password' => '',
+            ])
+            ->assertRedirect(route('admin.siswa.index', absolute: false));
+
+        $this->assertNull($firstStudent->fresh()->nisn);
+
+        $this->actingAs($admin)
+            ->put(route('admin.siswa.update', $firstStudent), [
+                'nisn' => $secondStudent->nisn,
+                'nama_lengkap' => 'Siswa Pertama Diperbarui',
+                'password' => '',
+            ])
+            ->assertSessionHasErrors(['nisn' => 'NISN sudah digunakan.']);
     }
 
     public function test_admin_cannot_reset_candidate_student_password_from_active_student_management(): void

@@ -739,7 +739,7 @@ export default function SiswaIndex({
                         <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
                             <div>
                                 <label htmlFor="nik-siswa" className="mb-1.5 block text-xs font-semibold text-slate-700">
-                                    NIK 16 Digit {!editingSiswa && <span className="text-rose-500">*</span>}
+                                    NIK 16 Digit (opsional)
                                 </label>
                                 <input
                                     id="nik-siswa"
@@ -747,7 +747,6 @@ export default function SiswaIndex({
                                     inputMode="numeric"
                                     pattern="[0-9]{16}"
                                     maxLength={16}
-                                    required={!editingSiswa}
                                     value={form.data.nik}
                                     onChange={(event) => form.setData('nik', event.target.value)}
                                     placeholder="Masukkan NIK dari KK"
@@ -758,12 +757,11 @@ export default function SiswaIndex({
 
                             <div>
                                 <label htmlFor="nisn-siswa" className="mb-1.5 block text-xs font-semibold text-slate-700">
-                                    NISN <span className="text-rose-500">*</span>
+                                    NISN (opsional)
                                 </label>
                                 <input
                                     id="nisn-siswa"
                                     type="text"
-                                    required
                                     value={form.data.nisn}
                                     onChange={(event) => form.setData('nisn', event.target.value)}
                                     placeholder="Contoh: 0012345678"
