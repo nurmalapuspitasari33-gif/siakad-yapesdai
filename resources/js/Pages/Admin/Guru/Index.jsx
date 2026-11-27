@@ -52,7 +52,7 @@ export default function GuruIndex({ gurus }) {
         form.setData({
             nip: guru.nip,
             nama_lengkap: guru.nama_lengkap,
-            email: guru.user.email,
+            email: guru.user.email ?? '',
             no_wa: guru.user.no_wa ?? '',
             password: '',
             is_wali_kelas: guru.is_wali_kelas,
@@ -135,7 +135,7 @@ export default function GuruIndex({ gurus }) {
                     <ExcelImportPanel
                         templateUrl={route('admin.guru.template')}
                         importUrl={route('admin.guru.import')}
-                        description="Kolom: NIKY, nama, email, WhatsApp, status wali kelas, dan nama kelas wali."
+                        description="Kolom NIKY dan nama wajib. Email, WhatsApp, dan data wali kelas boleh dikosongkan. Username dibuat dari nama; kata sandi awal password wajib diganti saat login pertama."
                     />
                 </div>
 
@@ -143,7 +143,7 @@ export default function GuruIndex({ gurus }) {
                     <table className="min-w-full divide-y divide-slate-100 text-left">
                         <thead className="bg-slate-50">
                             <tr>
-                                {['NIKY', 'Nama Lengkap', 'Email', 'No. WhatsApp', 'Status', 'Aksi'].map((label) => (
+                                {['NIKY', 'Nama Lengkap', 'Username', 'Email', 'No. WhatsApp', 'Status', 'Aksi'].map((label) => (
                                     <th
                                         key={label}
                                         className="whitespace-nowrap px-5 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 first:sm:px-7 last:sm:px-7"
@@ -156,7 +156,7 @@ export default function GuruIndex({ gurus }) {
                         <tbody className="divide-y divide-slate-100">
                             {gurus.data.length === 0 ? (
                                 <tr>
-                                    <td colSpan="6" className="px-5 py-12 text-center text-sm text-slate-500">
+                                    <td colSpan="7" className="px-5 py-12 text-center text-sm text-slate-500">
                                         Belum ada data guru.
                                     </td>
                                 </tr>
@@ -168,8 +168,11 @@ export default function GuruIndex({ gurus }) {
                                     <td className="whitespace-nowrap px-5 py-4 text-sm font-semibold text-slate-900">
                                         {guru.nama_lengkap}
                                     </td>
+                                    <td className="whitespace-nowrap px-5 py-4 font-mono text-sm text-slate-600">
+                                        {guru.user.username || '—'}
+                                    </td>
                                     <td className="whitespace-nowrap px-5 py-4 text-sm text-slate-600">
-                                        {guru.user.email}
+                                        {guru.user.email || '—'}
                                     </td>
                                     <td className="whitespace-nowrap px-5 py-4 text-sm text-slate-600">
                                         {guru.user.no_wa || '—'}
@@ -221,7 +224,9 @@ export default function GuruIndex({ gurus }) {
             <AdminResourceModal
                 show={isFormOpen}
                 title={editingGuru ? 'Edit Data Guru' : 'Tambah Guru'}
-                description="Data akun pengguna dan profil guru akan disimpan bersamaan."
+                description={editingGuru
+                    ? 'Username akun tidak berubah saat nama profil diperbarui.'
+                    : 'Username dibuat otomatis dari nama guru. Kata sandi awal adalah password dan harus diganti saat login pertama.'}
                 processing={form.processing}
                 submitLabel={editingGuru ? 'Simpan Perubahan' : 'Tambah Guru'}
                 onClose={closeForm}
@@ -249,7 +254,9 @@ export default function GuruIndex({ gurus }) {
                         <InputError message={form.errors.nama_lengkap} className="mt-2" />
                     </div>
                     <div>
-                        <label htmlFor="email-guru" className="mb-2 block text-sm font-semibold text-slate-700">Email Akun</label>
+                        <label htmlFor="email-guru" className="mb-2 block text-sm font-semibold text-slate-700">
+                            Email Akun <span className="font-normal text-slate-400">(opsional)</span>
+                        </label>
                         <input
                             id="email-guru"
                             type="email"
@@ -271,20 +278,22 @@ export default function GuruIndex({ gurus }) {
                         />
                         <InputError message={form.errors.no_wa} className="mt-2" />
                     </div>
-                    <div className="sm:col-span-2">
-                        <label htmlFor="password-guru" className="mb-2 block text-sm font-semibold text-slate-700">
-                            Kata Sandi {editingGuru && <span className="font-normal text-slate-400">(kosongkan jika tidak diubah)</span>}
-                        </label>
-                        <input
-                            id="password-guru"
-                            type="password"
-                            autoComplete="new-password"
-                            value={form.data.password}
-                            onChange={(event) => form.setData('password', event.target.value)}
-                            className="block w-full rounded-xl border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                        />
-                        <InputError message={form.errors.password} className="mt-2" />
-                    </div>
+                    {editingGuru && (
+                        <div className="sm:col-span-2">
+                            <label htmlFor="password-guru" className="mb-2 block text-sm font-semibold text-slate-700">
+                                Kata Sandi Baru <span className="font-normal text-slate-400">(kosongkan jika tidak diubah)</span>
+                            </label>
+                            <input
+                                id="password-guru"
+                                type="password"
+                                autoComplete="new-password"
+                                value={form.data.password}
+                                onChange={(event) => form.setData('password', event.target.value)}
+                                className="block w-full rounded-xl border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                            />
+                            <InputError message={form.errors.password} className="mt-2" />
+                        </div>
+                    )}
                     <label className="flex items-start gap-3 rounded-xl border border-slate-200 p-4 sm:col-span-2">
                         <input
                             type="checkbox"
@@ -321,7 +330,7 @@ export default function GuruIndex({ gurus }) {
                 onSubmit={submitResetPassword}
             >
                 <p className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900">
-                    Kata sandi baru adalah <span className="font-bold">password</span>. Sampaikan kata sandi ini secara aman kepada guru terkait.
+                    Kata sandi baru adalah <span className="font-bold">password</span>. Sampaikan secara aman; guru wajib menggantinya saat login berikutnya.
                 </p>
             </AdminResourceModal>
         </DashboardLayout>

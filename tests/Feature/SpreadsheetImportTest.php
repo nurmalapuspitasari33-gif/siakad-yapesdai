@@ -71,7 +71,7 @@ class SpreadsheetImportTest extends TestCase
             ->post(route('admin.guru.import'), [
                 'file' => $this->xlsxUpload(
                     ['niky', 'nama_lengkap', 'email', 'no_wa', 'is_wali_kelas', 'nama_kelas_wali'],
-                    [['19870001', 'Dewi Puspita', 'dewi@sekolah.sch.id', '081234567890', 'ya', $kelas->nama_kelas]],
+                    [['19870001', 'Dewi Puspita', '', '081234567890', 'ya', $kelas->nama_kelas]],
                 ),
             ])
             ->assertRedirect(route('admin.guru.index', absolute: false));
@@ -81,6 +81,9 @@ class SpreadsheetImportTest extends TestCase
         $this->assertSame($guru->id, $kelas->fresh()->wali_kelas_id);
         $this->assertTrue($guru->is_wali_kelas);
         $this->assertTrue(Hash::check('password', $guru->user->password));
+        $this->assertSame('dewi.puspita', $guru->user->username);
+        $this->assertNull($guru->user->email);
+        $this->assertTrue($guru->user->must_change_password);
     }
 
     public function test_admin_import_skips_existing_teachers_and_imports_new_teachers(): void
@@ -111,7 +114,7 @@ class SpreadsheetImportTest extends TestCase
             ->assertRedirect(route('admin.guru.index', absolute: false))
             ->assertSessionHas(
                 'success',
-                '1 guru baru berhasil diimpor. 2 baris dilewati karena NIKY atau email sudah terdaftar. Kata sandi awal akun adalah password.',
+                '1 guru baru berhasil diimpor. 2 baris dilewati karena NIKY atau email sudah terdaftar. Kata sandi awal akun adalah password dan wajib diganti saat login pertama.',
             );
 
         $this->assertDatabaseCount('gurus', 2);

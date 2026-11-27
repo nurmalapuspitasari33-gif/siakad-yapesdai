@@ -13,6 +13,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -38,7 +39,7 @@ class GuruController extends Controller
     {
         return Inertia::render('Admin/Guru/Index', [
             'gurus' => Guru::query()
-                ->with('user:id,name,email,no_wa')
+                ->with('user:id,name,username,email,no_wa')
                 ->orderBy('nama_lengkap')
                 ->paginate(10)
                 ->withQueryString(),
@@ -89,10 +90,11 @@ class GuruController extends Controller
         foreach ($rows as $item) {
             $rowNumber = $item['row'];
             $data = $item['data'];
+            $data['email'] = trim((string) ($data['email'] ?? '')) ?: null;
             $nikyKey = mb_strtolower(trim((string) ($data['niky'] ?? '')));
             $emailKey = mb_strtolower(trim((string) ($data['email'] ?? '')));
 
-            if (isset($existingNiky[$nikyKey]) || isset($existingEmails[$emailKey])) {
+            if (isset($existingNiky[$nikyKey]) || ($emailKey !== '' && isset($existingEmails[$emailKey]))) {
                 $skippedRows[] = $rowNumber;
 
                 continue;
@@ -103,7 +105,7 @@ class GuruController extends Controller
             $validator = Validator::make($data, [
                 'niky' => ['required', 'string', 'max:255', Rule::unique('gurus', 'nip')],
                 'nama_lengkap' => ['required', 'string', 'max:255'],
-                'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')],
+                'email' => ['nullable', 'email', 'max:255', Rule::unique('users', 'email')],
                 'no_wa' => ['nullable', 'string', 'max:30'],
                 'is_wali_kelas' => ['required', Rule::in(['ya', 'tidak'])],
                 'nama_kelas_wali' => ['nullable', 'string', 'max:255', 'required_if:is_wali_kelas,ya'],
@@ -117,18 +119,22 @@ class GuruController extends Controller
 
             $data = $validator->validated();
             $nikyKey = mb_strtolower($data['niky']);
-            $emailKey = mb_strtolower($data['email']);
+            $emailKey = mb_strtolower((string) ($data['email'] ?? ''));
 
             if (isset($seenNiky[$nikyKey])) {
                 $errors[] = "Baris {$rowNumber}: NIKY duplikat di dalam file.";
             }
 
-            if (isset($seenEmails[$emailKey])) {
+            if ($emailKey !== '' && isset($seenEmails[$emailKey])) {
                 $errors[] = "Baris {$rowNumber}: Email duplikat di dalam file.";
             }
 
             $seenNiky[$nikyKey] = true;
-            $seenEmails[$emailKey] = true;
+
+            if ($emailKey !== '') {
+                $seenEmails[$emailKey] = true;
+            }
+
             $classId = null;
 
             if ($data['is_wali_kelas'] === 'ya') {
@@ -168,12 +174,16 @@ class GuruController extends Controller
                 $data = $teacher['data'];
                 $user = User::create([
                     'name' => $data['nama_lengkap'],
-                    'email' => $data['email'],
+                    'username' => $this->generateUsername($data['nama_lengkap']),
+                    'email' => $data['email'] ?? null,
                     'no_wa' => $data['no_wa'] ?? null,
                     'password' => 'password',
                     'role' => 'guru',
                 ]);
-                $user->forceFill(['email_verified_at' => now()])->save();
+                $user->forceFill([
+                    'email_verified_at' => now(),
+                    'must_change_password' => true,
+                ])->save();
 
                 $guru = Guru::create([
                     'user_id' => $user->id,
@@ -195,7 +205,7 @@ class GuruController extends Controller
         }
 
         if ($teachers !== []) {
-            $message .= ' Kata sandi awal akun adalah password.';
+            $message .= ' Kata sandi awal akun adalah password dan wajib diganti saat login pertama.';
         }
 
         return to_route('admin.guru.index')->with('success', $message);
@@ -206,26 +216,28 @@ class GuruController extends Controller
         $validated = $request->validate([
             'nip' => ['required', 'string', 'max:255', Rule::unique('gurus', 'nip')],
             'nama_lengkap' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')],
+            'email' => ['nullable', 'email', 'max:255', Rule::unique('users', 'email')],
             'no_wa' => ['nullable', 'string', 'max:30'],
-            'password' => ['required', 'string', 'min:8'],
             'is_wali_kelas' => ['required', 'boolean'],
         ], [
             'nip.required' => 'NIKY wajib diisi.',
             'nip.unique' => 'NIKY sudah digunakan.',
             'email.unique' => 'Email sudah digunakan.',
-            'password.min' => 'Kata sandi minimal 8 karakter.',
         ], ['nip' => 'NIKY']);
 
-        DB::transaction(function () use ($validated): void {
+        $username = DB::transaction(function () use ($validated): string {
             $user = User::create([
                 'name' => $validated['nama_lengkap'],
-                'email' => $validated['email'],
+                'username' => $this->generateUsername($validated['nama_lengkap']),
+                'email' => $validated['email'] ?? null,
                 'no_wa' => $validated['no_wa'] ?? null,
-                'password' => $validated['password'],
+                'password' => 'password',
                 'role' => 'guru',
             ]);
-            $user->forceFill(['email_verified_at' => now()])->save();
+            $user->forceFill([
+                'email_verified_at' => now(),
+                'must_change_password' => true,
+            ])->save();
 
             Guru::create([
                 'user_id' => $user->id,
@@ -233,9 +245,14 @@ class GuruController extends Controller
                 'nama_lengkap' => $validated['nama_lengkap'],
                 'is_wali_kelas' => $validated['is_wali_kelas'],
             ]);
+
+            return $user->username;
         });
 
-        return to_route('admin.guru.index')->with('success', 'Data guru berhasil ditambahkan.');
+        return to_route('admin.guru.index')->with(
+            'success',
+            "Data guru berhasil ditambahkan. Username: {$username}. Kata sandi awal: password dan wajib diganti saat login pertama.",
+        );
     }
 
     public function update(Request $request, Guru $guru): RedirectResponse
@@ -245,7 +262,7 @@ class GuruController extends Controller
         $validated = $request->validate([
             'nip' => ['required', 'string', 'max:255', Rule::unique('gurus', 'nip')->ignore($guru)],
             'nama_lengkap' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($guru->user)],
+            'email' => ['nullable', 'email', 'max:255', Rule::unique('users', 'email')->ignore($guru->user)],
             'no_wa' => ['nullable', 'string', 'max:30'],
             'password' => ['nullable', 'string', 'min:8'],
             'is_wali_kelas' => ['required', 'boolean'],
@@ -259,16 +276,17 @@ class GuruController extends Controller
         DB::transaction(function () use ($guru, $validated): void {
             $userData = [
                 'name' => $validated['nama_lengkap'],
-                'email' => $validated['email'],
+                'email' => $validated['email'] ?? null,
                 'no_wa' => $validated['no_wa'] ?? null,
             ];
 
-            if ($guru->user->email !== $validated['email']) {
+            if ($guru->user->email !== ($validated['email'] ?? null)) {
                 $userData['email_verified_at'] = null;
             }
 
             if (! empty($validated['password'])) {
                 $userData['password'] = $validated['password'];
+                $userData['must_change_password'] = true;
             }
 
             $guru->user->forceFill($userData)->save();
@@ -302,10 +320,31 @@ class GuruController extends Controller
     {
         $guru->user->forceFill([
             'password' => Hash::make('password'),
+            'must_change_password' => true,
         ])->save();
 
         return to_route('admin.guru.index')
-            ->with('success', 'Kata sandi akun guru berhasil direset menjadi password.');
+            ->with('success', 'Kata sandi akun guru berhasil direset menjadi password dan wajib diganti saat login berikutnya.');
+    }
+
+    private function generateUsername(string $namaLengkap): string
+    {
+        $baseUsername = rtrim(substr(Str::slug($namaLengkap, '.'), 0, 240), '.');
+        $baseUsername = $baseUsername === '' ? 'guru' : $baseUsername;
+
+        if (preg_match('/^\d{16}$/D', $baseUsername) === 1) {
+            $baseUsername = 'guru.'.$baseUsername;
+        }
+
+        $username = $baseUsername;
+        $suffix = 2;
+
+        while (User::query()->where('username', $username)->exists()) {
+            $suffixText = (string) $suffix++;
+            $username = substr($baseUsername, 0, 254 - strlen($suffixText)).'.'.$suffixText;
+        }
+
+        return $username;
     }
 
     /**

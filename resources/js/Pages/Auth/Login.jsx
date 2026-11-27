@@ -35,7 +35,7 @@ export default function Login({ canResetPassword = true, status = null }) {
                     Masuk Portal Akademik &amp; SPMB
                 </h1>
                 <p className="mt-2 text-sm leading-6 text-slate-600">
-                    Gunakan 16 digit NIK sesuai Kartu Keluarga dan kata sandi akun Anda.
+                    Guru dapat memakai username dari admin. Akun lain dapat memakai NIK atau email.
                 </p>
             </div>
 
@@ -48,7 +48,7 @@ export default function Login({ canResetPassword = true, status = null }) {
             <form onSubmit={submit} className="mt-6 flex flex-col gap-4">
                 <div>
                     <label htmlFor="email" className="block text-sm font-semibold text-slate-700">
-                        NIK (16 Digit)
+                        Nama Pengguna / NIK / Email
                     </label>
                     <input
                         id="email"
@@ -63,10 +63,10 @@ export default function Login({ canResetPassword = true, status = null }) {
                         aria-invalid={Boolean(errors.email)}
                         aria-describedby={errors.email ? 'login-identifier-error' : 'login-identifier-hint'}
                         className="mt-2 block min-h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-brand-blue focus:bg-white focus:ring-4 focus:ring-brand-gold/30"
-                        placeholder="Masukkan 16 digit NIK Anda"
+                        placeholder="Nama pengguna, 16 digit NIK, atau email"
                     />
                     <p id="login-identifier-hint" className="mt-1.5 text-xs leading-5 text-slate-500">
-                        Akun Guru atau Admin yang belum menggunakan NIK dapat masuk dengan email terdaftar.
+                        Username guru dibuat dari nama dan diberikan oleh administrator.
                     </p>
                     <InputError id="login-identifier-error" message={errors.email} className="mt-2" />
                 </div>

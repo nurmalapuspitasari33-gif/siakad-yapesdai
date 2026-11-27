@@ -73,12 +73,43 @@ class AuthenticationTest extends TestCase
         $this->assertAuthenticatedAs($user);
     }
 
+    public function test_teacher_can_authenticate_with_generated_username_and_must_change_password(): void
+    {
+        $user = User::factory()->create([
+            'role' => 'guru',
+            'username' => 'dewi.puspita',
+            'email' => null,
+            'password' => 'password',
+            'must_change_password' => true,
+        ]);
+
+        $response = $this->post('/login', [
+            'email' => 'dewi.puspita',
+            'password' => 'password',
+        ]);
+
+        $this->assertAuthenticatedAs($user);
+        $response->assertRedirect(route('profile.edit', absolute: false));
+    }
+
     public function test_login_rejects_a_non_string_identifier(): void
     {
         $this->post('/login', [
             'email' => ['not-an-identifier'],
             'password' => 'password',
         ])->assertSessionHasErrors('email');
+
+        $this->assertGuest();
+    }
+
+    public function test_login_rejects_a_username_with_spaces(): void
+    {
+        $this->post('/login', [
+            'email' => 'dewi puspita',
+            'password' => 'password',
+        ])->assertSessionHasErrors([
+            'email' => 'Masukkan nama pengguna, email yang valid, atau NIK yang terdiri dari 16 digit.',
+        ]);
 
         $this->assertGuest();
     }

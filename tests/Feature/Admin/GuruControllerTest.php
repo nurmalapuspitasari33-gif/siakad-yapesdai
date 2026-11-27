@@ -30,9 +30,7 @@ class GuruControllerTest extends TestCase
             ->post(route('admin.guru.store'), [
                 'nip' => '19870001',
                 'nama_lengkap' => 'Dewi Puspita',
-                'email' => 'dewi@sekolah.sch.id',
                 'no_wa' => '081234567890',
-                'password' => 'password123',
                 'is_wali_kelas' => true,
             ])
             ->assertRedirect(route('admin.guru.index', absolute: false));
@@ -41,8 +39,11 @@ class GuruControllerTest extends TestCase
         $user = $guru->user;
 
         $this->assertSame('guru', $user->role);
+        $this->assertSame('dewi.puspita', $user->username);
+        $this->assertNull($user->email);
         $this->assertTrue($guru->is_wali_kelas);
-        $this->assertTrue(Hash::check('password123', $user->password));
+        $this->assertTrue(Hash::check('password', $user->password));
+        $this->assertTrue($user->must_change_password);
         $this->assertNotNull($user->email_verified_at);
 
         $this->actingAs($admin)
@@ -60,9 +61,10 @@ class GuruControllerTest extends TestCase
         $user->refresh();
         $this->assertSame('19870002', $guru->nip);
         $this->assertFalse($guru->is_wali_kelas);
+        $this->assertSame('dewi.puspita', $user->username);
         $this->assertSame('dewi.baru@sekolah.sch.id', $user->email);
         $this->assertNull($user->email_verified_at);
-        $this->assertTrue(Hash::check('password123', $user->password));
+        $this->assertTrue(Hash::check('password', $user->password));
 
         $this->actingAs($admin)
             ->delete(route('admin.guru.destroy', $guru))
@@ -70,6 +72,24 @@ class GuruControllerTest extends TestCase
 
         $this->assertDatabaseMissing('gurus', ['id' => $guru->id]);
         $this->assertDatabaseMissing('users', ['id' => $user->id]);
+    }
+
+    public function test_admin_gets_a_unique_username_for_teachers_with_the_same_name(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        foreach (['19870020', '19870021'] as $nip) {
+            $this->actingAs($admin)
+                ->post(route('admin.guru.store'), [
+                    'nip' => $nip,
+                    'nama_lengkap' => 'Dewi Puspita',
+                    'is_wali_kelas' => false,
+                ])
+                ->assertRedirect(route('admin.guru.index', absolute: false));
+        }
+
+        $this->assertDatabaseHas('users', ['username' => 'dewi.puspita']);
+        $this->assertDatabaseHas('users', ['username' => 'dewi.puspita.2']);
     }
 
     public function test_non_admin_cannot_manage_teacher_accounts(): void
@@ -158,11 +178,15 @@ class GuruControllerTest extends TestCase
         $this->actingAs($admin)
             ->patch(route('admin.guru.reset-password', $guru))
             ->assertRedirect(route('admin.guru.index', absolute: false))
-            ->assertSessionHas('success', 'Kata sandi akun guru berhasil direset menjadi password.');
+            ->assertSessionHas(
+                'success',
+                'Kata sandi akun guru berhasil direset menjadi password dan wajib diganti saat login berikutnya.',
+            );
 
         $teacher->refresh();
         $this->assertTrue(Hash::check('password', $teacher->password));
         $this->assertFalse(Hash::check('old-password', $teacher->password));
+        $this->assertTrue($teacher->must_change_password);
     }
 
     public function test_guest_is_redirected_from_teacher_password_reset(): void

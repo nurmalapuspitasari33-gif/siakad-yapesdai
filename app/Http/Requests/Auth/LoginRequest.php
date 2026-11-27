@@ -39,9 +39,10 @@ class LoginRequest extends FormRequest
                         || (
                             preg_match('/^\d{16}$/D', $value) !== 1
                             && filter_var($value, FILTER_VALIDATE_EMAIL) === false
+                            && preg_match('/^[a-zA-Z0-9._-]+$/D', $value) !== 1
                         )
                     ) {
-                        $fail('Masukkan email yang valid atau NIK yang terdiri dari 16 digit.');
+                        $fail('Masukkan nama pengguna, email yang valid, atau NIK yang terdiri dari 16 digit.');
                     }
                 },
             ],
@@ -60,8 +61,10 @@ class LoginRequest extends FormRequest
 
         $identifier = trim($this->string('email')->toString());
         $isNik = preg_match('/^\d{16}$/D', $identifier) === 1;
+        $isEmail = filter_var($identifier, FILTER_VALIDATE_EMAIL) !== false;
+        $identifierField = $isNik ? 'nik' : ($isEmail ? 'email' : 'username');
         $credentials = [
-            ($isNik ? 'nik' : 'email') => $isNik ? $identifier : Str::lower($identifier),
+            $identifierField => $isNik ? $identifier : Str::lower($identifier),
             'password' => $this->input('password'),
         ];
 
