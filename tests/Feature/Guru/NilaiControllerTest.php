@@ -30,6 +30,11 @@ class NilaiControllerTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Guru/Nilai/Index')
+                ->has('assignments', 1)
+                ->where('assignments.0.nama_mapel', 'Matematika')
+                ->where('assignments.0.jumlah_siswa', 1)
+                ->where('assignments.0.jumlah_nilai', 0)
+                ->where('assignments.0.status_nilai', 'Belum Diisi')
                 ->has('siswas', 1)
                 ->where('siswas.0.id', $student->id));
 
@@ -55,6 +60,38 @@ class NilaiControllerTest extends TestCase
             'nilai_akhir' => 80,
             'capaian_kompetensi' => 'Guru Matematika: Memahami konsep dengan baik.',
         ]);
+    }
+
+    public function test_teacher_sees_incomplete_progress_when_some_students_have_no_score(): void
+    {
+        $teacherUser = User::factory()->create(['role' => 'guru']);
+        [, , $kelas, $mapel, $student] = $this->createAssignment($teacherUser);
+        $secondStudent = Siswa::create([
+            'user_id' => User::factory()->create(['role' => 'siswa'])->id,
+            'kelas_id' => $kelas->id,
+            'nisn' => '0000000002',
+            'nama_lengkap' => 'Siswa Belum Dinilai',
+            'status_siswa' => 'aktif',
+        ]);
+
+        $this->actingAs($teacherUser)
+            ->post(route('guru.nilai.store'), [
+                'kelas_id' => $kelas->id,
+                'mapel_id' => $mapel->id,
+                'nilai' => [[
+                    'siswa_id' => $student->id,
+                    'nilai_akhir' => 80,
+                ]],
+            ])
+            ->assertRedirect();
+
+        $this->actingAs($teacherUser)
+            ->get(route('guru.nilai.index'))
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('assignments.0.jumlah_siswa', 2)
+                ->where('assignments.0.jumlah_nilai', 1)
+                ->where('assignments.0.status_nilai', 'Belum Lengkap')
+                ->where('assignments.0.team_teaching', false));
     }
 
     public function test_teacher_cannot_save_decimal_scores(): void
@@ -220,7 +257,9 @@ class NilaiControllerTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->where('siswas.0.nilai.nilai_akhir', 80)
                 ->where('siswas.0.nilai_rapor', '85.00')
-                ->has('siswas.0.kontribusi_guru', 2));
+                ->has('siswas.0.kontribusi_guru', 2)
+                ->where('assignments.0.team_teaching', true)
+                ->where('assignments.0.status_nilai', 'Lengkap'));
 
         $this->actingAs($secondTeacherUser)
             ->post(route('guru.nilai.store'), [

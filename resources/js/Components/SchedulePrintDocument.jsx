@@ -9,6 +9,10 @@ const dayLabels = {
 };
 
 export default function SchedulePrintDocument({ jadwals = [], identity = {} }) {
+    const semester = identity.semester
+        ? `${identity.semester.charAt(0).toUpperCase()}${identity.semester.slice(1)}`
+        : '—';
+
     return (
         <article className="print-document hidden schedule-print-document">
             <header className="border-b-2 border-black pb-4 text-center">
@@ -19,9 +23,9 @@ export default function SchedulePrintDocument({ jadwals = [], identity = {} }) {
 
             <section className="mt-5 grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
                 <p><strong>Nama Guru:</strong> {identity.nama_guru || '—'}</p>
-                <p><strong>NIP/NUPTK:</strong> {identity.nip || '—'}</p>
+                <p><strong>NIKY:</strong> {identity.nip || '—'}</p>
                 <p><strong>Tahun Ajaran:</strong> {identity.tahun_ajaran || '—'}</p>
-                <p><strong>Semester:</strong> {identity.semester || '—'}</p>
+                <p><strong>Semester:</strong> {semester}</p>
             </section>
 
             <table className="mt-5 w-full border-collapse text-sm">
@@ -66,7 +70,7 @@ export default function SchedulePrintDocument({ jadwals = [], identity = {} }) {
                     <p>Guru Pengampu,</p>
                     <div className="h-20" />
                     <p className="font-bold underline">{identity.nama_guru || '____________________'}</p>
-                    <p>NIP/NUPTK {identity.nip || '—'}</p>
+                    <p>NIKY {identity.nip || '—'}</p>
                 </div>
                 <div>
                     <p>Kepala Sekolah,</p>

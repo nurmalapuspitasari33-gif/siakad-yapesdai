@@ -28,6 +28,67 @@ class NilaiController extends Controller
         $kelasWalianAktif = $guru->kelasWalianAktif();
         $tahunAjaranAktif = TahunAjaran::query()->where('is_aktif', true)->first();
         $assignments = $this->assignments($guru, $tahunAjaranAktif?->id);
+        $classIds = $assignments->pluck('kelas_id')->unique()->values();
+        $subjectIds = $assignments->pluck('mapel_id')->unique()->values();
+        $studentCounts = $classIds->isNotEmpty()
+            ? Siswa::query()
+                ->whereIn('kelas_id', $classIds)
+                ->where('status_siswa', 'aktif')
+                ->selectRaw('kelas_id, COUNT(*) as jumlah_siswa')
+                ->groupBy('kelas_id')
+                ->pluck('jumlah_siswa', 'kelas_id')
+            : collect();
+        $gradeCounts = collect();
+        $teacherCounts = collect();
+
+        if ($tahunAjaranAktif && $assignments->isNotEmpty()) {
+            $gradeCounts = NilaiGuru::query()
+                ->where('tahun_ajaran_id', $tahunAjaranAktif->id)
+                ->where('guru_id', $guru->id)
+                ->whereIn('kelas_id', $classIds)
+                ->whereIn('mapel_id', $subjectIds)
+                ->whereNotNull('nilai_akhir')
+                ->whereHas('siswa', fn ($query) => $query
+                    ->where('status_siswa', 'aktif')
+                    ->whereColumn('siswas.kelas_id', 'nilai_gurus.kelas_id'))
+                ->selectRaw('kelas_id, mapel_id, COUNT(DISTINCT siswa_id) as jumlah_nilai')
+                ->groupBy('kelas_id', 'mapel_id')
+                ->get()
+                ->keyBy(fn (NilaiGuru $nilaiGuru): string => "{$nilaiGuru->kelas_id}:{$nilaiGuru->mapel_id}");
+            $teacherCounts = Jadwal::query()
+                ->where('tahun_ajaran_id', $tahunAjaranAktif->id)
+                ->whereIn('kelas_id', $classIds)
+                ->whereIn('mapel_id', $subjectIds)
+                ->select('kelas_id', 'mapel_id')
+                ->selectRaw('COUNT(DISTINCT guru_id) as jumlah_guru')
+                ->groupBy('kelas_id', 'mapel_id')
+                ->get()
+                ->keyBy(fn (Jadwal $jadwal): string => "{$jadwal->kelas_id}:{$jadwal->mapel_id}");
+        }
+
+        $assignmentCards = $assignments->map(function (Jadwal $jadwal) use ($studentCounts, $gradeCounts, $teacherCounts): array {
+            $key = "{$jadwal->kelas_id}:{$jadwal->mapel_id}";
+            $studentCount = (int) $studentCounts->get($jadwal->kelas_id, 0);
+            $gradeCount = (int) ($gradeCounts->get($key)?->jumlah_nilai ?? 0);
+
+            return [
+                'kelas_id' => $jadwal->kelas_id,
+                'mapel_id' => $jadwal->mapel_id,
+                'nama_kelas' => $jadwal->kelas?->nama_kelas,
+                'nama_mapel' => $jadwal->mataPelajaran?->nama_mapel,
+                'kode_mapel' => $jadwal->mataPelajaran?->kode_mapel,
+                'kompetensi_keahlian' => $jadwal->kelas?->konsentrasiKeahlian?->nama_konsentrasi
+                    ?? $jadwal->kelas?->programKeahlian?->nama_jurusan,
+                'jumlah_siswa' => $studentCount,
+                'jumlah_nilai' => $gradeCount,
+                'team_teaching' => (int) ($teacherCounts->get($key)?->jumlah_guru ?? 0) > 1,
+                'status_nilai' => match (true) {
+                    $studentCount > 0 && $gradeCount >= $studentCount => 'Lengkap',
+                    $gradeCount > 0 => 'Belum Lengkap',
+                    default => 'Belum Diisi',
+                },
+            ];
+        })->values();
         $filters = $request->validate([
             'kelas_id' => ['nullable', 'integer', Rule::exists('kelas', 'id')],
             'mapel_id' => ['nullable', 'integer', Rule::exists('mata_pelajarans', 'id')],
@@ -100,12 +161,7 @@ class NilaiController extends Controller
         }
 
         return Inertia::render('Guru/Nilai/Index', [
-            'kelasOptions' => $assignments->pluck('kelas')->unique('id')->values(),
-            'mapelOptions' => $assignments->pluck('mataPelajaran')->unique('id')->values(),
-            'assignments' => $assignments->map(fn (Jadwal $jadwal): array => [
-                'kelas_id' => $jadwal->kelas_id,
-                'mapel_id' => $jadwal->mapel_id,
-            ]),
+            'assignments' => $assignmentCards,
             'siswas' => $siswas,
             'ujians' => $ujians,
             'isWaliKelas' => $kelasWalianAktif->isNotEmpty(),
@@ -342,7 +398,12 @@ class NilaiController extends Controller
         return Jadwal::query()
             ->where('tahun_ajaran_id', $tahunAjaranId)
             ->where('guru_id', $guru->id)
-            ->with(['kelas:id,nama_kelas', 'mataPelajaran:id,kode_mapel,nama_mapel'])
+            ->with([
+                'kelas:id,nama_kelas,program_keahlian_id,konsentrasi_keahlian_id',
+                'kelas.programKeahlian:id,nama_jurusan',
+                'kelas.konsentrasiKeahlian:id,nama_konsentrasi',
+                'mataPelajaran:id,kode_mapel,nama_mapel',
+            ])
             ->get()
             ->unique(fn (Jadwal $jadwal): string => "{$jadwal->kelas_id}:{$jadwal->mapel_id}")
             ->values();

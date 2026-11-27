@@ -1,7 +1,7 @@
 import InputError from '@/Components/InputError';
 import DashboardLayout from '@/Layouts/DashboardLayout';
 import roleNavigationItems from '@/Components/RoleNavigationItems';
-import { Head, router, useForm } from '@inertiajs/react';
+import { Head, Link, router, useForm } from '@inertiajs/react';
 import { useEffect, useRef, useState } from 'react';
 
 function initialScores(siswas) {
@@ -19,8 +19,6 @@ function initialScores(siswas) {
 }
 
 export default function GuruNilaiIndex({
-    kelasOptions = [],
-    mapelOptions = [],
     assignments = [],
     siswas = [],
     ujians = [],
@@ -40,21 +38,18 @@ export default function GuruNilaiIndex({
     const startAutoScrollRef = useRef(() => {});
     const autoScrollFrameRef = useRef(null);
     const pointerPositionRef = useRef({ x: 0, y: 0 });
-    const filterForm = useForm({
-        kelas_id: filters?.kelas_id ?? '',
-        mapel_id: filters?.mapel_id ?? '',
-    });
     const form = useForm({
         kelas_id: filters?.kelas_id ?? '',
         mapel_id: filters?.mapel_id ?? '',
         nilai: initialScores(siswas),
     });
-    const availableMapelOptions = mapelOptions.filter((mapel) =>
-        assignments.some((assignment) =>
-            String(assignment.kelas_id) === String(filterForm.data.kelas_id)
-            && String(assignment.mapel_id) === String(mapel.id),
-        ),
-    );
+    const selectedAssignment = assignments.find((assignment) =>
+        String(assignment.kelas_id) === String(filters?.kelas_id)
+        && String(assignment.mapel_id) === String(filters?.mapel_id),
+    ) ?? null;
+    const sameSubjectAssignments = selectedAssignment
+        ? assignments.filter((assignment) => String(assignment.mapel_id) === String(selectedAssignment.mapel_id))
+        : [];
 
     useEffect(() => {
         form.setData({
@@ -62,18 +57,24 @@ export default function GuruNilaiIndex({
             mapel_id: filters?.mapel_id ?? '',
             nilai: initialScores(siswas),
         });
-        filterForm.setData({
-            kelas_id: filters?.kelas_id ?? '',
-            mapel_id: filters?.mapel_id ?? '',
-        });
         setSelectedStudentIds([]);
         setUjianId(ujians[0]?.id ? String(ujians[0].id) : '');
         setImportError('');
     }, [siswas, ujians, filters.kelas_id, filters.mapel_id]);
 
-    const applyFilter = (event) => {
-        event.preventDefault();
-        router.get(route('guru.nilai.index'), filterForm.data, {
+    const openAssignment = (assignment) => {
+        router.get(route('guru.nilai.index'), {
+            kelas_id: assignment.kelas_id,
+            mapel_id: assignment.mapel_id,
+        }, {
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
+        });
+    };
+
+    const returnToAssignments = () => {
+        router.get(route('guru.nilai.index'), {}, {
             preserveState: true,
             preserveScroll: true,
             replace: true,
@@ -249,8 +250,8 @@ export default function GuruNilaiIndex({
         setImportError('');
         setIsImporting(true);
         router.post(route('guru.nilai.import-ujian'), {
-            kelas_id: filterForm.data.kelas_id,
-            mapel_id: filterForm.data.mapel_id,
+            kelas_id: selectedAssignment.kelas_id,
+            mapel_id: selectedAssignment.mapel_id,
             ujian_id: ujianId,
             siswa_ids: selectedStudentIds,
         }, {
@@ -270,53 +271,127 @@ export default function GuruNilaiIndex({
             <Head title="Input Nilai" />
 
             <div className="flex flex-col gap-5">
-                <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
-                    <div className="mb-5">
-                        <h2 className="font-bold text-slate-900">Pilih kelas dan mata pelajaran</h2>
-                        <p className="mt-1 text-sm text-slate-500">{tahunAjaranAktif ?? 'Tahun ajaran aktif belum ditetapkan'}</p>
-                    </div>
-                    <form onSubmit={applyFilter} className="grid grid-cols-1 items-end gap-4 sm:grid-cols-[1fr_1fr_auto]">
-                        <div>
-                            <label htmlFor="nilai-kelas" className="mb-2 block text-sm font-semibold text-slate-700">Kelas</label>
-                            <select
-                                id="nilai-kelas"
-                                value={filterForm.data.kelas_id}
-                                onChange={(event) => filterForm.setData({
-                                    kelas_id: event.target.value,
-                                    mapel_id: '',
-                                })}
-                                className="block w-full rounded-xl border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                            >
-                                <option value="">Pilih kelas</option>
-                                {kelasOptions.map((kelas) => <option key={kelas.id} value={kelas.id}>{kelas.nama_kelas}</option>)}
-                            </select>
-                            <InputError message={filterForm.errors.kelas_id} className="mt-2" />
-                        </div>
-                        <div>
-                            <label htmlFor="nilai-mapel" className="mb-2 block text-sm font-semibold text-slate-700">Mata Pelajaran</label>
-                            <select
-                                id="nilai-mapel"
-                                value={filterForm.data.mapel_id}
-                                onChange={(event) => filterForm.setData('mapel_id', event.target.value)}
-                                className="block w-full rounded-xl border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                            >
-                                <option value="">Pilih mata pelajaran</option>
-                                {availableMapelOptions.map((mapel) => <option key={mapel.id} value={mapel.id}>{mapel.kode_mapel} · {mapel.nama_mapel}</option>)}
-                            </select>
-                            <InputError message={filterForm.errors.mapel_id} className="mt-2" />
-                        </div>
-                        <button
-                            type="submit"
-                            disabled={filterForm.processing || !filterForm.data.kelas_id || !filterForm.data.mapel_id}
-                            className="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                            Tampilkan Siswa
-                        </button>
-                    </form>
-                </section>
+                {!selectedAssignment ? (
+                    assignments.length > 0 ? (
+                        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
+                            <div className="mb-5">
+                                <h2 className="font-bold text-slate-900">Pembagian tugas mengajar</h2>
+                                <p className="mt-1 text-sm text-slate-500">
+                                    {tahunAjaranAktif ?? 'Tahun ajaran aktif belum ditetapkan'}
+                                </p>
+                            </div>
+                            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+                                {assignments.map((assignment) => {
+                                    const statusStyle = assignment.status_nilai === 'Lengkap'
+                                        ? 'bg-emerald-100 text-emerald-800'
+                                        : 'bg-amber-100 text-amber-800';
 
-                {siswas.length > 0 && (
+                                    return (
+                                        <button
+                                            key={`${assignment.kelas_id}-${assignment.mapel_id}`}
+                                            type="button"
+                                            onClick={() => openAssignment(assignment)}
+                                            className="group flex min-h-56 flex-col gap-5 rounded-2xl border border-slate-200 bg-white p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-indigo-300 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+                                        >
+                                            <div className="flex w-full items-start justify-between gap-3">
+                                                <div className="min-w-0">
+                                                    <p className="text-xs font-semibold uppercase tracking-wide text-indigo-600">
+                                                        {assignment.kode_mapel}
+                                                    </p>
+                                                    <h3 className="mt-1 text-lg font-bold text-slate-900">
+                                                        {assignment.nama_mapel}
+                                                    </h3>
+                                                </div>
+                                                <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-bold ${statusStyle}`}>
+                                                    {assignment.status_nilai}
+                                                </span>
+                                            </div>
+                                            <div className="flex flex-wrap gap-2">
+                                                <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
+                                                    {assignment.nama_kelas}
+                                                </span>
+                                                <span className="rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-800">
+                                                    {assignment.kompetensi_keahlian ?? 'Kompetensi belum ditentukan'}
+                                                </span>
+                                                {assignment.team_teaching && (
+                                                    <span className="rounded-full bg-violet-100 px-3 py-1 text-xs font-semibold text-violet-800">
+                                                        Team Teaching
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <div className="mt-auto flex w-full items-center justify-between gap-3 text-sm">
+                                                <span className="text-slate-600">
+                                                    {assignment.jumlah_nilai} dari {assignment.jumlah_siswa} siswa sudah dinilai
+                                                </span>
+                                                <span className="shrink-0 font-semibold text-indigo-700 transition group-hover:translate-x-1">
+                                                    Klik untuk Input Nilai →
+                                                </span>
+                                            </div>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </section>
+                    ) : (
+                        <section className="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-10 text-center shadow-sm">
+                            <h2 className="text-lg font-bold text-slate-900">Belum ada pembagian tugas mengajar</h2>
+                            <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-slate-600">
+                                {tahunAjaranAktif
+                                    ? 'Belum ada jadwal mata pelajaran yang ditetapkan untuk Anda pada semester aktif.'
+                                    : 'Tahun ajaran dan semester aktif belum ditetapkan. Periksa jadwal mengajar Anda setelah semester diaktifkan.'}
+                            </p>
+                            <Link
+                                href={route('guru.jadwal.index')}
+                                className="mt-5 inline-flex rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+                            >
+                                Buka Jadwal Mengajar
+                            </Link>
+                        </section>
+                    )
+                ) : (
                     <div className="flex flex-col gap-4">
+                        <section className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:p-6">
+                            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                                <button
+                                    type="button"
+                                    onClick={returnToAssignments}
+                                    className="self-start rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                                >
+                                    ← Kembali ke Daftar Tugas
+                                </button>
+                                <div>
+                                    <h2 className="font-bold text-slate-900">{selectedAssignment.nama_mapel}</h2>
+                                    <p className="mt-1 text-sm text-slate-500">
+                                        {selectedAssignment.nama_kelas} · {selectedAssignment.kompetensi_keahlian ?? 'Kompetensi belum ditentukan'}
+                                    </p>
+                                </div>
+                            </div>
+                            {sameSubjectAssignments.length > 1 && (
+                                <label className="flex flex-col gap-1 text-sm font-semibold text-slate-700 sm:min-w-56">
+                                    Pindah kelas untuk mata pelajaran ini
+                                    <select
+                                        value={selectedAssignment.kelas_id}
+                                        onChange={(event) => {
+                                            const assignment = sameSubjectAssignments.find(
+                                                (item) => String(item.kelas_id) === event.target.value,
+                                            );
+
+                                            if (assignment) {
+                                                openAssignment(assignment);
+                                            }
+                                        }}
+                                        className="rounded-xl border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                    >
+                                        {sameSubjectAssignments.map((assignment) => (
+                                            <option key={assignment.kelas_id} value={assignment.kelas_id}>
+                                                {assignment.nama_kelas}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </label>
+                            )}
+                        </section>
+
                         <section className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:flex-row sm:items-end sm:justify-between sm:p-6">
                             <div className="min-w-0 flex-1">
                                 <label htmlFor="ujian-cbt" className="mb-2 block text-sm font-semibold text-slate-700">
@@ -361,8 +436,8 @@ export default function GuruNilaiIndex({
                                 </div>
                                 <button
                                     type="submit"
-                                    disabled={form.processing}
-                                className="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50"
+                                    disabled={form.processing || siswas.length === 0}
+                                    className="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
                                 >
                                     {form.processing ? 'Menyimpan...' : 'Simpan Nilai'}
                                 </button>
@@ -409,7 +484,7 @@ export default function GuruNilaiIndex({
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-100">
-                                        {siswas.map((siswa, index) => {
+                                        {siswas.length > 0 ? siswas.map((siswa, index) => {
                                             const row = form.data.nilai[index];
 
                                             return (
@@ -485,7 +560,13 @@ export default function GuruNilaiIndex({
                                                     </td>
                                                 </tr>
                                             );
-                                        })}
+                                        }) : (
+                                            <tr>
+                                                <td colSpan="3" className="px-4 py-8 text-center text-sm text-slate-500">
+                                                    Belum ada siswa aktif di kelas ini.
+                                                </td>
+                                            </tr>
+                                        )}
                                     </tbody>
                                 </table>
                             </div>
