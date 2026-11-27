@@ -54,12 +54,12 @@ function competencyFontClass(value) {
 
 function IdentityEntry({ number, label, value, isSubentry = false }) {
     return (
-        <div className={`identity-line${isSubentry ? ' identity-line-subentry' : ''}`}>
-            <span className="identity-number">{number}</span>
-            <span className="identity-label">{label}</span>
-            <span className="identity-colon">{label ? ':' : ''}</span>
-            <span className="identity-value">{printValue(value)}</span>
-        </div>
+        <tr className={`identity-line${isSubentry ? ' identity-line-subentry' : ''}`}>
+            <td className="identity-number">{number}</td>
+            <td className="identity-label">{label}</td>
+            <td className="identity-colon">{label ? ':' : ''}</td>
+            <td className="identity-value">{printValue(value)}</td>
+        </tr>
     );
 }
 
@@ -105,59 +105,90 @@ function IdentityDocument({ student, settings, isBatch = false, isLast = true })
             style={isBatch && !isLast ? { breakAfter: 'page', pageBreakAfter: 'always' } : undefined}
         >
             <h1 className="identity-title">IDENTITAS MURID</h1>
-            <div className="identity-fields">
-                {identityEntries.map((entry, index) => (
-                    <IdentityEntry key={`${entry.number ?? 'sub'}-${entry.label}-${index}`} {...entry} />
-                ))}
-            </div>
-            <div className="identity-footer">
-                <div className="identity-photo">
-                    {student.foto_siswa_url ? (
-                        <img src={student.foto_siswa_url} alt="Pas foto murid" />
-                    ) : (
-                        <span>Photo 3 x 4 cm</span>
-                    )}
-                </div>
-                <div className="identity-signature">
-                    <p>{reportPlaceAndDate(settings)}</p>
-                    <p>Kepala {printValue(settings.nama_sekolah) || 'Sekolah'}</p>
-                    <div className="identity-signature-space" />
-                    <p className="identity-signature-name">
-                        {printValue(settings.kepala_sekolah) || '____________________________'}
-                    </p>
-                    <p>NIKY. {printValue(settings.niky_kepala_sekolah) || '—'}</p>
-                </div>
-            </div>
+            <table className="report-table identity-fields">
+                <tbody>
+                    {identityEntries.map((entry, index) => (
+                        <IdentityEntry key={`${entry.number ?? 'sub'}-${entry.label}-${index}`} {...entry} />
+                    ))}
+                </tbody>
+            </table>
+            <table className="report-table identity-footer">
+                <tbody>
+                    <tr>
+                        <td className="identity-photo-cell">
+                            <table className="report-table identity-photo">
+                                <tbody>
+                                    <tr>
+                                        <td>
+                                            {student.foto_siswa_url ? (
+                                                <img src={student.foto_siswa_url} alt="Pas foto murid" />
+                                            ) : (
+                                                <span>Photo 3 x 4 cm</span>
+                                            )}
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </td>
+                        <td className="identity-signature">
+                            <p>{reportPlaceAndDate(settings)}</p>
+                            <p>Kepala {printValue(settings.nama_sekolah) || 'Sekolah'}</p>
+                            <div className="identity-signature-space" />
+                            <p className="identity-signature-name">
+                                {printValue(settings.kepala_sekolah) || '____________________________'}
+                            </p>
+                            <p>NIKY. {printValue(settings.niky_kepala_sekolah) || '—'}</p>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
         </article>
     );
 }
 
 function ReportHeaderLine({ label, value }) {
     return (
-        <p className="report-header-line">
-            <span>{label}</span>
-            <span>:</span>
-            <span>{printValue(value) || '—'}</span>
-        </p>
+        <>
+            <td className="report-header-label">{label}</td>
+            <td className="report-header-colon">:</td>
+            <td className="report-header-value">{printValue(value) || '—'}</td>
+        </>
     );
 }
 
 function StudentHeader({ student, settings, semester }) {
+    const leftFields = [
+        { label: 'Nama Murid', value: student.nama_lengkap },
+        { label: 'NISN', value: student.nisn },
+        { label: 'Sekolah', value: settings.nama_sekolah },
+        { label: 'Alamat', value: settings.alamat },
+    ];
+    const rightFields = [
+        { label: 'Kelas', value: student.kelas },
+        { label: 'Fase', value: student.fase ? `Fase ${student.fase}` : '' },
+        { label: 'Semester', value: semester.semester },
+        { label: 'Tahun Ajaran', value: semester.tahun_ajaran },
+    ];
+
     return (
-        <div className="report-student-header">
-            <div className="report-student-column">
-                <ReportHeaderLine label="Nama Murid" value={student.nama_lengkap} />
-                <ReportHeaderLine label="NISN" value={student.nisn} />
-                <ReportHeaderLine label="Sekolah" value={settings.nama_sekolah} />
-                <ReportHeaderLine label="Alamat" value={settings.alamat} />
-            </div>
-            <div className="report-student-column">
-                <ReportHeaderLine label="Kelas" value={student.kelas} />
-                <ReportHeaderLine label="Fase" value={student.fase ? `Fase ${student.fase}` : ''} />
-                <ReportHeaderLine label="Semester" value={semester.semester} />
-                <ReportHeaderLine label="Tahun Ajaran" value={semester.tahun_ajaran} />
-            </div>
-        </div>
+        <table className="report-table report-student-header">
+            <colgroup>
+                <col className="report-header-label-column" />
+                <col className="report-header-colon-column" />
+                <col className="report-header-value-column" />
+                <col className="report-header-label-column" />
+                <col className="report-header-colon-column" />
+                <col className="report-header-value-column" />
+            </colgroup>
+            <tbody>
+                {leftFields.map((leftField, index) => (
+                    <tr key={leftField.label}>
+                        <ReportHeaderLine {...leftField} />
+                        <ReportHeaderLine {...rightFields[index]} />
+                    </tr>
+                ))}
+            </tbody>
+        </table>
     );
 }
 
@@ -300,35 +331,43 @@ function AttendanceAndNotes({ notes }) {
     ];
 
     return (
-        <div className="report-attendance-notes">
-            <table className="report-table report-data-table attendance-table">
-                <thead>
-                    <tr>
-                        <th colSpan="2">Ketidakhadiran</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {attendanceRows.map(([label, total]) => (
-                        <tr key={label}>
-                            <td>{label}</td>
-                            <td>{printValue(total)} Hari</td>
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
-            <table className="report-table report-data-table teacher-notes-table">
-                <thead>
-                    <tr>
-                        <th>Catatan Wali Kelas</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>{printValue(notes.catatan_wali_kelas)}</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
+        <table className="report-table report-attendance-notes">
+            <tbody>
+                <tr>
+                    <td className="report-attendance-cell">
+                        <table className="report-table report-data-table attendance-table">
+                            <thead>
+                                <tr>
+                                    <th colSpan="2">Ketidakhadiran</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {attendanceRows.map(([label, total]) => (
+                                    <tr key={label}>
+                                        <td>{label}</td>
+                                        <td>{printValue(total)} Hari</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </td>
+                    <td className="report-teacher-notes-cell">
+                        <table className="report-table report-data-table teacher-notes-table">
+                            <thead>
+                                <tr>
+                                    <th>Catatan Wali Kelas</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>{printValue(notes.catatan_wali_kelas)}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
     );
 }
 
@@ -376,27 +415,31 @@ function ParentResponseTable() {
 
 function ReportSignatures({ student, settings }) {
     return (
-        <div className="report-signatures">
-            <div className="report-signature-parent">
-                <p>Orang Tua/Wali,</p>
-                <div className="report-signature-space" />
-                <div className="report-signature-rule" />
-            </div>
-            <div className="report-signature-teacher">
-                <p>{reportPlaceAndDate(settings)}</p>
-                <p>Wali Kelas,</p>
-                <div className="report-signature-space" />
-                <p className="report-signature-name">{printValue(student.wali_kelas_nama) || '—'}</p>
-                <p>NIKY. {printValue(student.wali_niky) || '—'}</p>
-            </div>
-            <div className="report-signature-principal">
-                <p>Mengetahui,</p>
-                <p>Kepala Sekolah</p>
-                <div className="report-signature-space" />
-                <p className="report-signature-name">{printValue(settings.kepala_sekolah) || '—'}</p>
-                <p>NIKY. {printValue(settings.niky_kepala_sekolah) || '—'}</p>
-            </div>
-        </div>
+        <table className="report-table report-signatures">
+            <tbody>
+                <tr>
+                    <td className="report-signature-parent">
+                        <p>Orang Tua/Wali,</p>
+                        <div className="report-signature-space" />
+                        <div className="report-signature-rule" />
+                    </td>
+                    <td className="report-signature-teacher">
+                        <p>{reportPlaceAndDate(settings)}</p>
+                        <p>Wali Kelas,</p>
+                        <div className="report-signature-space" />
+                        <p className="report-signature-name">{printValue(student.wali_kelas_nama) || '—'}</p>
+                        <p>NIKY. {printValue(student.wali_niky) || '—'}</p>
+                    </td>
+                    <td className="report-signature-principal">
+                        <p>Mengetahui,</p>
+                        <p>Kepala Sekolah</p>
+                        <div className="report-signature-space" />
+                        <p className="report-signature-name">{printValue(settings.kepala_sekolah) || '—'}</p>
+                        <p>NIKY. {printValue(settings.niky_kepala_sekolah) || '—'}</p>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
     );
 }
 
@@ -421,6 +464,7 @@ function SemesterPages({ student, settings, semester }) {
                     ]}
                 />
             </article>
+            <div className="report-page-break" style={{ pageBreakAfter: 'always' }} />
 
             <article className="report-print-page report-print-page-continuation">
                 <StudentHeader student={student} settings={settings} semester={semester} />
@@ -493,6 +537,9 @@ export default function StudentReportDocument({
                             settings={settings}
                             semester={document.semester}
                         />
+                        {index < documents.length - 1 && (
+                            <div className="report-page-break" style={{ pageBreakAfter: 'always' }} />
+                        )}
                     </Fragment>
                 ))}
         </div>

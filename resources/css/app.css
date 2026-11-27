@@ -321,30 +321,26 @@
     }
 
     .report-print-page {
-        height: 277mm;
-        min-height: 275mm;
-        max-height: 277mm;
-        box-sizing: border-box;
-        display: flex;
-        flex-direction: column;
-        break-after: page;
-        page-break-after: always;
-        break-inside: avoid;
-        page-break-inside: avoid;
+        display: block;
+        width: 100%;
+        height: auto;
+        margin: 0;
+        padding: 0;
+        page-break-after: auto;
     }
 
-    .report-print-page-continuation {
-        justify-content: space-between;
+    .report-page-break {
+        width: 100%;
+        height: 0;
+        margin: 0;
+        padding: 0;
+        border: 0;
+        font-size: 0;
+        line-height: 0;
     }
 
     .report-print-page-continuation > :not(.report-signatures) {
-        margin-top: 0;
-        margin-bottom: 8px;
-    }
-
-    .report-print-page:last-child {
-        break-after: auto;
-        page-break-after: auto;
+        margin: 0 0 6px;
     }
 
     .print-document {
@@ -362,12 +358,12 @@
     }
 
     .identity-print-document {
-        height: 273mm;
+        display: block !important;
+        width: 100%;
+        height: auto;
+        margin: 0;
+        padding: 0;
         box-sizing: border-box;
-        display: flex !important;
-        flex-direction: column;
-        justify-content: space-between;
-        overflow: hidden;
     }
 
     .identity-title {
@@ -377,22 +373,36 @@
     }
 
     .identity-fields {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr);
-        row-gap: 0.75mm;
+        display: table;
         width: 100%;
+        margin: 0;
+        border-collapse: collapse;
+        table-layout: fixed;
     }
 
-    .identity-line,
-    .identity-line * {
+    .identity-line td {
+        padding: 2px 0 !important;
         font-size: 11.5pt !important;
         line-height: 1.25;
+        vertical-align: top;
     }
 
-    .identity-line {
-        display: grid;
-        grid-template-columns: 8mm 55mm 4mm minmax(0, 1fr);
-        padding: 2px 0;
+    .identity-line .identity-number {
+        width: 8mm;
+        text-align: center;
+    }
+
+    .identity-line .identity-label {
+        width: 55mm;
+    }
+
+    .identity-line .identity-colon {
+        width: 4mm;
+        text-align: center;
+    }
+
+    .identity-value {
+        word-wrap: break-word;
     }
 
     .identity-number {
@@ -404,43 +414,59 @@
     }
 
     .identity-footer {
-        display: flex;
-        align-items: flex-end;
-        justify-content: flex-end;
-        gap: 14mm;
-        margin-top: 16px;
+        display: table;
+        width: 100%;
+        margin: 16px 0 0;
+        border-collapse: collapse;
+        table-layout: fixed;
         break-inside: avoid;
         page-break-inside: avoid;
     }
 
+    .identity-footer td {
+        padding: 0 !important;
+        border: 0 !important;
+        vertical-align: bottom;
+    }
+
+    .identity-photo-cell {
+        width: 50%;
+        text-align: left;
+    }
+
     .identity-photo {
-        display: flex;
+        display: table;
         width: 30mm;
         height: 40mm;
-        align-items: center;
-        justify-content: center;
-        overflow: hidden;
-        border: 0.3mm solid #000;
-        text-align: center;
+        margin: 0;
+        border-collapse: collapse;
+        table-layout: fixed;
         break-inside: avoid;
         page-break-inside: avoid;
+    }
+
+    .identity-photo td {
+        padding: 0 !important;
+        border: 0.3mm solid #000 !important;
+        text-align: center;
+        vertical-align: middle;
     }
 
     .identity-photo img {
         width: 100%;
         height: 100%;
-        object-fit: cover;
     }
 
     .identity-signature {
-        width: 86mm;
+        width: 50%;
         line-height: 1.2;
+        text-align: right;
         break-inside: avoid;
         page-break-inside: avoid;
     }
 
     .identity-signature-space {
-        height: 58px;
+        height: 42px;
     }
 
     .identity-signature-name {
@@ -449,34 +475,37 @@
     }
 
     .report-student-header {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) 64mm;
-        gap: 8mm;
-        justify-content: space-between;
+        display: table;
+        width: 100%;
         margin: 6mm 1mm 8mm;
+        border-collapse: collapse;
+        table-layout: fixed;
     }
 
     .report-print-page-continuation .report-student-header {
-        margin: 0 1mm;
+        margin: 0 1mm 6px;
     }
 
-    .report-student-column {
-        display: flex;
-        min-width: 0;
-        flex-direction: column;
-        gap: 1mm;
+    .report-student-header td {
+        padding: 1px 2px !important;
         text-align: left;
+        vertical-align: top;
     }
 
-    .report-header-line {
-        display: grid;
-        grid-template-columns: 30.5mm 4mm minmax(0, 1fr);
-        margin: 0;
-        text-align: left;
+    .report-header-label-column {
+        width: 14%;
     }
 
-    .report-header-line > span:last-child {
-        overflow-wrap: anywhere;
+    .report-header-colon-column {
+        width: 2%;
+    }
+
+    .report-header-value-column {
+        width: 34%;
+    }
+
+    .report-header-value {
+        word-wrap: break-word;
         white-space: pre-line;
     }
 
@@ -609,11 +638,26 @@
     }
 
     .report-attendance-notes {
-        display: grid;
-        grid-template-columns: 0.8fr 1.2fr;
-        gap: 6mm;
-        align-items: stretch;
-        margin-top: 2mm;
+        display: table;
+        width: 100%;
+        margin: 0;
+        border-collapse: collapse;
+        table-layout: fixed;
+    }
+
+    .report-attendance-notes > tbody > tr > td {
+        padding: 0 3px 0 0 !important;
+        border: 0 !important;
+        vertical-align: top;
+    }
+
+    .report-attendance-cell {
+        width: 42%;
+    }
+
+    .report-teacher-notes-cell {
+        width: 58%;
+        padding: 0 0 0 3px !important;
     }
 
     .attendance-table thead tr,
@@ -634,7 +678,7 @@
 
     .promotion-table,
     .parent-response-table {
-        margin-top: 2mm;
+        margin-top: 0;
     }
 
     .promotion-table thead tr,
@@ -653,22 +697,33 @@
     }
 
     .parent-response-table tbody td {
-        height: 46px;
+        height: 36px;
     }
 
     .report-signatures {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-        gap: 0 8mm;
-        margin-top: auto;
-        padding-top: 0;
+        display: table;
+        width: 100%;
+        margin: 12px 0 0;
+        border-collapse: collapse;
+        table-layout: fixed;
         text-align: center;
         break-inside: avoid;
         page-break-inside: avoid;
     }
 
+    .report-signatures td {
+        width: 33.333%;
+        padding: 0 2px !important;
+        border: 0 !important;
+        vertical-align: top;
+    }
+
+    .report-signatures p {
+        margin: 0;
+    }
+
     .report-signature-space {
-        height: 48px;
+        height: 42px;
     }
 
     .report-signature-rule {
@@ -682,10 +737,7 @@
     }
 
     .report-signature-principal {
-        grid-column: 1 / -1;
-        width: 50%;
-        justify-self: center;
-        margin-top: 2mm;
+        width: 33.333%;
     }
 
     .spmb-print-document {
@@ -827,33 +879,48 @@
     }
 
     .ledger-print-document {
-        display: flex !important;
-        flex-direction: column;
+        display: block !important;
         width: 100%;
+        height: auto;
+        margin: 0;
+        padding: 0;
         box-sizing: border-box;
     }
 
     .ledger-print-landscape {
         page: ledger-print-landscape;
-        height: 194mm;
-        min-height: 194mm;
-        max-height: 194mm;
-        box-sizing: border-box;
-        justify-content: space-between;
     }
 
     .ledger-print-portrait {
         page: ledger-print-portrait;
-        min-height: 281mm;
     }
 
     .ledger-school-heading {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 5mm;
+        display: block;
         border-bottom: 0.6mm solid #000;
         padding-bottom: 2mm;
+        text-align: center;
+    }
+
+    .ledger-school-heading-table {
+        width: 100%;
+        margin: 0;
+        border-collapse: collapse;
+        table-layout: fixed;
+    }
+
+    .ledger-school-heading-table td {
+        padding: 0 !important;
+        border: 0 !important;
+        vertical-align: middle;
+    }
+
+    .ledger-school-logo-cell {
+        width: 24mm;
+        text-align: left;
+    }
+
+    .ledger-school-info {
         text-align: center;
     }
 
@@ -901,7 +968,7 @@
         padding: 2px 4px !important;
         font-size: 8.5pt !important;
         line-height: 1.15 !important;
-        overflow-wrap: anywhere;
+        word-wrap: break-word;
         vertical-align: top;
     }
 
@@ -935,14 +1002,22 @@
     }
 
     .ledger-signatures {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 8mm;
+        display: table;
+        width: 100%;
         margin-top: 10px;
+        border-collapse: collapse;
+        table-layout: fixed;
         text-align: center;
         break-inside: avoid;
         page-break-inside: avoid;
         font-size: 8pt !important;
+    }
+
+    .ledger-signatures td {
+        width: 50%;
+        padding: 0 !important;
+        border: 0 !important;
+        vertical-align: top;
     }
 
     .ledger-signatures p {

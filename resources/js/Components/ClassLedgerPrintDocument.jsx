@@ -72,12 +72,20 @@ export default function ClassLedgerPrintDocument({
             }`}
         >
             <header className="ledger-school-heading">
-                <img src={assetUrls.logoSekolah} alt="" />
-                <div>
-                    <h1>{printValue(settings.nama_sekolah)}</h1>
-                    <p>NPSN: {printValue(settings.npsn)}</p>
-                    <p>{printValue(settings.alamat)}</p>
-                </div>
+                <table className="report-table ledger-school-heading-table">
+                    <tbody>
+                        <tr>
+                            <td className="ledger-school-logo-cell">
+                                <img src={assetUrls.logoSekolah || '/logo.png'} alt="Logo sekolah" />
+                            </td>
+                            <td className="ledger-school-info">
+                                <h1>{printValue(settings.nama_sekolah)}</h1>
+                                <p>NPSN: {printValue(settings.npsn)}</p>
+                                <p>{printValue(settings.alamat)}</p>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
             </header>
 
             <h2 className="ledger-title">LEGER NILAI KELAS</h2>
@@ -159,21 +167,27 @@ export default function ClassLedgerPrintDocument({
                 </tbody>
             </table>
 
-            <footer className="ledger-signatures">
-                <div>
-                    <p>{placeAndDate || '........................................'}</p>
-                    <p>Wali Kelas,</p>
-                    <div className="ledger-signature-space" />
-                    <p className="ledger-signature-name">{printValue(namaWaliKelas)}</p>
-                    <p>NIKY. {printValue(waliNiky)}</p>
-                </div>
-                <div>
-                    <p>Mengetahui,</p>
-                    <p>Kepala Sekolah</p>
-                    <div className="ledger-signature-space" />
-                    <p className="ledger-signature-name">{printValue(settings.kepala_sekolah)}</p>
-                    <p>NIKY. {printValue(settings.niky_kepala_sekolah)}</p>
-                </div>
+            <footer>
+                <table className="report-table ledger-signatures">
+                    <tbody>
+                        <tr>
+                            <td>
+                                <p>{placeAndDate || '........................................'}</p>
+                                <p>Wali Kelas,</p>
+                                <div className="ledger-signature-space" />
+                                <p className="ledger-signature-name">{printValue(namaWaliKelas)}</p>
+                                <p>NIKY. {printValue(waliNiky)}</p>
+                            </td>
+                            <td>
+                                <p>Mengetahui,</p>
+                                <p>Kepala Sekolah</p>
+                                <div className="ledger-signature-space" />
+                                <p className="ledger-signature-name">{printValue(settings.kepala_sekolah)}</p>
+                                <p>NIKY. {printValue(settings.niky_kepala_sekolah)}</p>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
             </footer>
         </section>
     );
