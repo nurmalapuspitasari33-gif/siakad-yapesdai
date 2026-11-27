@@ -40,7 +40,15 @@ class Guru extends Model
         return $this->kelasWalian()
             ->whereHas('tahunAjaran', fn ($query) => $query->where('is_aktif', true))
             ->orderBy('nama_kelas')
-            ->get(['id', 'nama_kelas', 'tahun_ajaran_id', 'konsentrasi_keahlian_id', 'fase']);
+            ->get([
+                'id',
+                'nama_kelas',
+                'tahun_ajaran_id',
+                'program_keahlian_id',
+                'konsentrasi_keahlian_id',
+                'tingkat',
+                'fase',
+            ]);
     }
 
     public function jadwals(): HasMany

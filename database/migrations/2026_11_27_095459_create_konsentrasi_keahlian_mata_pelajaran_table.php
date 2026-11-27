@@ -13,15 +13,19 @@ return new class extends Migration
     {
         Schema::create('konsentrasi_keahlian_mata_pelajaran', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('konsentrasi_keahlian_id')
-                ->constrained()
-                ->cascadeOnDelete();
-            $table->foreignId('mata_pelajaran_id')
-                ->constrained('mata_pelajarans')
-                ->cascadeOnDelete();
+            $table->foreignId('konsentrasi_keahlian_id');
+            $table->foreignId('mata_pelajaran_id');
             $table->unsignedSmallInteger('urutan');
             $table->timestamps();
 
+            $table->foreign('konsentrasi_keahlian_id', 'kons_mapel_konsentrasi_fk')
+                ->references('id')
+                ->on('konsentrasi_keahlians')
+                ->cascadeOnDelete();
+            $table->foreign('mata_pelajaran_id', 'kons_mapel_mapel_fk')
+                ->references('id')
+                ->on('mata_pelajarans')
+                ->cascadeOnDelete();
             $table->unique(
                 ['konsentrasi_keahlian_id', 'mata_pelajaran_id'],
                 'konsentrasi_mapel_unique',

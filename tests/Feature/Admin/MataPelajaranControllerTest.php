@@ -206,6 +206,51 @@ class MataPelajaranControllerTest extends TestCase
                 ->where('konsentrasiKeahlians.1.mata_pelajaran_ids', [$firstSubject->id]));
     }
 
+    public function test_admin_can_save_and_view_subject_selection_for_class_x_programs(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $program = ProgramKeahlian::create([
+            'kode_jurusan' => 'TO',
+            'nama_jurusan' => 'Teknik Otomotif',
+        ]);
+        $firstSubject = MataPelajaran::create([
+            'kode_mapel' => 'OTO-001',
+            'nama_mapel' => 'Dasar Otomotif',
+            'kelompok_mapel' => 'kejuruan',
+        ]);
+        $secondSubject = MataPelajaran::create([
+            'kode_mapel' => 'OTO-002',
+            'nama_mapel' => 'Gambar Teknik',
+            'kelompok_mapel' => 'kejuruan',
+        ]);
+
+        $this->actingAs($admin)
+            ->put(route('admin.mapel.urutan-rapor.program-kelas-x.update', $program), [
+                'mapel_ids' => [$secondSubject->id, $firstSubject->id],
+            ])
+            ->assertRedirectToRoute('admin.mapel.index', ['tab' => 'urutan-rapor'])
+            ->assertSessionHas('success', 'Mata pelajaran rapor kelas X berhasil disimpan untuk program keahlian.');
+
+        $this->assertDatabaseHas('program_keahlian_mata_pelajaran_kelas_x', [
+            'program_keahlian_id' => $program->id,
+            'mata_pelajaran_id' => $secondSubject->id,
+            'urutan' => 1,
+        ]);
+        $this->assertDatabaseHas('program_keahlian_mata_pelajaran_kelas_x', [
+            'program_keahlian_id' => $program->id,
+            'mata_pelajaran_id' => $firstSubject->id,
+            'urutan' => 2,
+        ]);
+
+        $this->get(route('admin.mapel.index', ['tab' => 'urutan-rapor']))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('programKeahlians.0.mata_pelajaran_ids', [
+                    $secondSubject->id,
+                    $firstSubject->id,
+                ]));
+    }
+
     public function test_admin_cannot_save_duplicate_subjects_in_a_concentration_report_order(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
@@ -262,6 +307,30 @@ class MataPelajaranControllerTest extends TestCase
         $this->assertDatabaseCount('konsentrasi_keahlian_mata_pelajaran', 0);
     }
 
+    public function test_guests_and_non_admins_cannot_update_class_x_program_report_subjects(): void
+    {
+        $program = ProgramKeahlian::create([
+            'kode_jurusan' => 'TO',
+            'nama_jurusan' => 'Teknik Otomotif',
+        ]);
+        $subject = MataPelajaran::create([
+            'kode_mapel' => 'OTO-001',
+            'nama_mapel' => 'Dasar Otomotif',
+            'kelompok_mapel' => 'kejuruan',
+        ]);
+        $payload = ['mapel_ids' => [$subject->id]];
+        $url = route('admin.mapel.urutan-rapor.program-kelas-x.update', $program);
+
+        $this->put($url, $payload)
+            ->assertRedirectToRoute('login');
+
+        $this->actingAs(User::factory()->create(['role' => 'siswa']))
+            ->put($url, $payload)
+            ->assertForbidden();
+
+        $this->assertDatabaseCount('program_keahlian_mata_pelajaran_kelas_x', 0);
+    }
+
     public function test_subject_cannot_be_deleted_while_used_by_a_concentration_report_order(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
@@ -279,6 +348,32 @@ class MataPelajaranControllerTest extends TestCase
             'kelompok_mapel' => 'umum',
         ]);
         $concentration->mataPelajarans()->attach($subject->id, ['urutan' => 1]);
+
+        $this->actingAs($admin)
+            ->from(route('admin.mapel.index'))
+            ->delete(route('admin.mapel.destroy', $subject))
+            ->assertRedirectToRoute('admin.mapel.index')
+            ->assertSessionHas(
+                'error',
+                'Mata pelajaran tidak dapat dihapus karena masih digunakan oleh jadwal, ujian, nilai, atau pengaturan urutan rapor.',
+            );
+
+        $this->assertModelExists($subject);
+    }
+
+    public function test_subject_cannot_be_deleted_while_used_by_a_class_x_program_report_order(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $program = ProgramKeahlian::create([
+            'kode_jurusan' => 'TO',
+            'nama_jurusan' => 'Teknik Otomotif',
+        ]);
+        $subject = MataPelajaran::create([
+            'kode_mapel' => 'OTO-001',
+            'nama_mapel' => 'Dasar Otomotif',
+            'kelompok_mapel' => 'kejuruan',
+        ]);
+        $program->mataPelajaranRaporKelasX()->attach($subject->id, ['urutan' => 1]);
 
         $this->actingAs($admin)
             ->from(route('admin.mapel.index'))

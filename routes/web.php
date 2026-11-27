@@ -90,6 +90,10 @@ Route::middleware(['auth', 'force-password-change', 'verified', 'role:admin'])
             'mapel/konsentrasi/{konsentrasiKeahlian}/urutan-rapor',
             [MataPelajaranController::class, 'updateConcentrationReportSubjects'],
         )->name('mapel.urutan-rapor.update');
+        Route::put(
+            'mapel/program-keahlian/{programKeahlian}/urutan-rapor-kelas-x',
+            [MataPelajaranController::class, 'updateProgramClassXReportSubjects'],
+        )->name('mapel.urutan-rapor.program-kelas-x.update');
         Route::resource('mapel', MataPelajaranController::class)
             ->except(['create', 'edit', 'show']);
 

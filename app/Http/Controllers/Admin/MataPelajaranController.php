@@ -7,6 +7,8 @@ use App\Models\Ekstrakurikuler;
 use App\Models\KonsentrasiKeahlian;
 use App\Models\MataPelajaran;
 use App\Models\PengaturanSekolah;
+use App\Models\ProgramKeahlian;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -42,6 +44,16 @@ class MataPelajaranController extends Controller
                 ->orderBy('nama_ekstra')
                 ->get(['id', 'nama_ekstra', 'is_aktif']),
             'templateKokurikuler' => PengaturanSekolah::query()->value('template_kokurikuler'),
+            'programKeahlians' => ProgramKeahlian::query()
+                ->with('mataPelajaranRaporKelasX:id,kode_mapel,nama_mapel,kelompok_mapel')
+                ->orderBy('nama_jurusan')
+                ->get(['id', 'kode_jurusan', 'nama_jurusan'])
+                ->map(fn (ProgramKeahlian $program): array => [
+                    'id' => $program->id,
+                    'kode_jurusan' => $program->kode_jurusan,
+                    'nama_jurusan' => $program->nama_jurusan,
+                    'mata_pelajaran_ids' => $program->mataPelajaranRaporKelasX->pluck('id')->all(),
+                ]),
             'konsentrasiKeahlians' => KonsentrasiKeahlian::query()
                 ->with([
                     'programKeahlian:id,nama_jurusan',
@@ -69,6 +81,29 @@ class MataPelajaranController extends Controller
         Request $request,
         KonsentrasiKeahlian $konsentrasiKeahlian,
     ): RedirectResponse {
+        return $this->syncReportSubjects(
+            $request,
+            $konsentrasiKeahlian->mataPelajarans(),
+            'Mata pelajaran rapor berhasil disimpan untuk konsentrasi keahlian.',
+        );
+    }
+
+    public function updateProgramClassXReportSubjects(
+        Request $request,
+        ProgramKeahlian $programKeahlian,
+    ): RedirectResponse {
+        return $this->syncReportSubjects(
+            $request,
+            $programKeahlian->mataPelajaranRaporKelasX(),
+            'Mata pelajaran rapor kelas X berhasil disimpan untuk program keahlian.',
+        );
+    }
+
+    private function syncReportSubjects(
+        Request $request,
+        BelongsToMany $subjects,
+        string $successMessage,
+    ): RedirectResponse {
         $validated = $request->validate([
             'mapel_ids' => ['required', 'array', 'min:1'],
             'mapel_ids.*' => [
@@ -90,12 +125,12 @@ class MataPelajaranController extends Controller
             ])
             ->all();
 
-        DB::transaction(function () use ($konsentrasiKeahlian, $pivotData): void {
-            $konsentrasiKeahlian->mataPelajarans()->sync($pivotData);
+        DB::transaction(function () use ($subjects, $pivotData): void {
+            $subjects->sync($pivotData);
         });
 
         return to_route('admin.mapel.index', ['tab' => 'urutan-rapor'])
-            ->with('success', 'Mata pelajaran rapor berhasil disimpan untuk konsentrasi keahlian.');
+            ->with('success', $successMessage);
     }
 
     public function updateKokurikulerTemplate(Request $request): RedirectResponse
@@ -161,6 +196,7 @@ class MataPelajaranController extends Controller
             || $mapel->ujians()->exists()
             || $mapel->nilais()->exists()
             || $mapel->konsentrasiKeahlians()->exists()
+            || $mapel->programKeahliansKelasX()->exists()
         ) {
             return back()->with('error', 'Mata pelajaran tidak dapat dihapus karena masih digunakan oleh jadwal, ujian, nilai, atau pengaturan urutan rapor.');
         }

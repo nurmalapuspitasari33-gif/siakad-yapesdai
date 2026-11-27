@@ -20,6 +20,16 @@ class MataPelajaran extends Model
         )->withPivot('urutan')->withTimestamps();
     }
 
+    public function programKeahliansKelasX(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            ProgramKeahlian::class,
+            'program_keahlian_mata_pelajaran_kelas_x',
+            'mata_pelajaran_id',
+            'program_keahlian_id',
+        )->withPivot('urutan')->withTimestamps();
+    }
+
     public function jadwals(): HasMany
     {
         return $this->hasMany(Jadwal::class, 'mapel_id');

@@ -45,8 +45,12 @@ class RaporWaliController extends Controller
         $kelas = $selectedKelasId
             ? $kelasOptions->firstWhere('id', (int) $selectedKelasId)
             : null;
-        if ($kelas?->konsentrasi_keahlian_id) {
-            $kelas->load('konsentrasiKeahlian.mataPelajarans');
+        $kelasKurikulum = $kelas ? clone $kelas : null;
+        if ($kelasKurikulum) {
+            $kelasKurikulum->load([
+                'programKeahlian.mataPelajaranRaporKelasX',
+                'konsentrasiKeahlian.mataPelajarans',
+            ]);
         }
         $jadwals = $selectedKelasId && $tahunAjaranAktif
             ? Jadwal::query()
@@ -63,9 +67,9 @@ class RaporWaliController extends Controller
             ->filter()
             ->unique('id')
             ->keyBy('id');
-        $mapelKonsentrasi = $kelas?->konsentrasiKeahlian?->mataPelajarans ?? collect();
-        $mataPelajaranSumber = $mapelKonsentrasi->isNotEmpty()
-            ? $mapelKonsentrasi
+        $mapelKurikulum = $kelasKurikulum?->mataPelajaranRaporTerkonfigurasi() ?? collect();
+        $mataPelajaranSumber = $mapelKurikulum->isNotEmpty()
+            ? $mapelKurikulum
             : $mapelTerjadwal->sortBy('nama_mapel')->values();
         $mataPelajarans = $mataPelajaranSumber
             ->map(fn ($mapel): array => [

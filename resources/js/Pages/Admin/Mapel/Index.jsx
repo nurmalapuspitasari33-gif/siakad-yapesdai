@@ -29,6 +29,7 @@ export default function MataPelajaranIndex({
     filters,
     ekstrakurikulers = [],
     templateKokurikuler,
+    programKeahlians = [],
     konsentrasiKeahlians = [],
     mapelOptions = [],
     activeTab: initialTab = 'mapel',
@@ -51,7 +52,8 @@ export default function MataPelajaranIndex({
     const kokurikulerForm = useForm({
         template_kokurikuler: templateKokurikuler ?? '',
     });
-    const [selectedKonsentrasiId, setSelectedKonsentrasiId] = useState(
+    const [selectedRaporScope, setSelectedRaporScope] = useState('konsentrasi');
+    const [selectedRaporTargetId, setSelectedRaporTargetId] = useState(
         String(konsentrasiKeahlians[0]?.id ?? ''),
     );
     const [mapelToAdd, setMapelToAdd] = useState({
@@ -71,8 +73,11 @@ export default function MataPelajaranIndex({
         setActiveTab(initialTab);
     }, [initialTab]);
 
-    const selectedKonsentrasi = konsentrasiKeahlians.find(
-        (konsentrasi) => String(konsentrasi.id) === selectedKonsentrasiId,
+    const targetRaporOptions = selectedRaporScope === 'kelas-x'
+        ? programKeahlians
+        : konsentrasiKeahlians;
+    const selectedRaporTarget = targetRaporOptions.find(
+        (target) => String(target.id) === selectedRaporTargetId,
     );
     const mapelById = new Map(mapelOptions.map((mapel) => [Number(mapel.id), mapel]));
     const mapelIdsError = urutanRaporForm.errors.mapel_ids
@@ -195,23 +200,38 @@ export default function MataPelajaranIndex({
     const submitUrutanRapor = (event) => {
         event.preventDefault();
 
-        if (!selectedKonsentrasi) {
+        if (!selectedRaporTarget) {
             return;
         }
 
+        const routeName = selectedRaporScope === 'kelas-x'
+            ? 'admin.mapel.urutan-rapor.program-kelas-x.update'
+            : 'admin.mapel.urutan-rapor.update';
+
         urutanRaporForm.put(
-            route('admin.mapel.urutan-rapor.update', selectedKonsentrasi.id),
+            route(routeName, selectedRaporTarget.id),
             { preserveScroll: true },
         );
     };
 
-    const changeSelectedKonsentrasi = (concentrationId) => {
-        const concentration = konsentrasiKeahlians.find(
-            (item) => String(item.id) === concentrationId,
+    const changeRaporScope = (scope) => {
+        const targets = scope === 'kelas-x' ? programKeahlians : konsentrasiKeahlians;
+        const firstTarget = targets[0];
+
+        setSelectedRaporScope(scope);
+        setSelectedRaporTargetId(String(firstTarget?.id ?? ''));
+        urutanRaporForm.setData('mapel_ids', firstTarget?.mata_pelajaran_ids ?? []);
+        urutanRaporForm.clearErrors();
+        setMapelToAdd({ umum: '', kejuruan: '', muatan_lokal: '' });
+    };
+
+    const changeRaporTarget = (targetId) => {
+        const target = targetRaporOptions.find(
+            (item) => String(item.id) === targetId,
         );
 
-        setSelectedKonsentrasiId(concentrationId);
-        urutanRaporForm.setData('mapel_ids', concentration?.mata_pelajaran_ids ?? []);
+        setSelectedRaporTargetId(targetId);
+        urutanRaporForm.setData('mapel_ids', target?.mata_pelajaran_ids ?? []);
         urutanRaporForm.clearErrors();
         setMapelToAdd({ umum: '', kejuruan: '', muatan_lokal: '' });
     };
@@ -710,17 +730,68 @@ export default function MataPelajaranIndex({
                     <div className="border-b border-slate-100 px-5 py-5 sm:px-7">
                         <h2 className="font-bold text-slate-900">Urutan Mata Pelajaran Rapor</h2>
                         <p className="mt-1 text-sm text-slate-500">
-                            Pilih mata pelajaran dan atur urutannya secara terpisah untuk setiap konsentrasi keahlian.
+                            Atur mapel Kelas X per program keahlian dan mapel Kelas XI/XII per konsentrasi keahlian.
                         </p>
                     </div>
 
-                    {konsentrasiKeahlians.length === 0 ? (
-                        <div className="px-5 py-10 text-center sm:px-7">
-                            <p className="font-semibold text-slate-800">
-                                Belum ada konsentrasi keahlian.
+                    <div className="grid gap-4 border-b border-slate-100 px-5 py-5 sm:px-7 md:grid-cols-2">
+                        <div>
+                            <label
+                                htmlFor="tingkat-urutan-rapor"
+                                className="mb-2 block text-sm font-semibold text-slate-700"
+                            >
+                                Tingkat / Dasar Kurikulum
+                            </label>
+                            <select
+                                id="tingkat-urutan-rapor"
+                                value={selectedRaporScope}
+                                onChange={(event) => changeRaporScope(event.target.value)}
+                                className="block w-full rounded-xl border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                            >
+                                <option value="kelas-x">Kelas X - Program Keahlian</option>
+                                <option value="konsentrasi">Kelas XI/XII - Konsentrasi Keahlian</option>
+                            </select>
+                        </div>
+                        {targetRaporOptions.length > 0 ? (
+                            <div>
+                                <label
+                                    htmlFor="target-urutan-rapor"
+                                    className="mb-2 block text-sm font-semibold text-slate-700"
+                                >
+                                    {selectedRaporScope === 'kelas-x'
+                                        ? 'Program Keahlian'
+                                        : 'Konsentrasi Keahlian'}
+                                </label>
+                                <select
+                                    id="target-urutan-rapor"
+                                    value={selectedRaporTargetId}
+                                    onChange={(event) => changeRaporTarget(event.target.value)}
+                                    className="block w-full rounded-xl border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                >
+                                    {targetRaporOptions.map((target) => (
+                                        <option key={target.id} value={target.id}>
+                                            {selectedRaporScope === 'kelas-x'
+                                                ? target.nama_jurusan
+                                                : `${target.nama_konsentrasi}${target.program_keahlian
+                                                    ? ` - ${target.program_keahlian}`
+                                                    : ''}`}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        ) : (
+                            <p className="self-end text-sm text-slate-500">
+                                Belum ada {selectedRaporScope === 'kelas-x'
+                                    ? 'program keahlian'
+                                    : 'konsentrasi keahlian'}.
                             </p>
-                            <p className="mt-2 text-sm text-slate-500">
-                                Tambahkan konsentrasi keahlian terlebih dahulu melalui menu Data Kelas.
+                        )}
+                    </div>
+
+                    {targetRaporOptions.length === 0 ? (
+                        <div className="px-5 py-8 text-center sm:px-7">
+                            <p className="text-sm text-slate-500">
+                                Tambahkan data program atau konsentrasi keahlian terlebih dahulu melalui menu Data Kelas.
                             </p>
                             <Link
                                 href={route('admin.kelas.index')}
@@ -731,34 +802,9 @@ export default function MataPelajaranIndex({
                         </div>
                     ) : (
                         <>
-                            <div className="grid gap-4 border-b border-slate-100 px-5 py-5 sm:px-7 md:grid-cols-[minmax(0,1fr)_20rem] md:items-end">
-                                <div>
-                                    <label
-                                        htmlFor="konsentrasi-urutan-rapor"
-                                        className="mb-2 block text-sm font-semibold text-slate-700"
-                                    >
-                                        Konsentrasi Keahlian
-                                    </label>
-                                    <select
-                                        id="konsentrasi-urutan-rapor"
-                                        value={selectedKonsentrasiId}
-                                        onChange={(event) => changeSelectedKonsentrasi(event.target.value)}
-                                        className="block w-full rounded-xl border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                                    >
-                                        {konsentrasiKeahlians.map((konsentrasi) => (
-                                            <option key={konsentrasi.id} value={konsentrasi.id}>
-                                                {konsentrasi.nama_konsentrasi}
-                                                {konsentrasi.program_keahlian
-                                                    ? ` - ${konsentrasi.program_keahlian}`
-                                                    : ''}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <p className="text-sm text-slate-500">
-                                    Mata pelajaran yang dipilih akan tampil di rapor siswa pada konsentrasi ini.
-                                </p>
-                            </div>
+                            <p className="px-5 pt-4 text-sm text-slate-500 sm:px-7">
+                                Pilihan ini menentukan mapel yang muncul di rapor sesuai tingkat dan kurikulum kelas.
+                            </p>
 
                             <form onSubmit={submitUrutanRapor} className="space-y-5 px-5 py-5 sm:px-7">
                                 {Object.entries(subjectGroups).map(([kelompok, group]) => {

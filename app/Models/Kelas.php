@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -43,6 +44,18 @@ class Kelas extends Model
     public function konsentrasiKeahlian(): BelongsTo
     {
         return $this->belongsTo(KonsentrasiKeahlian::class);
+    }
+
+    /**
+     * @return EloquentCollection<int, MataPelajaran>
+     */
+    public function mataPelajaranRaporTerkonfigurasi(): EloquentCollection
+    {
+        $mataPelajarans = $this->tingkat === 10
+            ? $this->programKeahlian?->mataPelajaranRaporKelasX
+            : $this->konsentrasiKeahlian?->mataPelajarans;
+
+        return $mataPelajarans ?? new EloquentCollection;
     }
 
     public function siswas(): HasMany

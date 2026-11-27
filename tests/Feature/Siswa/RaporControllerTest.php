@@ -45,6 +45,11 @@ class RaporControllerTest extends TestCase
             'kode_konsentrasi' => 'FI',
             'nama_konsentrasi' => 'Farmasi Industri',
         ]);
+        $kelas->update([
+            'program_keahlian_id' => $program->id,
+            'konsentrasi_keahlian_id' => $concentration->id,
+            'tingkat' => 11,
+        ]);
         $studentUser = User::factory()->create(['role' => 'siswa']);
         $student = Siswa::create([
             'user_id' => $studentUser->id,
@@ -81,6 +86,7 @@ class RaporControllerTest extends TestCase
             'kode_mapel' => 'MAT-001',
             'nama_mapel' => 'Matematika',
         ]);
+        $concentration->mataPelajarans()->attach($mapel->id, ['urutan' => 1]);
         $teacher = Guru::create([
             'user_id' => User::factory()->create(['role' => 'guru'])->id,
             'nip' => '19870001',
@@ -170,7 +176,7 @@ class RaporControllerTest extends TestCase
                 ->where('rapor.0.catatan_rapor.sakit', 1));
     }
 
-    public function test_student_report_uses_selected_subjects_and_concentration_order(): void
+    public function test_student_report_uses_selected_subjects_and_program_order_for_class_x(): void
     {
         PengaturanSekolah::query()->findOrFail(1)->update([
             'status_rilis_rapor' => 'buka',
@@ -190,7 +196,7 @@ class RaporControllerTest extends TestCase
         ]);
         $kelas = Kelas::create([
             'tahun_ajaran_id' => $tahunAjaran->id,
-            'konsentrasi_keahlian_id' => $concentration->id,
+            'program_keahlian_id' => $program->id,
             'nama_kelas' => 'X PPLG 1',
             'tingkat' => 10,
         ]);
@@ -219,7 +225,7 @@ class RaporControllerTest extends TestCase
             'nama_mapel' => 'Fisika',
             'kelompok_mapel' => 'umum',
         ]);
-        $concentration->mataPelajarans()->attach([
+        $program->mataPelajaranRaporKelasX()->attach([
             $laterAlphabetically->id => ['urutan' => 1],
             $earlierAlphabetically->id => ['urutan' => 2],
         ]);
@@ -244,6 +250,120 @@ class RaporControllerTest extends TestCase
                 ->where('rapor.0.mata_pelajaran.0.nama_mapel', 'Zoologi')
                 ->where('rapor.0.mata_pelajaran.1.nama_mapel', 'Biologi')
                 ->where('rapor.0.mata_pelajaran.1.nilai_akhir', null));
+    }
+
+    public function test_student_historical_report_uses_class_curriculum_recorded_for_that_year(): void
+    {
+        PengaturanSekolah::query()->findOrFail(1)->update([
+            'status_rilis_rapor' => 'buka',
+        ]);
+        $activeYear = TahunAjaran::create([
+            'nama_tahun' => '2026/2027',
+            'semester' => 'ganjil',
+            'is_aktif' => true,
+        ]);
+        $previousYear = TahunAjaran::create([
+            'nama_tahun' => '2025/2026',
+            'semester' => 'genap',
+            'is_aktif' => false,
+        ]);
+        $program = ProgramKeahlian::create([
+            'kode_jurusan' => 'RPL',
+            'nama_jurusan' => 'Rekayasa Perangkat Lunak',
+        ]);
+        $concentration = $program->konsentrasiKeahlians()->create([
+            'kode_konsentrasi' => 'PPLG',
+            'nama_konsentrasi' => 'Pengembangan Perangkat Lunak dan Gim',
+        ]);
+        $kelasX = Kelas::create([
+            'tahun_ajaran_id' => $previousYear->id,
+            'program_keahlian_id' => $program->id,
+            'nama_kelas' => 'X PPLG 1',
+            'tingkat' => 10,
+        ]);
+        $kelasXI = Kelas::create([
+            'tahun_ajaran_id' => $activeYear->id,
+            'program_keahlian_id' => $program->id,
+            'konsentrasi_keahlian_id' => $concentration->id,
+            'nama_kelas' => 'XI PPLG 1',
+            'tingkat' => 11,
+        ]);
+        $studentUser = User::factory()->create(['role' => 'siswa']);
+        $student = Siswa::create([
+            'user_id' => $studentUser->id,
+            'kelas_id' => $kelasXI->id,
+            'program_keahlian_id' => $program->id,
+            'konsentrasi_keahlian_id' => $concentration->id,
+            'nisn' => '0000000102',
+            'nama_lengkap' => 'Siswa Uji Riwayat',
+            'status_siswa' => 'aktif',
+        ]);
+        $classXSubject = MataPelajaran::create([
+            'kode_mapel' => 'RPL-X-001',
+            'nama_mapel' => 'Dasar Pengembangan Perangkat Lunak',
+            'kelompok_mapel' => 'kejuruan',
+        ]);
+        $classXExcludedSubject = MataPelajaran::create([
+            'kode_mapel' => 'RPL-X-002',
+            'nama_mapel' => 'Mapel Tidak Dipilih Kelas X',
+            'kelompok_mapel' => 'kejuruan',
+        ]);
+        $classXISubject = MataPelajaran::create([
+            'kode_mapel' => 'RPL-XI-001',
+            'nama_mapel' => 'Pemrograman Berorientasi Objek',
+            'kelompok_mapel' => 'kejuruan',
+        ]);
+        $classXIExcludedSubject = MataPelajaran::create([
+            'kode_mapel' => 'RPL-XI-002',
+            'nama_mapel' => 'Mapel Tidak Dipilih Kelas XI',
+            'kelompok_mapel' => 'kejuruan',
+        ]);
+        $program->mataPelajaranRaporKelasX()->attach($classXSubject->id, ['urutan' => 1]);
+        $concentration->mataPelajarans()->attach($classXISubject->id, ['urutan' => 1]);
+        $teacher = Guru::create([
+            'user_id' => User::factory()->create(['role' => 'guru'])->id,
+            'nip' => '19870003',
+            'nama_lengkap' => 'Guru Pengampu',
+        ]);
+
+        foreach ([
+            [$previousYear, $kelasX, $classXSubject, $classXExcludedSubject],
+            [$activeYear, $kelasXI, $classXISubject, $classXIExcludedSubject],
+        ] as [$year, $kelas, $selectedSubject, $excludedSubject]) {
+            foreach ([$selectedSubject, $excludedSubject] as $index => $subject) {
+                Nilai::create([
+                    'tahun_ajaran_id' => $year->id,
+                    'siswa_id' => $student->id,
+                    'mapel_id' => $subject->id,
+                    'nilai_tugas' => 70,
+                    'nilai_uts' => 80,
+                    'nilai_uas' => 90,
+                    'nilai_akhir' => 80 + $index,
+                ]);
+            }
+
+            NilaiGuru::create([
+                'tahun_ajaran_id' => $year->id,
+                'siswa_id' => $student->id,
+                'kelas_id' => $kelas->id,
+                'mapel_id' => $selectedSubject->id,
+                'guru_id' => $teacher->id,
+                'nilai_akhir' => 80,
+                'capaian_kompetensi' => 'Capaian sesuai kurikulum kelas.',
+            ]);
+        }
+
+        $this->actingAs($studentUser)
+            ->get(route('siswa.rapor.index', [
+                'tahun_ajaran' => '2025/2026',
+                'semester' => 'genap',
+            ]))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('selectedTahunAjaran', '2025/2026')
+                ->has('rapor', 1)
+                ->has('rapor.0.mata_pelajaran', 1)
+                ->where('rapor.0.mata_pelajaran.0.nama_mapel', 'Dasar Pengembangan Perangkat Lunak'));
     }
 
     public function test_student_can_filter_their_report_by_academic_year_and_semester(): void

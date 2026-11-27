@@ -23,13 +23,12 @@ class RaporController extends Controller
         abort_unless($siswa, 404);
         $siswa->loadMissing([
             'kelas.waliKelas',
+            'kelas.programKeahlian.mataPelajaranRaporKelasX',
             'kelas.konsentrasiKeahlian.mataPelajarans',
             'kategoriBeasiswa',
             'programKeahlian',
-            'konsentrasiKeahlian.mataPelajarans',
+            'konsentrasiKeahlian',
         ]);
-        $konsentrasi = $siswa->konsentrasiKeahlian ?? $siswa->kelas?->konsentrasiKeahlian;
-        $mapelRapor = $konsentrasi?->mataPelajarans ?? collect();
 
         $settings = PengaturanSekolah::query()->find(1);
         $statusRilisRapor = $settings?->status_rilis_rapor ?? 'otomatis';
@@ -64,11 +63,20 @@ class RaporController extends Controller
                 'mataPelajaran:id,kode_mapel,nama_mapel,kelompok_mapel',
             ])
             ->get();
-        $nilaiGurusByYearAndSubject = NilaiGuru::query()
+        $nilaiGurus = NilaiGuru::query()
             ->where('siswa_id', $siswa->id)
             ->whereIn('tahun_ajaran_id', $nilais->pluck('tahun_ajaran_id')->unique())
-            ->get(['tahun_ajaran_id', 'siswa_id', 'mapel_id', 'capaian_kompetensi'])
+            ->with([
+                'kelas:id,program_keahlian_id,konsentrasi_keahlian_id,tingkat',
+                'kelas.programKeahlian.mataPelajaranRaporKelasX',
+                'kelas.konsentrasiKeahlian.mataPelajarans',
+            ])
+            ->get(['tahun_ajaran_id', 'siswa_id', 'kelas_id', 'mapel_id', 'capaian_kompetensi']);
+        $nilaiGurusByYearAndSubject = $nilaiGurus
             ->groupBy(fn (NilaiGuru $nilaiGuru): string => "{$nilaiGuru->tahun_ajaran_id}:{$nilaiGuru->mapel_id}");
+        $kelasRaporByYear = $nilaiGurus
+            ->groupBy('tahun_ajaran_id')
+            ->map(fn ($contributions) => $contributions->first()?->kelas);
         $catatanRapors = CatatanRapor::query()
             ->where('siswa_id', $siswa->id)
             ->get()
@@ -117,16 +125,19 @@ class RaporController extends Controller
 
         $allRapor = $yearIds
             ->map(function (int|string $tahunAjaranId) use (
+                $siswa,
                 $catatanRapors,
+                $kelasRaporByYear,
                 $nilaiByYear,
                 $tahunAjarans,
                 $nilaiGurusByYearAndSubject,
-                $mapelRapor,
             ): array {
                 $tahunAjaranId = (int) $tahunAjaranId;
                 $tahunAjaran = $tahunAjarans->get($tahunAjaranId);
                 $catatan = $catatanRapors->get($tahunAjaranId);
                 $nilaiBySubject = $nilaiByYear->get($tahunAjaranId, collect())->keyBy('mapel_id');
+                $kelasRapor = $kelasRaporByYear->get($tahunAjaranId) ?? $siswa->kelas;
+                $mapelRapor = $kelasRapor?->mataPelajaranRaporTerkonfigurasi() ?? collect();
 
                 if ($mapelRapor->isNotEmpty()) {
                     $mataPelajaran = $mapelRapor->map(

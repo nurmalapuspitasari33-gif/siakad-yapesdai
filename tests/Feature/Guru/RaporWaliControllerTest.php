@@ -206,7 +206,10 @@ class RaporWaliControllerTest extends TestCase
             'kode_konsentrasi' => 'PPLG',
             'nama_konsentrasi' => 'Pengembangan Perangkat Lunak dan Gim',
         ]);
-        $kelas->update(['konsentrasi_keahlian_id' => $concentration->id]);
+        $kelas->update([
+            'konsentrasi_keahlian_id' => $concentration->id,
+            'tingkat' => 11,
+        ]);
         $scheduledMapel->update(['kelompok_mapel' => 'umum']);
         $firstInReport = MataPelajaran::create([
             'kode_mapel' => 'ZOO-001',
@@ -243,6 +246,53 @@ class RaporWaliControllerTest extends TestCase
                 ->where('mataPelajarans.0.id', $firstInReport->id)
                 ->where('mataPelajarans.1.id', $scheduledMapel->id)
                 ->where('monitoringNilai.0.nama_mapel', 'Zoologi')
+                ->where('monitoringNilai.1.nama_mapel', 'Matematika'));
+    }
+
+    public function test_wali_report_uses_program_subject_selection_for_class_x(): void
+    {
+        [$waliUser, $wali, $tahunAjaran, $kelas, , $scheduledMapel] = $this->createWaliClass();
+        $program = ProgramKeahlian::create([
+            'kode_jurusan' => 'TO',
+            'nama_jurusan' => 'Teknik Otomotif',
+        ]);
+        $kelas->update(['program_keahlian_id' => $program->id]);
+        $scheduledMapel->update(['kelompok_mapel' => 'kejuruan']);
+        $firstInReport = MataPelajaran::create([
+            'kode_mapel' => 'OTO-001',
+            'nama_mapel' => 'Dasar Otomotif',
+            'kelompok_mapel' => 'kejuruan',
+        ]);
+        $notSelected = MataPelajaran::create([
+            'kode_mapel' => 'OTO-002',
+            'nama_mapel' => 'Gambar Teknik',
+            'kelompok_mapel' => 'kejuruan',
+        ]);
+
+        foreach ([$firstInReport, $notSelected] as $index => $mapel) {
+            Jadwal::create([
+                'tahun_ajaran_id' => $tahunAjaran->id,
+                'kelas_id' => $kelas->id,
+                'mapel_id' => $mapel->id,
+                'guru_id' => $wali->id,
+                'hari' => $index === 0 ? 'selasa' : 'rabu',
+                'jam_mulai' => '09:00',
+                'jam_selesai' => '10:00',
+            ]);
+        }
+        $program->mataPelajaranRaporKelasX()->attach([
+            $firstInReport->id => ['urutan' => 1],
+            $scheduledMapel->id => ['urutan' => 2],
+        ]);
+
+        $this->actingAs($waliUser)
+            ->get(route('guru.rapor-wali.index'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->has('mataPelajarans', 2)
+                ->where('mataPelajarans.0.id', $firstInReport->id)
+                ->where('mataPelajarans.1.id', $scheduledMapel->id)
+                ->where('monitoringNilai.0.nama_mapel', 'Dasar Otomotif')
                 ->where('monitoringNilai.1.nama_mapel', 'Matematika'));
     }
 
