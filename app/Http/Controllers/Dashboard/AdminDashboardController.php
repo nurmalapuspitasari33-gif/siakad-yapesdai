@@ -39,6 +39,19 @@ class AdminDashboardController extends Controller
         $startOfTomorrowUtc = $localNow->copy()->addDay()->startOfDay()->utc();
 
         $siswaAktif = Siswa::query()->where('status_siswa', 'aktif');
+        $siswaAktifPerJenjang = [
+            'total' => (clone $siswaAktif)->count(),
+            'kelas_x' => (clone $siswaAktif)
+                ->whereHas('kelas', fn ($query) => $query->where('tingkat', 10))
+                ->count(),
+            'kelas_xi' => (clone $siswaAktif)
+                ->whereHas('kelas', fn ($query) => $query->where('tingkat', 11))
+                ->count(),
+            'kelas_xii' => (clone $siswaAktif)
+                ->whereHas('kelas', fn ($query) => $query->where('tingkat', 12))
+                ->count(),
+            'belum_masuk_kelas' => (clone $siswaAktif)->whereNull('kelas_id')->count(),
+        ];
         $pendaftarMenunggu = PendaftaranSpmb::query()
             ->where('status_seleksi', 'pending');
         $tagihanBelumLunas = Tagihan::query()
@@ -46,8 +59,9 @@ class AdminDashboardController extends Controller
 
         $statistics = [
             'siswa' => Siswa::count(),
-            'siswaAktif' => (clone $siswaAktif)->count(),
-            'siswaTanpaKelas' => (clone $siswaAktif)->whereNull('kelas_id')->count(),
+            'siswaAktif' => $siswaAktifPerJenjang['total'],
+            'siswaTanpaKelas' => $siswaAktifPerJenjang['belum_masuk_kelas'],
+            'siswaAktifPerJenjang' => $siswaAktifPerJenjang,
             'siswaTanpaNIK' => (clone $siswaAktif)
                 ->whereHas('user', fn ($query) => $query->whereNull('nik')->orWhere('nik', ''))
                 ->count(),

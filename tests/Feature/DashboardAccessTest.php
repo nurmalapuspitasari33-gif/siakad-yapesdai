@@ -6,6 +6,7 @@ use App\Models\Guru;
 use App\Models\Kelas;
 use App\Models\MataPelajaran;
 use App\Models\Siswa;
+use App\Models\TahunAjaran;
 use App\Models\Ujian;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -116,6 +117,62 @@ class DashboardAccessTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Admin/Siswa/Index')
                 ->where('openCreateForm', true));
+    }
+
+    public function test_admin_dashboard_counts_active_students_by_class_level(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $tahunAjaran = TahunAjaran::create([
+            'nama_tahun' => '2026/2027',
+            'semester' => 'ganjil',
+            'is_aktif' => true,
+        ]);
+        $kelasX = Kelas::create([
+            'tahun_ajaran_id' => $tahunAjaran->id,
+            'nama_kelas' => 'X Teknik',
+            'tingkat' => 10,
+        ]);
+        $kelasXI = Kelas::create([
+            'tahun_ajaran_id' => $tahunAjaran->id,
+            'nama_kelas' => 'XI Teknik',
+            'tingkat' => 11,
+        ]);
+        $kelasXII = Kelas::create([
+            'tahun_ajaran_id' => $tahunAjaran->id,
+            'nama_kelas' => 'XII Teknik',
+            'tingkat' => 12,
+        ]);
+        $students = [
+            ['Siswa Kelas X', '1000001101', 'aktif', $kelasX->id],
+            ['Siswa Kelas XI', '1000001102', 'aktif', $kelasXI->id],
+            ['Siswa Kelas XII', '1000001103', 'aktif', $kelasXII->id],
+            ['Siswa Tanpa Kelas', '1000001104', 'aktif', null],
+            ['Siswa Lulus', '1000001105', 'lulus', $kelasX->id],
+        ];
+
+        foreach ($students as [$name, $nisn, $status, $kelasId]) {
+            $user = User::factory()->create(['role' => 'siswa']);
+            Siswa::create([
+                'user_id' => $user->id,
+                'kelas_id' => $kelasId,
+                'nisn' => $nisn,
+                'nama_lengkap' => $name,
+                'status_siswa' => $status,
+            ]);
+        }
+
+        $this->actingAs($admin)
+            ->get(route('admin.dashboard'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Dashboard/Admin')
+                ->where('statistics.siswaAktifPerJenjang.total', 4)
+                ->where('statistics.siswaAktifPerJenjang.kelas_x', 1)
+                ->where('statistics.siswaAktifPerJenjang.kelas_xi', 1)
+                ->where('statistics.siswaAktifPerJenjang.kelas_xii', 1)
+                ->where('statistics.siswaAktifPerJenjang.belum_masuk_kelas', 1)
+                ->where('statistics.siswaAktif', 4)
+                ->where('statistics.siswaTanpaKelas', 1));
     }
 
     public function test_teacher_dashboard_shows_own_schedule_and_class_advisory_menu(): void

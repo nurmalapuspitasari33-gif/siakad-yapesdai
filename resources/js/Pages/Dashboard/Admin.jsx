@@ -29,11 +29,22 @@ export default function AdminDashboard({
     hariIni = 'Hari ini',
 }) {
     const navigation = AdminNavigationItems('dashboard');
+    const activeStudentLevels = statistics.siswaAktifPerJenjang ?? {};
+    const activeStudentsWithoutClass = activeStudentLevels.belum_masuk_kelas
+        ?? statistics.siswaTanpaKelas
+        ?? 0;
     const kpis = [
         {
             label: 'Siswa Aktif',
-            value: numberFormatter.format(statistics.siswaAktif ?? 0),
-            detail: `${numberFormatter.format(statistics.siswaTanpaKelas ?? 0)} belum masuk kelas`,
+            value: numberFormatter.format(activeStudentLevels.total ?? statistics.siswaAktif ?? 0),
+            details: [
+                { label: 'Kelas X', value: numberFormatter.format(activeStudentLevels.kelas_x ?? 0) },
+                { label: 'Kelas XI', value: numberFormatter.format(activeStudentLevels.kelas_xi ?? 0) },
+                { label: 'Kelas XII', value: numberFormatter.format(activeStudentLevels.kelas_xii ?? 0) },
+            ],
+            detail: activeStudentsWithoutClass > 0
+                ? `${numberFormatter.format(activeStudentsWithoutClass)} belum masuk kelas`
+                : null,
             icon: 'users',
             href: route('admin.siswa.index'),
             tone: 'blue',

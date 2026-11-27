@@ -91,12 +91,30 @@ export default function DashboardKpiStrip({ items = [] }) {
                         <span className="block truncate text-xs font-semibold text-slate-600">
                             {item.label}
                         </span>
-                        <span className="mt-0.5 block truncate text-lg font-bold leading-6 text-slate-950">
+                        <span className={`mt-0.5 block truncate font-bold text-slate-950 ${
+                            item.details ? 'text-2xl leading-7' : 'text-lg leading-6'
+                        }`}>
                             {item.value}
                         </span>
-                        <span className="mt-0.5 block truncate text-xs leading-4 text-slate-600">
-                            {item.detail}
-                        </span>
+                        {item.details ? (
+                            <span className="mt-2 grid grid-cols-3 gap-1.5">
+                                {item.details.map((detail) => (
+                                    <span key={detail.label} className="min-w-0 rounded-lg bg-slate-50 px-1.5 py-1 text-center">
+                                        <span className="block truncate text-[10px] leading-3 text-slate-500">
+                                            {detail.label}
+                                        </span>
+                                        <span className="block text-xs font-bold leading-4 text-slate-900">
+                                            {detail.value}
+                                        </span>
+                                    </span>
+                                ))}
+                            </span>
+                        ) : null}
+                        {item.detail ? (
+                            <span className="mt-1 block truncate text-xs leading-4 text-slate-600">
+                                {item.detail}
+                            </span>
+                        ) : null}
                     </span>
                     <span className="shrink-0 text-slate-400 transition group-hover:translate-x-0.5 group-hover:text-brand-blue" aria-hidden="true">
                         →
