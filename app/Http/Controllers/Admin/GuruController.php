@@ -276,7 +276,6 @@ class GuruController extends Controller
         DB::transaction(function () use ($guru, $validated): void {
             $userData = [
                 'name' => $validated['nama_lengkap'],
-                'username' => $this->generateUsername($validated['nama_lengkap'], $guru->user->id),
                 'email' => $validated['email'] ?? null,
                 'no_wa' => $validated['no_wa'] ?? null,
             ];
@@ -328,7 +327,7 @@ class GuruController extends Controller
             ->with('success', 'Kata sandi akun guru berhasil direset menjadi password dan wajib diganti saat login berikutnya.');
     }
 
-    private function generateUsername(string $namaLengkap, ?int $ignoreUserId = null): string
+    private function generateUsername(string $namaLengkap): string
     {
         $baseUsername = TeacherUsername::baseFromName($namaLengkap);
         $username = $baseUsername;
@@ -337,10 +336,6 @@ class GuruController extends Controller
         while (
             User::query()
                 ->where('username', $username)
-                ->when(
-                    $ignoreUserId !== null,
-                    fn ($query) => $query->where('id', '!=', $ignoreUserId),
-                )
                 ->exists()
         ) {
             $suffixText = (string) $suffix++;

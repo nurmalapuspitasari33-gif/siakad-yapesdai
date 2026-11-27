@@ -62,7 +62,7 @@ class GuruControllerTest extends TestCase
         $user->refresh();
         $this->assertSame('19870002', $guru->nip);
         $this->assertFalse($guru->is_wali_kelas);
-        $this->assertSame('dewi.puspita.baru', $user->username);
+        $this->assertSame('dewi.puspita', $user->username);
         $this->assertSame('Dewi Puspita Baru, S.Pd.', $user->name);
         $this->assertSame('dewi.baru@sekolah.sch.id', $user->email);
         $this->assertNull($user->email_verified_at);
