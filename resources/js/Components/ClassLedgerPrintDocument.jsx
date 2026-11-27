@@ -72,7 +72,7 @@ function LedgerTable({ groups, students, columnCount, startingIndex = 0, showEmp
                                 className={`ledger-group-${group.key}`}
                                 title={mapel.nama_mapel}
                             >
-                                {printValue(mapel.kode_mapel || mapel.nama_mapel)}
+                                {printValue(mapel.nama_mapel)}
                             </th>
                         ))
                         : [(
