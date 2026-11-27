@@ -368,7 +368,7 @@
 
     .identity-print-document-batch {
         position: relative;
-        min-height: 276mm;
+        min-height: 260mm;
         padding-bottom: 50mm;
     }
 
@@ -436,7 +436,7 @@
     .identity-footer-batch {
         position: absolute;
         right: 0;
-        bottom: 16mm;
+        bottom: 0;
         left: 0;
         margin: 0;
     }
