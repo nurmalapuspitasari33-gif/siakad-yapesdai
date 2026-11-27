@@ -1050,6 +1050,12 @@
         vertical-align: middle;
     }
 
+    .ledger-group-heading-compact {
+        padding: 2px 1px !important;
+        font-size: 8pt !important;
+        line-height: 1.1 !important;
+    }
+
     .ledger-group-umum {
         background: #eff6ff !important;
     }

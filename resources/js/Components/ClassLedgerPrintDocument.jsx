@@ -61,9 +61,9 @@ function abbreviateSubjectName(value) {
 
 function subjectGroups(mataPelajarans) {
     return [
-        { key: 'umum', title: 'A. Mata Pelajaran Umum', compactTitle: 'A. UMUM' },
-        { key: 'kejuruan', title: 'B. Mata Pelajaran Kejuruan', compactTitle: 'B. KEJURUAN' },
-        { key: 'muatan_lokal', title: 'C. Muatan Lokal', compactTitle: 'C. MULOK' },
+        { key: 'umum', title: 'A. Mata Pelajaran Umum', compactTitle: ['A.', 'UMUM'] },
+        { key: 'kejuruan', title: 'B. Mata Pelajaran Kejuruan', compactTitle: ['B.', 'KEJURUAN'] },
+        { key: 'muatan_lokal', title: 'C. Muatan Lokal', compactTitle: ['C.', 'MULOK'] },
     ].map((group) => ({
         ...group,
         subjects: mataPelajarans.filter((mapel) => mapel.kelompok_mapel === group.key),
@@ -75,7 +75,7 @@ function LedgerTable({ groups, students, columnCount, startingIndex = 0, showEmp
         (total, group) => total + Math.max(group.subjects.length, 1),
         0,
     );
-    const subjectColumnWidth = `${50 / subjectColumnCount}%`;
+    const subjectColumnWidth = `${56 / subjectColumnCount}%`;
 
     return (
         <table className="ledger-print-table">
@@ -92,9 +92,9 @@ function LedgerTable({ groups, students, columnCount, startingIndex = 0, showEmp
                         />
                     ),
                 ))}
-                <col style={{ width: '9%' }} />
-                <col style={{ width: '8%' }} />
                 <col style={{ width: '7%' }} />
+                <col style={{ width: '6%' }} />
+                <col style={{ width: '5%' }} />
             </colgroup>
             <thead>
                 <tr>
@@ -105,9 +105,17 @@ function LedgerTable({ groups, students, columnCount, startingIndex = 0, showEmp
                         <th
                             key={group.key}
                             colSpan={Math.max(group.subjects.length, 1)}
-                            className={`ledger-group-heading ledger-group-${group.key} whitespace-normal break-words leading-tight px-2 py-1.5 uppercase`}
+                            className={`ledger-group-heading ledger-group-${group.key} ${
+                                group.subjects.length <= 1 ? 'ledger-group-heading-compact' : ''
+                            } whitespace-normal break-words leading-tight px-2 py-1.5 uppercase`}
                         >
-                            {group.subjects.length <= 1 ? group.compactTitle : group.title}
+                            {group.subjects.length <= 1 ? (
+                                <>
+                                    {group.compactTitle[0]}
+                                    <br />
+                                    {group.compactTitle[1]}
+                                </>
+                            ) : group.title}
                         </th>
                     ))}
                     <th rowSpan="2">Jumlah Nilai</th>
