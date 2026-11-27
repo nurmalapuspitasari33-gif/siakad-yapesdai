@@ -29,7 +29,7 @@ class GuruControllerTest extends TestCase
         $this->actingAs($admin)
             ->post(route('admin.guru.store'), [
                 'nip' => '19870001',
-                'nama_lengkap' => 'Dewi Puspita',
+                'nama_lengkap' => 'Dewi Puspita, S.T., M.Pd.',
                 'no_wa' => '081234567890',
                 'is_wali_kelas' => true,
             ])
@@ -40,6 +40,7 @@ class GuruControllerTest extends TestCase
 
         $this->assertSame('guru', $user->role);
         $this->assertSame('dewi.puspita', $user->username);
+        $this->assertSame('Dewi Puspita, S.T., M.Pd.', $user->name);
         $this->assertNull($user->email);
         $this->assertTrue($guru->is_wali_kelas);
         $this->assertTrue(Hash::check('password', $user->password));
@@ -49,7 +50,7 @@ class GuruControllerTest extends TestCase
         $this->actingAs($admin)
             ->put(route('admin.guru.update', $guru), [
                 'nip' => '19870002',
-                'nama_lengkap' => 'Dewi Puspita Baru',
+                'nama_lengkap' => 'Dewi Puspita Baru, S.Pd.',
                 'email' => 'dewi.baru@sekolah.sch.id',
                 'no_wa' => '081234567891',
                 'password' => '',
@@ -61,7 +62,8 @@ class GuruControllerTest extends TestCase
         $user->refresh();
         $this->assertSame('19870002', $guru->nip);
         $this->assertFalse($guru->is_wali_kelas);
-        $this->assertSame('dewi.puspita', $user->username);
+        $this->assertSame('dewi.puspita.baru', $user->username);
+        $this->assertSame('Dewi Puspita Baru, S.Pd.', $user->name);
         $this->assertSame('dewi.baru@sekolah.sch.id', $user->email);
         $this->assertNull($user->email_verified_at);
         $this->assertTrue(Hash::check('password', $user->password));
@@ -90,6 +92,37 @@ class GuruControllerTest extends TestCase
 
         $this->assertDatabaseHas('users', ['username' => 'dewi.puspita']);
         $this->assertDatabaseHas('users', ['username' => 'dewi.puspita.2']);
+    }
+
+    public function test_migration_shortens_existing_teacher_usernames_without_changing_other_accounts(): void
+    {
+        $admin = User::factory()->create([
+            'role' => 'admin',
+            'username' => 'ACHMAD.SYAFIIQUNNAJA',
+        ]);
+        $teacher = User::factory()->create([
+            'role' => 'guru',
+            'name' => 'Achmad Syafiiqunnaja, S.T., M.Pd.',
+            'username' => 'achmad.syafiiqunnaja.s.t.m.pd',
+            'password' => 'secure-password',
+            'must_change_password' => false,
+        ]);
+        Guru::create([
+            'user_id' => $teacher->id,
+            'nip' => '19870022',
+            'nama_lengkap' => 'Achmad Syafiiqunnaja, S.T., M.Pd.',
+            'is_wali_kelas' => false,
+        ]);
+
+        $migration = require database_path('migrations/2026_11_27_184234_update_teacher_usernames_without_titles.php');
+        $migration->up();
+
+        $teacher->refresh();
+        $admin->refresh();
+        $this->assertSame('achmad.syafiiqunnaja.2', $teacher->username);
+        $this->assertTrue(Hash::check('secure-password', $teacher->password));
+        $this->assertFalse($teacher->must_change_password);
+        $this->assertSame('ACHMAD.SYAFIIQUNNAJA', $admin->username);
     }
 
     public function test_non_admin_cannot_manage_teacher_accounts(): void

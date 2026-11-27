@@ -8,12 +8,12 @@ use App\Models\Kelas;
 use App\Models\TahunAjaran;
 use App\Models\User;
 use App\Support\SpreadsheetFile;
+use App\Support\TeacherUsername;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -276,6 +276,7 @@ class GuruController extends Controller
         DB::transaction(function () use ($guru, $validated): void {
             $userData = [
                 'name' => $validated['nama_lengkap'],
+                'username' => $this->generateUsername($validated['nama_lengkap'], $guru->user->id),
                 'email' => $validated['email'] ?? null,
                 'no_wa' => $validated['no_wa'] ?? null,
             ];
@@ -327,19 +328,21 @@ class GuruController extends Controller
             ->with('success', 'Kata sandi akun guru berhasil direset menjadi password dan wajib diganti saat login berikutnya.');
     }
 
-    private function generateUsername(string $namaLengkap): string
+    private function generateUsername(string $namaLengkap, ?int $ignoreUserId = null): string
     {
-        $baseUsername = rtrim(substr(Str::slug($namaLengkap, '.'), 0, 240), '.');
-        $baseUsername = $baseUsername === '' ? 'guru' : $baseUsername;
-
-        if (preg_match('/^\d{16}$/D', $baseUsername) === 1) {
-            $baseUsername = 'guru.'.$baseUsername;
-        }
-
+        $baseUsername = TeacherUsername::baseFromName($namaLengkap);
         $username = $baseUsername;
         $suffix = 2;
 
-        while (User::query()->where('username', $username)->exists()) {
+        while (
+            User::query()
+                ->where('username', $username)
+                ->when(
+                    $ignoreUserId !== null,
+                    fn ($query) => $query->where('id', '!=', $ignoreUserId),
+                )
+                ->exists()
+        ) {
             $suffixText = (string) $suffix++;
             $username = substr($baseUsername, 0, 254 - strlen($suffixText)).'.'.$suffixText;
         }
