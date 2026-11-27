@@ -20,6 +20,11 @@ class JadwalController extends Controller
 {
     private const HARI = ['senin', 'selasa', 'rabu', 'kamis', 'jumat', 'sabtu', 'minggu'];
 
+    private const WAKTU_ISTIRAHAT = [
+        ['mulai' => '09:40', 'selesai' => '10:00'],
+        ['mulai' => '12:00', 'selesai' => '12:30'],
+    ];
+
     public function index(Request $request): Response
     {
         $tahunAjaranAktif = TahunAjaran::query()->where('is_aktif', true)->first();
@@ -209,8 +214,23 @@ class JadwalController extends Controller
 
     private function calculateEndTime(string $jamMulai, int $jumlahJp): string
     {
-        [$hours, $minutes] = array_map('intval', explode(':', $jamMulai));
-        $endMinutes = ($hours * 60) + $minutes + ($jumlahJp * 40);
+        $startMinutes = $this->timeToMinutes($jamMulai);
+        $endMinutes = $startMinutes + ($jumlahJp * 40);
+
+        foreach (self::WAKTU_ISTIRAHAT as $waktuIstirahat) {
+            $breakStart = $this->timeToMinutes($waktuIstirahat['mulai']);
+            $breakEnd = $this->timeToMinutes($waktuIstirahat['selesai']);
+
+            if ($startMinutes >= $breakStart && $startMinutes < $breakEnd) {
+                throw ValidationException::withMessages([
+                    'jam_mulai' => 'Jam mulai tidak boleh berada pada waktu istirahat (09.40–10.00 atau 12.00–12.30).',
+                ]);
+            }
+
+            if ($startMinutes < $breakEnd && $endMinutes > $breakStart) {
+                $endMinutes += $breakEnd - $breakStart;
+            }
+        }
 
         if ($endMinutes >= 24 * 60) {
             throw ValidationException::withMessages([
@@ -219,6 +239,13 @@ class JadwalController extends Controller
         }
 
         return sprintf('%02d:%02d', intdiv($endMinutes, 60), $endMinutes % 60);
+    }
+
+    private function timeToMinutes(string $time): int
+    {
+        [$hours, $minutes] = array_map('intval', explode(':', $time));
+
+        return ($hours * 60) + $minutes;
     }
 
     /**

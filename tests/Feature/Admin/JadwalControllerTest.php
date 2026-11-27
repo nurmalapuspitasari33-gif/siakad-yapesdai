@@ -11,11 +11,77 @@ use App\Models\TugasMengajar;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class JadwalControllerTest extends TestCase
 {
     use RefreshDatabase;
+
+    #[DataProvider('sessionTimingAcrossBreaks')]
+    public function test_schedule_extends_the_end_time_when_a_session_crosses_a_break(
+        string $jamMulai,
+        int $jumlahJp,
+        string $jamSelesai,
+        int $jpTarget,
+    ): void {
+        $admin = User::factory()->create(['role' => 'admin']);
+        [$tahunAjaran, $kelas, $guru, $mapel] = $this->createScheduleData();
+        $tugasMengajar = $this->createTugasMengajar($tahunAjaran, $kelas, $guru, $mapel, $jpTarget);
+
+        $this->actingAs($admin)
+            ->post(route('admin.jadwal.store'), [
+                'tugas_mengajar_id' => $tugasMengajar->id,
+                'jumlah_jp' => $jumlahJp,
+                'hari' => 'senin',
+                'jam_mulai' => $jamMulai,
+            ])
+            ->assertRedirect(route('admin.jadwal.index', absolute: false));
+
+        $this->assertDatabaseHas('jadwals', [
+            'tugas_mengajar_id' => $tugasMengajar->id,
+            'jumlah_jp' => $jumlahJp,
+            'jam_mulai' => $jamMulai,
+            'jam_selesai' => $jamSelesai,
+        ]);
+    }
+
+    public static function sessionTimingAcrossBreaks(): array
+    {
+        return [
+            'crosses the first break' => ['09:20', 1, '10:20', 4],
+            'crosses both breaks' => ['09:00', 5, '13:10', 5],
+        ];
+    }
+
+    #[DataProvider('breakStartTimes')]
+    public function test_schedule_cannot_start_during_a_break(string $jamMulai): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        [$tahunAjaran, $kelas, $guru, $mapel] = $this->createScheduleData();
+        $tugasMengajar = $this->createTugasMengajar($tahunAjaran, $kelas, $guru, $mapel, 4);
+
+        $this->actingAs($admin)
+            ->post(route('admin.jadwal.store'), [
+                'tugas_mengajar_id' => $tugasMengajar->id,
+                'jumlah_jp' => 1,
+                'hari' => 'senin',
+                'jam_mulai' => $jamMulai,
+            ])
+            ->assertSessionHasErrors([
+                'jam_mulai' => 'Jam mulai tidak boleh berada pada waktu istirahat (09.40–10.00 atau 12.00–12.30).',
+            ]);
+
+        $this->assertDatabaseCount('jadwals', 0);
+    }
+
+    public static function breakStartTimes(): array
+    {
+        return [
+            'first break' => ['09:40'],
+            'second break' => ['12:00'],
+        ];
+    }
 
     public function test_admin_schedules_from_a_teaching_assignment_and_conflicts_or_weekly_overages_are_rejected(): void
     {

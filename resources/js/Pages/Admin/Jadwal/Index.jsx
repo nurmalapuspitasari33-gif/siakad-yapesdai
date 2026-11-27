@@ -19,19 +19,76 @@ const days = [
     { value: 'minggu', label: 'Minggu' },
 ];
 
+const breakIntervals = [
+    { start: 9 * 60 + 40, end: 10 * 60 },
+    { start: 12 * 60, end: 12 * 60 + 30 },
+];
+
+function timeToMinutes(time) {
+    const [hours, minutes] = time.slice(0, 5).split(':').map(Number);
+
+    return (hours * 60) + minutes;
+}
+
+function formatTime(minutes) {
+    return `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
+}
+
+function startsDuringBreak(startTime) {
+    if (!startTime) {
+        return false;
+    }
+
+    const startMinutes = timeToMinutes(startTime);
+
+    return breakIntervals.some(
+        (interval) => startMinutes >= interval.start && startMinutes < interval.end,
+    );
+}
+
 function calculateEndTime(startTime, jumlahJp) {
     if (!startTime || !jumlahJp) {
         return '';
     }
 
-    const [hours, minutes] = startTime.split(':').map(Number);
-    const endMinutes = (hours * 60) + minutes + (Number(jumlahJp) * 40);
+    const startMinutes = timeToMinutes(startTime);
+    let endMinutes = startMinutes + (Number(jumlahJp) * 40);
+
+    if (startsDuringBreak(startTime)) {
+        return '';
+    }
+
+    breakIntervals.forEach((interval) => {
+        if (startMinutes < interval.end && endMinutes > interval.start) {
+            endMinutes += interval.end - interval.start;
+        }
+    });
 
     if (endMinutes >= 24 * 60) {
         return '';
     }
 
-    return `${String(Math.floor(endMinutes / 60)).padStart(2, '0')}:${String(endMinutes % 60).padStart(2, '0')}`;
+    return formatTime(endMinutes);
+}
+
+function formatTeachingIntervals(startTime, endTime) {
+    const sessionStart = timeToMinutes(startTime);
+    const sessionEnd = timeToMinutes(endTime);
+    const intervals = [];
+    let intervalStart = sessionStart;
+
+    breakIntervals.forEach((breakInterval) => {
+        if (intervalStart < breakInterval.start && sessionEnd > breakInterval.start) {
+            intervals.push(`${formatTime(intervalStart)}–${formatTime(breakInterval.start)}`);
+            intervalStart = Math.max(intervalStart, breakInterval.end);
+        }
+    });
+
+    if (intervalStart < sessionEnd) {
+        intervals.push(`${formatTime(intervalStart)}–${formatTime(sessionEnd)}`);
+    }
+
+    return intervals.join(' · istirahat · ');
 }
 
 export default function JadwalIndex({
@@ -60,7 +117,11 @@ export default function JadwalIndex({
     const selectedTugasMengajar = tugasMengajarOptions.find(
         (tugasMengajar) => String(tugasMengajar.id) === form.data.tugas_mengajar_id,
     );
+    const jamMulaiDalamIstirahat = startsDuringBreak(form.data.jam_mulai);
     const jamSelesai = calculateEndTime(form.data.jam_mulai, form.data.jumlah_jp);
+    const rentangJamSesi = jamSelesai
+        ? formatTeachingIntervals(form.data.jam_mulai, jamSelesai)
+        : '';
     const tersediaJp = selectedTugasMengajar
         ? selectedTugasMengajar.jp_per_minggu
             - selectedTugasMengajar.jp_terjadwal
@@ -151,7 +212,7 @@ export default function JadwalIndex({
     return (
         <DashboardLayout
             title="Manajemen Jadwal Pelajaran"
-            subtitle="Susun jadwal dari pembagian tugas mengajar dan cegah bentrok kelas maupun guru."
+            subtitle="Susun jadwal dari pembagian tugas mengajar. Istirahat setiap hari: 09.40–10.00 dan 12.00–12.30."
             roleLabel="Administrator"
             navigation={AdminNavigationItems('jadwal')}
         >
@@ -260,7 +321,11 @@ export default function JadwalIndex({
                                 <tr key={jadwal.id} className="hover:bg-slate-50/70">
                                     <td className="whitespace-nowrap px-5 py-4 sm:px-7">
                                         <p className="text-sm font-semibold capitalize text-slate-800">{jadwal.hari}</p>
-                                        <p className="mt-1 text-xs text-indigo-700">{jadwal.jam_mulai.slice(0, 5)} – {jadwal.jam_selesai.slice(0, 5)}</p>
+                                        <p className="mt-1 text-xs text-indigo-700">
+                                            {jadwal.tugas_mengajar_id
+                                                ? formatTeachingIntervals(jadwal.jam_mulai, jadwal.jam_selesai)
+                                                : `${jadwal.jam_mulai.slice(0, 5)} – ${jadwal.jam_selesai.slice(0, 5)}`}
+                                        </p>
                                         <p className="mt-1 text-xs text-slate-500">
                                             {jadwal.jumlah_jp ? `${jadwal.jumlah_jp} JP` : 'Jadwal lama'}
                                         </p>
@@ -300,7 +365,7 @@ export default function JadwalIndex({
             <AdminResourceModal
                 show={isFormOpen}
                 title={editingJadwal ? 'Edit Jadwal' : 'Tambah Jadwal'}
-                description="Pilih penugasan yang sudah dibuat. Satu JP berdurasi 40 menit; jam selesai dihitung otomatis. Buat sesi terpisah jika ada jeda."
+                description="Pilih penugasan yang sudah dibuat. Satu JP berdurasi 40 menit; jam selesai disesuaikan otomatis jika sesi melewati waktu istirahat."
                 processing={form.processing}
                 submitLabel={editingJadwal ? 'Simpan Perubahan' : 'Tambah Jadwal'}
                 onClose={closeForm}
@@ -311,6 +376,9 @@ export default function JadwalIndex({
                     {tahunAjaranAktif
                         ? `${tahunAjaranAktif.nama_tahun} · ${tahunAjaranAktif.semester}`
                         : 'belum ditetapkan'}
+                </div>
+                <div className="rounded-xl bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-900">
+                    Jam istirahat setiap hari: 09.40–10.00 dan 12.00–12.30. Waktu istirahat tidak dihitung sebagai JP; jam selesai akan diperpanjang otomatis jika sesi melewati jeda. Jam mulai saat istirahat tidak diperbolehkan.
                 </div>
                 <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
                     <div className="sm:col-span-2">
@@ -402,7 +470,9 @@ export default function JadwalIndex({
                     <div>
                         <span className="mb-2 block text-sm font-semibold text-slate-700">Jam Selesai</span>
                         <p className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
-                            {jamSelesai || 'Akan dihitung dari jam mulai dan jumlah JP'}
+                            {jamMulaiDalamIstirahat
+                                ? 'Jam mulai berada dalam waktu istirahat'
+                                : rentangJamSesi || 'Akan dihitung dari jam mulai dan jumlah JP'}
                         </p>
                     </div>
                 </div>
