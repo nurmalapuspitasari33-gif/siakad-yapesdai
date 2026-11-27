@@ -16,13 +16,11 @@ const days = [
     { value: 'kamis', label: 'Kamis' },
     { value: 'jumat', label: 'Jumat' },
     { value: 'sabtu', label: 'Sabtu' },
-    { value: 'minggu', label: 'Minggu' },
 ];
 
-const breakIntervals = [
-    { start: 9 * 60 + 40, end: 10 * 60 },
-    { start: 12 * 60, end: 12 * 60 + 30 },
-];
+const filterDays = [...days, { value: 'minggu', label: 'Minggu' }];
+
+const breakIntervals = [{ start: 9 * 60 + 40, end: 10 * 60 }, { start: 12 * 60, end: 12 * 60 + 30 }];
 
 function timeToMinutes(time) {
     const [hours, minutes] = time.slice(0, 5).split(':').map(Number);
@@ -44,6 +42,30 @@ function startsDuringBreak(startTime) {
     return breakIntervals.some(
         (interval) => startMinutes >= interval.start && startMinutes < interval.end,
     );
+}
+
+function maximumPeriodForDay(day) {
+    return day === 'jumat' ? 5 : 9;
+}
+
+function findPeriodForStartTime(startTime, jamKeOptions) {
+    return jamKeOptions.find((option) => option.jam_mulai === startTime.slice(0, 5))?.jam_ke ?? '';
+}
+
+function getPeriodRange(startTime, jumlahJp, day, jamKeOptions) {
+    const firstPeriod = findPeriodForStartTime(startTime, jamKeOptions);
+
+    if (!firstPeriod || !jumlahJp) {
+        return '';
+    }
+
+    const lastPeriod = Number(firstPeriod) + Number(jumlahJp) - 1;
+
+    if (lastPeriod > maximumPeriodForDay(day)) {
+        return '';
+    }
+
+    return `Jam ke-${firstPeriod}${lastPeriod > firstPeriod ? `–${lastPeriod}` : ''}`;
 }
 
 function calculateEndTime(startTime, jumlahJp) {
@@ -97,8 +119,12 @@ export default function JadwalIndex({
     tugasMengajarOptions,
     tahunAjaranAktif,
     filters,
+    jamKeOptions,
+    canGenerateSchedule,
+    hasExistingSchedules,
 }) {
     const [isFormOpen, setIsFormOpen] = useState(false);
+    const [isGenerateOpen, setIsGenerateOpen] = useState(false);
     const [editingJadwal, setEditingJadwal] = useState(null);
     const [deletingJadwal, setDeletingJadwal] = useState(null);
     const form = useForm({
@@ -106,8 +132,9 @@ export default function JadwalIndex({
         jumlah_jp: '1',
         ruang: '',
         hari: 'senin',
-        jam_mulai: '',
+        jam_ke_mulai: '1',
     });
+    const generateForm = useForm({});
     const filterForm = useForm({
         kelas_id: filters.kelas_id ?? '',
         hari: filters.hari ?? '',
@@ -117,11 +144,22 @@ export default function JadwalIndex({
     const selectedTugasMengajar = tugasMengajarOptions.find(
         (tugasMengajar) => String(tugasMengajar.id) === form.data.tugas_mengajar_id,
     );
-    const jamMulaiDalamIstirahat = startsDuringBreak(form.data.jam_mulai);
-    const jamSelesai = calculateEndTime(form.data.jam_mulai, form.data.jumlah_jp);
+    const jamKeMulai = Number(form.data.jam_ke_mulai);
+    const jamMulai = jamKeOptions.find((option) => option.jam_ke === jamKeMulai)?.jam_mulai ?? '';
+    const jamSelesai = calculateEndTime(jamMulai, form.data.jumlah_jp);
     const rentangJamSesi = jamSelesai
-        ? formatTeachingIntervals(form.data.jam_mulai, jamSelesai)
+        ? formatTeachingIntervals(jamMulai, jamSelesai)
         : '';
+    const rentangJamKe = jamKeMulai >= 1
+        && form.data.jumlah_jp
+        && jamKeMulai + Number(form.data.jumlah_jp) - 1 <= maximumPeriodForDay(form.data.hari)
+        ? `Jam ke-${jamKeMulai}${jamKeMulai + Number(form.data.jumlah_jp) - 1 > jamKeMulai
+            ? `–${jamKeMulai + Number(form.data.jumlah_jp) - 1}`
+            : ''}`
+        : '';
+    const sesiMelewatiBatasHari = jamKeMulai >= 1
+        && form.data.jumlah_jp
+        && jamKeMulai + Number(form.data.jumlah_jp) - 1 > maximumPeriodForDay(form.data.hari);
     const tersediaJp = selectedTugasMengajar
         ? selectedTugasMengajar.jp_per_minggu
             - selectedTugasMengajar.jp_terjadwal
@@ -144,7 +182,7 @@ export default function JadwalIndex({
             jumlah_jp: '1',
             ruang: '',
             hari: 'senin',
-            jam_mulai: '',
+            jam_ke_mulai: '1',
         });
         form.clearErrors();
         setIsFormOpen(true);
@@ -159,7 +197,7 @@ export default function JadwalIndex({
                 : String(jadwal.jumlah_jp),
             ruang: jadwal.ruang ?? '',
             hari: jadwal.hari,
-            jam_mulai: jadwal.jam_mulai.slice(0, 5),
+            jam_ke_mulai: String(findPeriodForStartTime(jadwal.jam_mulai, jamKeOptions)),
         });
         form.clearErrors();
         setIsFormOpen(true);
@@ -178,6 +216,27 @@ export default function JadwalIndex({
         }
 
         form.post(route('admin.jadwal.store'), options);
+    };
+
+    const changeScheduleDay = (hari) => {
+        const jamKeMulai = Math.max(
+            1,
+            Math.min(Number(form.data.jam_ke_mulai) || 1, maximumPeriodForDay(hari)),
+        );
+
+        form.setData({
+            ...form.data,
+            hari,
+            jam_ke_mulai: String(jamKeMulai),
+        });
+    };
+
+    const submitGenerateForm = (event) => {
+        event.preventDefault();
+        generateForm.post(route('admin.jadwal.generate'), {
+            preserveScroll: true,
+            onSuccess: () => setIsGenerateOpen(false),
+        });
     };
 
     const submitFilter = (event) => {
@@ -229,16 +288,31 @@ export default function JadwalIndex({
                                     : 'Belum ada tahun ajaran aktif'}
                             </p>
                         </div>
-                        <button
-                            type="button"
-                            onClick={openCreateForm}
-                            disabled={!canCreate}
-                            className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                            <span className="text-lg leading-none" aria-hidden="true">+</span>
-                            Tambah Jadwal
-                        </button>
+                        <div className="flex flex-col gap-2 sm:flex-row">
+                            <button
+                                type="button"
+                                onClick={() => setIsGenerateOpen(true)}
+                                disabled={!canGenerateSchedule}
+                                className="inline-flex items-center justify-center gap-2 rounded-xl border border-indigo-200 bg-white px-4 py-2.5 text-sm font-semibold text-indigo-700 transition hover:bg-indigo-50 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                                Generate Otomatis
+                            </button>
+                            <button
+                                type="button"
+                                onClick={openCreateForm}
+                                disabled={!canCreate}
+                                className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                                <span className="text-lg leading-none" aria-hidden="true">+</span>
+                                Tambah Jadwal
+                            </button>
+                        </div>
                     </div>
+                    {hasExistingSchedules && (
+                        <p className="text-xs text-slate-500">
+                            Generator hanya tersedia sebelum ada jadwal tersimpan agar jadwal semester berjalan tetap aman.
+                        </p>
+                    )}
 
                     <form onSubmit={submitFilter} className="flex flex-col gap-3 sm:flex-row sm:items-end">
                         <div className="flex-1 sm:max-w-xs">
@@ -268,7 +342,7 @@ export default function JadwalIndex({
                                 className="block w-full rounded-xl border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                             >
                                 <option value="">Semua hari</option>
-                                {days.map((day) => (
+                                {filterDays.map((day) => (
                                     <option key={day.value} value={day.value}>{day.label}</option>
                                 ))}
                             </select>
@@ -298,7 +372,7 @@ export default function JadwalIndex({
                     <table className="min-w-full divide-y divide-slate-100 text-left">
                         <thead className="bg-slate-50">
                             <tr>
-                                {['Hari & Waktu', 'Kelas', 'Mata Pelajaran', 'Guru', 'Ruang', 'Aksi'].map((label) => (
+                                {['Hari & Jam ke-', 'Kelas', 'Mata Pelajaran', 'Guru', 'Ruang', 'Aksi'].map((label) => (
                                     <th
                                         key={label}
                                         className="whitespace-nowrap px-5 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 first:sm:px-7 last:sm:px-7"
@@ -321,6 +395,10 @@ export default function JadwalIndex({
                                 <tr key={jadwal.id} className="hover:bg-slate-50/70">
                                     <td className="whitespace-nowrap px-5 py-4 sm:px-7">
                                         <p className="text-sm font-semibold capitalize text-slate-800">{jadwal.hari}</p>
+                                        <p className="mt-1 text-xs font-semibold text-slate-700">
+                                            {getPeriodRange(jadwal.jam_mulai, jadwal.jumlah_jp, jadwal.hari, jamKeOptions)
+                                                || 'Jam lama / nonbaku'}
+                                        </p>
                                         <p className="mt-1 text-xs text-indigo-700">
                                             {jadwal.tugas_mengajar_id
                                                 ? formatTeachingIntervals(jadwal.jam_mulai, jadwal.jam_selesai)
@@ -363,6 +441,25 @@ export default function JadwalIndex({
             </section>
 
             <AdminResourceModal
+                show={isGenerateOpen}
+                title="Generate Jadwal Otomatis"
+                description="Generator menyusun seluruh JP target untuk tahun ajaran aktif tanpa mengubah jadwal yang sudah tersimpan."
+                processing={generateForm.processing}
+                submitLabel="Generate Jadwal"
+                onClose={() => setIsGenerateOpen(false)}
+                onSubmit={submitGenerateForm}
+            >
+                <div className="space-y-3 rounded-xl bg-indigo-50 px-4 py-4 text-sm leading-6 text-indigo-900">
+                    <p>
+                        Generator mengatur jadwal Senin–Sabtu, maksimal 9 jam ke- per hari dan 5 jam ke- pada Jumat. Jam istirahat 09.40–10.00 serta 12.00–12.30 tidak dihitung sebagai JP.
+                    </p>
+                    <p>
+                        Target JP setiap penugasan akan disebar dengan blok maksimal 3 jam ke- berurutan. Bentrok guru maupun kelas dihindari. Jika semua JP tidak dapat ditempatkan, generator tidak menyimpan jadwal parsial.
+                    </p>
+                </div>
+            </AdminResourceModal>
+
+            <AdminResourceModal
                 show={isFormOpen}
                 title={editingJadwal ? 'Edit Jadwal' : 'Tambah Jadwal'}
                 description="Pilih penugasan yang sudah dibuat. Satu JP berdurasi 40 menit; jam selesai disesuaikan otomatis jika sesi melewati waktu istirahat."
@@ -378,7 +475,7 @@ export default function JadwalIndex({
                         : 'belum ditetapkan'}
                 </div>
                 <div className="rounded-xl bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-900">
-                    Jam istirahat setiap hari: 09.40–10.00 dan 12.00–12.30. Waktu istirahat tidak dihitung sebagai JP; jam selesai akan diperpanjang otomatis jika sesi melewati jeda. Jam mulai saat istirahat tidak diperbolehkan.
+                    Jam ke-1 dimulai pukul 07.00 dan setiap JP berlangsung 40 menit. Istirahat setiap hari pukul 09.40–10.00 dan 12.00–12.30 tidak dihitung sebagai JP. Hari Jumat hanya sampai jam ke-5; generator menyusun jadwal Senin–Sabtu.
                 </div>
                 <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
                     <div className="sm:col-span-2">
@@ -437,10 +534,13 @@ export default function JadwalIndex({
                         <select
                             id="jadwal-hari"
                             value={form.data.hari}
-                            onChange={(event) => form.setData('hari', event.target.value)}
+                            onChange={(event) => changeScheduleDay(event.target.value)}
                             className="block w-full rounded-xl border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                         >
                             {days.map((day) => <option key={day.value} value={day.value}>{day.label}</option>)}
+                            {editingJadwal?.hari === 'minggu' && (
+                                <option value="minggu">Minggu (jadwal lama)</option>
+                            )}
                         </select>
                         <InputError message={form.errors.hari} className="mt-2" />
                     </div>
@@ -457,22 +557,42 @@ export default function JadwalIndex({
                         <InputError message={form.errors.ruang} className="mt-2" />
                     </div>
                     <div>
-                        <label htmlFor="jam-mulai" className="mb-2 block text-sm font-semibold text-slate-700">Jam Mulai</label>
-                        <input
-                            id="jam-mulai"
-                            type="time"
-                            value={form.data.jam_mulai}
-                            onChange={(event) => form.setData('jam_mulai', event.target.value)}
+                        <label htmlFor="jadwal-jam-ke-mulai" className="mb-2 block text-sm font-semibold text-slate-700">
+                            Mulai Jam ke-
+                        </label>
+                        <select
+                            id="jadwal-jam-ke-mulai"
+                            value={form.data.jam_ke_mulai}
+                            onChange={(event) => form.setData('jam_ke_mulai', event.target.value)}
                             className="block w-full rounded-xl border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                        />
-                        <InputError message={form.errors.jam_mulai} className="mt-2" />
+                        >
+                            <option value="">Pilih jam ke-</option>
+                            {jamKeOptions
+                                .filter((option) => option.jam_ke <= maximumPeriodForDay(form.data.hari))
+                                .map((option) => (
+                                    <option key={option.jam_ke} value={option.jam_ke}>
+                                        Jam ke-{option.jam_ke} · {option.jam_mulai}
+                                    </option>
+                                ))}
+                        </select>
+                        <InputError message={form.errors.jam_ke_mulai} className="mt-2" />
+                        {editingJadwal && !findPeriodForStartTime(editingJadwal.jam_mulai, jamKeOptions) && (
+                            <p className="mt-2 text-xs text-amber-700">
+                                Jadwal lama mulai pukul {editingJadwal.jam_mulai.slice(0, 5)} di luar jam ke- standar. Pilih jam ke- baru; waktu jadwal akan disesuaikan saat disimpan.
+                            </p>
+                        )}
                     </div>
                     <div>
-                        <span className="mb-2 block text-sm font-semibold text-slate-700">Jam Selesai</span>
+                        <span className="mb-2 block text-sm font-semibold text-slate-700">Periode & Waktu</span>
                         <p className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
-                            {jamMulaiDalamIstirahat
-                                ? 'Jam mulai berada dalam waktu istirahat'
-                                : rentangJamSesi || 'Akan dihitung dari jam mulai dan jumlah JP'}
+                            {sesiMelewatiBatasHari
+                                ? 'Sesi melewati batas jam belajar hari ini'
+                                : (
+                                    <>
+                                        {rentangJamKe && <span className="block font-semibold">{rentangJamKe}</span>}
+                                        {rentangJamSesi || 'Waktu selesai dihitung dari jam ke- dan jumlah JP'}
+                                    </>
+                                )}
                         </p>
                     </div>
                 </div>

@@ -10,6 +10,7 @@ use App\Models\TahunAjaran;
 use App\Models\TugasMengajar;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -19,6 +20,22 @@ use Inertia\Response;
 class JadwalController extends Controller
 {
     private const HARI = ['senin', 'selasa', 'rabu', 'kamis', 'jumat', 'sabtu', 'minggu'];
+
+    private const HARI_GENERATE = ['senin', 'selasa', 'rabu', 'kamis', 'jumat', 'sabtu'];
+
+    private const JAM_KE_MULAI = [
+        '07:00',
+        '07:40',
+        '08:20',
+        '09:00',
+        '10:00',
+        '10:40',
+        '11:20',
+        '12:30',
+        '13:10',
+    ];
+
+    private const MAKSIMAL_JP_PER_SESI = 3;
 
     private const WAKTU_ISTIRAHAT = [
         ['mulai' => '09:40', 'selesai' => '10:00'],
@@ -75,6 +92,19 @@ class JadwalController extends Controller
                         'jp_terjadwal' => (int) ($tugasMengajar->jadwals_sum_jumlah_jp ?? 0),
                     ])
                 : [],
+            'jamKeOptions' => array_map(
+                fn (int $index, string $jamMulai): array => [
+                    'jam_ke' => $index + 1,
+                    'jam_mulai' => $jamMulai,
+                ],
+                array_keys(self::JAM_KE_MULAI),
+                self::JAM_KE_MULAI,
+            ),
+            'canGenerateSchedule' => $tahunAjaranAktif
+                && TugasMengajar::query()->where('tahun_ajaran_id', $tahunAjaranAktif->id)->exists()
+                && ! Jadwal::query()->where('tahun_ajaran_id', $tahunAjaranAktif->id)->exists(),
+            'hasExistingSchedules' => $tahunAjaranAktif
+                && Jadwal::query()->where('tahun_ajaran_id', $tahunAjaranAktif->id)->exists(),
             'tahunAjaranAktif' => $tahunAjaranAktif
                 ? [
                     'id' => $tahunAjaranAktif->id,
@@ -87,6 +117,100 @@ class JadwalController extends Controller
                 'hari' => $filters['hari'] ?? '',
             ],
         ]);
+    }
+
+    public function generate(): RedirectResponse
+    {
+        $tahunAjaranId = TahunAjaran::query()->where('is_aktif', true)->value('id');
+
+        if (! $tahunAjaranId) {
+            return back()->with('error', 'Aktifkan tahun ajaran sebelum membuat jadwal otomatis.');
+        }
+
+        $result = DB::transaction(function () use ($tahunAjaranId): array {
+            $tahunAjaran = TahunAjaran::query()
+                ->whereKey($tahunAjaranId)
+                ->lockForUpdate()
+                ->first();
+
+            if (! $tahunAjaran || ! $tahunAjaran->is_aktif) {
+                return ['status' => 'no_active_year'];
+            }
+
+            $tugasMengajars = TugasMengajar::query()
+                ->where('tahun_ajaran_id', $tahunAjaran->id)
+                ->with([
+                    'guru:id,nama_lengkap',
+                    'kelas:id,nama_kelas',
+                    'mataPelajaran:id,nama_mapel',
+                ])
+                ->orderBy('id')
+                ->lockForUpdate()
+                ->get();
+
+            if ($tugasMengajars->isEmpty()) {
+                return ['status' => 'no_assignments'];
+            }
+
+            if (Jadwal::query()->where('tahun_ajaran_id', $tahunAjaran->id)->exists()) {
+                return ['status' => 'existing_schedules'];
+            }
+
+            $plan = $this->buildSchedulePlan($tugasMengajars);
+
+            if ($plan['belum_terjadwal'] !== []) {
+                return [
+                    'status' => 'insufficient_slots',
+                    'details' => collect($plan['belum_terjadwal'])
+                        ->map(fn (array $item): string => sprintf(
+                            '%s / %s / %s: %d JP',
+                            $item['guru'],
+                            $item['kelas'],
+                            $item['mata_pelajaran'],
+                            $item['jumlah_jp'],
+                        ))
+                        ->implode('; '),
+                ];
+            }
+
+            foreach ($plan['jadwals'] as $jadwal) {
+                Jadwal::create([
+                    ...$jadwal,
+                    'tahun_ajaran_id' => $tahunAjaran->id,
+                ]);
+            }
+
+            return [
+                'status' => 'generated',
+                'jumlah_sesi' => count($plan['jadwals']),
+                'jumlah_jp' => $tugasMengajars->sum('jp_per_minggu'),
+            ];
+        });
+
+        if ($result['status'] === 'existing_schedules') {
+            return back()->with('error', 'Jadwal tahun ajaran aktif sudah berisi data. Generator hanya berjalan pada jadwal yang masih kosong; data lama tidak diubah.');
+        }
+
+        if ($result['status'] === 'no_assignments') {
+            return back()->with('error', 'Tambahkan pembagian tugas mengajar sebelum membuat jadwal otomatis.');
+        }
+
+        if ($result['status'] === 'insufficient_slots') {
+            return back()->with('error', 'Jadwal otomatis tidak dapat menempatkan semua JP tanpa bentrok. Belum tersusun: '.$result['details'].'. Tidak ada jadwal yang disimpan.');
+        }
+
+        if ($result['status'] === 'no_active_year') {
+            return back()->with('error', 'Tahun ajaran aktif berubah. Muat ulang halaman lalu coba kembali.');
+        }
+
+        return to_route('admin.jadwal.index')->with(
+            'success',
+            sprintf(
+                'Jadwal otomatis berhasil dibuat: %d JP dalam %d sesi.',
+                $result['jumlah_jp'],
+                $result['jumlah_sesi'],
+            ),
+        );
     }
 
     public function store(Request $request): RedirectResponse
@@ -124,7 +248,7 @@ class JadwalController extends Controller
             404,
         );
 
-        $validated = $this->validatedSchedule($request, $tahunAjaranAktif);
+        $validated = $this->validatedSchedule($request, $tahunAjaranAktif, $jadwal);
 
         DB::transaction(function () use ($validated, $tahunAjaranAktif, $jadwal): void {
             $tugasMengajar = $this->lockTugasMengajar($validated, $tahunAjaranAktif);
@@ -153,10 +277,175 @@ class JadwalController extends Controller
     }
 
     /**
+     * @param  Collection<int, TugasMengajar>  $tugasMengajars
+     * @return array{
+     *     jadwals: array<int, array{
+     *         tugas_mengajar_id: int,
+     *         kelas_id: int,
+     *         mapel_id: int,
+     *         guru_id: int,
+     *         jumlah_jp: int,
+     *         ruang: null,
+     *         hari: string,
+     *         jam_mulai: string,
+     *         jam_selesai: string
+     *     }>,
+     *     belum_terjadwal: array<int, array{
+     *         guru: string,
+     *         kelas: string,
+     *         mata_pelajaran: string,
+     *         jumlah_jp: int
+     *     }>
+     * }
+     */
+    private function buildSchedulePlan(Collection $tugasMengajars): array
+    {
+        $occupied = ['guru' => [], 'kelas' => []];
+        $dailyLoads = ['guru' => [], 'kelas' => []];
+        $jadwals = [];
+        $belumTerjadwal = [];
+
+        foreach ($tugasMengajars->sortByDesc('jp_per_minggu')->values() as $tugasMengajar) {
+            $sisaJp = (int) $tugasMengajar->jp_per_minggu;
+
+            while ($sisaJp > 0) {
+                $maksimalBlok = min(self::MAKSIMAL_JP_PER_SESI, $sisaJp);
+                $penempatan = null;
+
+                for ($jumlahJp = $maksimalBlok; $jumlahJp >= 1; $jumlahJp--) {
+                    $penempatan = $this->findAvailableBlock(
+                        $tugasMengajar,
+                        $jumlahJp,
+                        $occupied,
+                        $dailyLoads,
+                    );
+
+                    if ($penempatan !== null) {
+                        break;
+                    }
+                }
+
+                if ($penempatan === null) {
+                    $belumTerjadwal[] = [
+                        'guru' => $tugasMengajar->guru->nama_lengkap,
+                        'kelas' => $tugasMengajar->kelas->nama_kelas,
+                        'mata_pelajaran' => $tugasMengajar->mataPelajaran->nama_mapel,
+                        'jumlah_jp' => $sisaJp,
+                    ];
+
+                    break;
+                }
+
+                $hari = $penempatan['hari'];
+                $jamKeMulai = $penempatan['jam_ke_mulai'];
+                $jumlahJp = $penempatan['jumlah_jp'];
+
+                for ($jamKe = $jamKeMulai; $jamKe < $jamKeMulai + $jumlahJp; $jamKe++) {
+                    $occupied['guru'][$tugasMengajar->guru_id][$hari][$jamKe] = true;
+                    $occupied['kelas'][$tugasMengajar->kelas_id][$hari][$jamKe] = true;
+                }
+
+                $dailyLoads['guru'][$tugasMengajar->guru_id][$hari] =
+                    ($dailyLoads['guru'][$tugasMengajar->guru_id][$hari] ?? 0) + $jumlahJp;
+                $dailyLoads['kelas'][$tugasMengajar->kelas_id][$hari] =
+                    ($dailyLoads['kelas'][$tugasMengajar->kelas_id][$hari] ?? 0) + $jumlahJp;
+
+                $jamMulai = $this->jamMulaiPeriode($jamKeMulai);
+                $jadwals[] = [
+                    'tugas_mengajar_id' => $tugasMengajar->id,
+                    'kelas_id' => $tugasMengajar->kelas_id,
+                    'mapel_id' => $tugasMengajar->mapel_id,
+                    'guru_id' => $tugasMengajar->guru_id,
+                    'jumlah_jp' => $jumlahJp,
+                    'ruang' => null,
+                    'hari' => $hari,
+                    'jam_mulai' => $jamMulai,
+                    'jam_selesai' => $this->calculateEndTime($jamMulai, $jumlahJp),
+                ];
+
+                $sisaJp -= $jumlahJp;
+            }
+        }
+
+        return [
+            'jadwals' => $jadwals,
+            'belum_terjadwal' => $belumTerjadwal,
+        ];
+    }
+
+    /**
+     * @param  array<string, array<int, array<string, array<int, bool>>>>  $occupied
+     * @param  array<string, array<int, array<string, int>>>  $dailyLoads
+     * @return array{hari: string, jam_ke_mulai: int, jumlah_jp: int}|null
+     */
+    private function findAvailableBlock(
+        TugasMengajar $tugasMengajar,
+        int $jumlahJp,
+        array $occupied,
+        array $dailyLoads,
+    ): ?array {
+        $best = null;
+        $bestScore = PHP_INT_MAX;
+
+        foreach (self::HARI_GENERATE as $hari) {
+            $maksimalJamKe = $hari === 'jumat' ? 5 : 9;
+            $lastStartPeriod = $maksimalJamKe - $jumlahJp + 1;
+
+            for ($jamKeMulai = 1; $jamKeMulai <= $lastStartPeriod; $jamKeMulai++) {
+                $isAvailable = true;
+
+                for ($jamKe = $jamKeMulai; $jamKe < $jamKeMulai + $jumlahJp; $jamKe++) {
+                    if (
+                        isset($occupied['guru'][$tugasMengajar->guru_id][$hari][$jamKe])
+                        || isset($occupied['kelas'][$tugasMengajar->kelas_id][$hari][$jamKe])
+                    ) {
+                        $isAvailable = false;
+
+                        break;
+                    }
+                }
+
+                if (! $isAvailable) {
+                    continue;
+                }
+
+                $score = ($dailyLoads['guru'][$tugasMengajar->guru_id][$hari] ?? 0)
+                    + ($dailyLoads['kelas'][$tugasMengajar->kelas_id][$hari] ?? 0);
+
+                if ($score < $bestScore) {
+                    $bestScore = $score;
+                    $best = [
+                        'hari' => $hari,
+                        'jam_ke_mulai' => $jamKeMulai,
+                        'jumlah_jp' => $jumlahJp,
+                    ];
+                }
+            }
+        }
+
+        return $best;
+    }
+
+    private function jamMulaiPeriode(int $jamKe): string
+    {
+        return self::JAM_KE_MULAI[$jamKe - 1];
+    }
+
+    /**
      * @return array<string, mixed>
      */
-    private function validatedSchedule(Request $request, TahunAjaran $tahunAjaran): array
-    {
+    private function validatedSchedule(
+        Request $request,
+        TahunAjaran $tahunAjaran,
+        ?Jadwal $jadwal = null,
+    ): array {
+        $maksimalJamKe = $request->input('hari') === 'jumat' ? 5 : 9;
+        $hariValid = self::HARI_GENERATE;
+
+        if ($jadwal?->hari === 'minggu') {
+            $hariValid[] = 'minggu';
+        }
+
         $validated = $request->validate([
             'tugas_mengajar_id' => [
                 'required',
@@ -165,8 +454,8 @@ class JadwalController extends Controller
             ],
             'jumlah_jp' => ['required', 'integer', 'min:1', 'max:255'],
             'ruang' => ['nullable', 'string', 'max:100'],
-            'hari' => ['required', Rule::in(self::HARI)],
-            'jam_mulai' => ['required', 'date_format:H:i'],
+            'hari' => ['required', Rule::in($hariValid)],
+            'jam_ke_mulai' => ['required', 'integer', Rule::in(range(1, $maksimalJamKe))],
         ], [
             'tugas_mengajar_id.exists' => 'Pilih penugasan pada tahun ajaran aktif.',
             'jumlah_jp.required' => 'Jumlah JP pada jadwal wajib diisi.',
@@ -174,11 +463,27 @@ class JadwalController extends Controller
             'jumlah_jp.min' => 'Jumlah JP minimal satu.',
             'jumlah_jp.max' => 'Jumlah JP maksimal 255.',
             'hari.in' => 'Hari yang dipilih tidak valid.',
-            'jam_mulai.date_format' => 'Format jam mulai tidak valid.',
+            'jam_ke_mulai.required' => 'Pilih jam ke- untuk memulai sesi.',
+            'jam_ke_mulai.integer' => 'Jam ke- harus berupa bilangan bulat.',
+            'jam_ke_mulai.in' => 'Jam ke- tidak tersedia pada hari yang dipilih.',
         ]);
 
         $validated['tugas_mengajar_id'] = (int) $validated['tugas_mengajar_id'];
         $validated['jumlah_jp'] = (int) $validated['jumlah_jp'];
+        $validated['jam_ke_mulai'] = (int) $validated['jam_ke_mulai'];
+
+        if ($maksimalJamKe < $validated['jam_ke_mulai'] + $validated['jumlah_jp'] - 1) {
+            $message = $validated['hari'] === 'jumat'
+                ? 'Jadwal hari Jumat hanya dapat berlangsung sampai jam ke-5.'
+                : 'Jadwal tidak dapat berlangsung melewati jam ke-9.';
+
+            throw ValidationException::withMessages([
+                'jumlah_jp' => $message,
+            ]);
+        }
+
+        $validated['jam_mulai'] = $this->jamMulaiPeriode($validated['jam_ke_mulai']);
+        unset($validated['jam_ke_mulai']);
 
         return $validated;
     }

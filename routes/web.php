@@ -151,6 +151,9 @@ Route::middleware(['auth', 'force-password-change', 'verified', 'role:admin'])
         Route::resource('beasiswa', BeasiswaController::class)
             ->except(['create', 'edit', 'show']);
 
+        Route::post('jadwal/generate', [AdminJadwalController::class, 'generate'])
+            ->name('jadwal.generate');
+
         Route::resource('jadwal', AdminJadwalController::class)
             ->except(['create', 'edit', 'show'])
             ->parameters(['jadwal' => 'jadwal']);
