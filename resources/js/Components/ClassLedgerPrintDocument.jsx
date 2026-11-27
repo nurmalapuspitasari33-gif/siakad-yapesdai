@@ -71,8 +71,31 @@ function subjectGroups(mataPelajarans) {
 }
 
 function LedgerTable({ groups, students, columnCount, startingIndex = 0, showEmpty = false }) {
+    const subjectColumnCount = groups.reduce(
+        (total, group) => total + Math.max(group.subjects.length, 1),
+        0,
+    );
+    const subjectColumnWidth = `${50 / subjectColumnCount}%`;
+
     return (
         <table className="ledger-print-table">
+            <colgroup>
+                <col style={{ width: '4%' }} />
+                <col style={{ width: '17%' }} />
+                <col style={{ width: '5%' }} />
+                {groups.flatMap((group) => Array.from(
+                    { length: Math.max(group.subjects.length, 1) },
+                    (_, index) => (
+                        <col
+                            key={`${group.key}-${index}`}
+                            style={{ width: subjectColumnWidth }}
+                        />
+                    ),
+                ))}
+                <col style={{ width: '9%' }} />
+                <col style={{ width: '8%' }} />
+                <col style={{ width: '7%' }} />
+            </colgroup>
             <thead>
                 <tr>
                     <th rowSpan="2">No</th>

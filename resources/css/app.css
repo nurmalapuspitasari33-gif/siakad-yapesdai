@@ -1030,7 +1030,7 @@
     .ledger-print-table {
         width: 100%;
         border-collapse: collapse;
-        table-layout: auto;
+        table-layout: fixed;
     }
 
     .ledger-print-table th,
