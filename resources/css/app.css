@@ -262,6 +262,11 @@
     margin: 12mm 15mm;
 }
 
+@page student-report {
+    size: A4 portrait;
+    margin: 10mm 14mm;
+}
+
 @page spmb-report {
     size: A4 landscape;
     margin: 12mm;
@@ -269,7 +274,7 @@
 
 @page ledger-print-landscape {
     size: A4 landscape;
-    margin: 10mm;
+    margin: 8mm 10mm;
 }
 
 @page ledger-print-portrait {
@@ -311,13 +316,30 @@
         width: 100%;
     }
 
+    .report-print-document {
+        page: student-report;
+    }
+
     .report-print-page {
-        min-height: 281mm;
+        height: 277mm;
+        min-height: 275mm;
+        max-height: 277mm;
         box-sizing: border-box;
         display: flex;
         flex-direction: column;
         break-after: page;
         page-break-after: always;
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+
+    .report-print-page-continuation {
+        justify-content: space-between;
+    }
+
+    .report-print-page-continuation > :not(.report-signatures) {
+        margin-top: 0;
+        margin-bottom: 8px;
     }
 
     .report-print-page:last-child {
@@ -340,13 +362,16 @@
     }
 
     .identity-print-document {
+        height: 273mm;
         box-sizing: border-box;
         display: flex !important;
         flex-direction: column;
+        justify-content: space-between;
+        overflow: hidden;
     }
 
     .identity-title {
-        margin: 5mm 0 7mm;
+        margin: 5mm 0;
         text-align: center;
         font-weight: 700;
     }
@@ -355,13 +380,19 @@
         display: grid;
         grid-template-columns: minmax(0, 1fr);
         row-gap: 0.75mm;
+        width: 100%;
+    }
+
+    .identity-line,
+    .identity-line * {
+        font-size: 11.5pt !important;
+        line-height: 1.25;
     }
 
     .identity-line {
         display: grid;
-        grid-template-columns: 8mm 68mm 4mm minmax(0, 1fr);
+        grid-template-columns: 8mm 55mm 4mm minmax(0, 1fr);
         padding: 2px 0;
-        line-height: 1.25;
     }
 
     .identity-number {
@@ -422,11 +453,11 @@
         grid-template-columns: minmax(0, 1fr) 64mm;
         gap: 8mm;
         justify-content: space-between;
-        margin: 11mm 1mm 13mm;
+        margin: 6mm 1mm 8mm;
     }
 
     .report-print-page-continuation .report-student-header {
-        margin: 3mm 1mm 4mm;
+        margin: 0 1mm;
     }
 
     .report-student-column {
@@ -622,7 +653,7 @@
     }
 
     .parent-response-table tbody td {
-        height: 56px;
+        height: 46px;
     }
 
     .report-signatures {
@@ -630,14 +661,14 @@
         grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
         gap: 0 8mm;
         margin-top: auto;
-        padding-top: 3mm;
+        padding-top: 0;
         text-align: center;
         break-inside: avoid;
         page-break-inside: avoid;
     }
 
     .report-signature-space {
-        height: 76px;
+        height: 48px;
     }
 
     .report-signature-rule {
@@ -804,7 +835,11 @@
 
     .ledger-print-landscape {
         page: ledger-print-landscape;
-        min-height: 190mm;
+        height: 194mm;
+        min-height: 194mm;
+        max-height: 194mm;
+        box-sizing: border-box;
+        justify-content: space-between;
     }
 
     .ledger-print-portrait {
@@ -823,6 +858,7 @@
     }
 
     .ledger-school-heading img {
+        display: block;
         width: 18mm;
         height: 18mm;
         object-fit: contain;
@@ -841,14 +877,14 @@
     }
 
     .ledger-title {
-        margin: 2mm 0 1mm;
+        margin: 1mm 0 6px;
         font-size: 10pt !important;
         font-weight: 700;
         text-align: center;
     }
 
     .ledger-class-identity {
-        margin: 0 0 2mm;
+        margin: 0 0 6px;
         font-size: 8pt !important;
         text-align: center;
     }
@@ -862,15 +898,11 @@
     .ledger-print-table th,
     .ledger-print-table td {
         border: 0.25mm solid #000 !important;
-        font-size: 7pt !important;
-        line-height: 1.05 !important;
+        padding: 2px 4px !important;
+        font-size: 8.5pt !important;
+        line-height: 1.15 !important;
         overflow-wrap: anywhere;
         vertical-align: top;
-    }
-
-    .ledger-print-table th:not(.ledger-group-heading),
-    .ledger-print-table td {
-        padding: 1mm 1.2mm !important;
     }
 
     .ledger-print-table th {
@@ -906,8 +938,7 @@
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: 8mm;
-        margin-top: auto;
-        padding-top: 3mm;
+        margin-top: 10px;
         text-align: center;
         break-inside: avoid;
         page-break-inside: avoid;
@@ -920,7 +951,7 @@
     }
 
     .ledger-signature-space {
-        height: 12mm;
+        height: 42px;
     }
 
     .ledger-signature-name {
