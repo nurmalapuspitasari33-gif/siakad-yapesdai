@@ -32,6 +32,33 @@ function formatLongDate(value) {
     }).format(date);
 }
 
+function abbreviateSubjectName(value) {
+    const name = String(value ?? '').trim();
+    const normalizedName = name
+        .toLocaleLowerCase('id-ID')
+        .replace(/[.,]/g, '')
+        .replace(/\s+/g, ' ');
+    const abbreviations = {
+        'pendidikan agama dan budi pekerti': 'PABP',
+        'pendidikan agama islam dan budi pekerti': 'PABP',
+        matematika: 'MTK',
+    };
+
+    if (abbreviations[normalizedName]) {
+        return abbreviations[normalizedName];
+    }
+
+    const words = normalizedName
+        .split(' ')
+        .filter((word) => word && !['dan', 'serta', 'yang'].includes(word));
+
+    if (words.length === 1) {
+        return words[0].slice(0, 3).toUpperCase();
+    }
+
+    return words.map((word) => word[0]).join('').toUpperCase();
+}
+
 function subjectGroups(mataPelajarans) {
     return [
         { key: 'umum', title: 'A. Mata Pelajaran Umum', compactTitle: 'A. UMUM' },
@@ -72,7 +99,7 @@ function LedgerTable({ groups, students, columnCount, startingIndex = 0, showEmp
                                 className={`ledger-group-${group.key}`}
                                 title={mapel.nama_mapel}
                             >
-                                {printValue(mapel.nama_mapel)}
+                                {printValue(abbreviateSubjectName(mapel.nama_mapel))}
                             </th>
                         ))
                         : [(
