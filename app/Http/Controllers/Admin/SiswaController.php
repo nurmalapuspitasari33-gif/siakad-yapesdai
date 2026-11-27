@@ -390,18 +390,16 @@ class SiswaController extends Controller
             $nisUniqueRule = Rule::unique('siswas', 'nis');
             $emailUniqueRule = Rule::unique('users', 'email');
             $nikUniqueRule = Rule::unique('users', 'nik');
-            $nikRules = StudentIdentity::nikRules();
 
             if ($existingStudent !== null) {
                 $nisnUniqueRule->ignore($existingStudent);
                 $nisUniqueRule->ignore($existingStudent);
                 $emailUniqueRule->ignore($existingStudent->user);
                 $nikUniqueRule->ignore($existingStudent->user);
-                $nikRules = ['nullable', 'string', 'digits:16', $nikUniqueRule];
             }
 
             $validator = Validator::make($data, [
-                'nik' => $nikRules,
+                'nik' => ['nullable', 'string', 'digits:16', $nikUniqueRule],
                 'nisn' => ['nullable', 'string', 'max:255', $nisnUniqueRule],
                 'nis' => ['nullable', 'string', 'max:255', $nisUniqueRule],
                 'nama_lengkap' => ['required', 'string', 'max:255'],

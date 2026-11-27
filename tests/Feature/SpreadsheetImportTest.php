@@ -408,8 +408,8 @@ class SpreadsheetImportTest extends TestCase
                         'program_keahlian', 'konsentrasi_keahlian', 'nik',
                     ],
                     [
-                        ['', '', 'Siswa Kelas XI', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '0012345678904006'],
-                        ['', '', 'Siswa Kelas XII', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '0012345678904007'],
+                        ['', '', 'Siswa Kelas XI', '', '', '', '', '', '', '', '', '', '', '', '', '', '', ''],
+                        ['', '', 'Siswa Kelas XII', '', '', '', '', '', '', '', '', '', '', '', '', '', '', ''],
                     ],
                 ),
             ])
@@ -422,8 +422,36 @@ class SpreadsheetImportTest extends TestCase
         $this->assertNull($student->kelas_id);
         $this->assertSame('reguler', $student->tipe_program);
         $this->assertNull($student->user->email);
+        $this->assertNull($student->user->nik);
         $this->assertNull($secondStudent->nisn);
         $this->assertNull($secondStudent->user->email);
+        $this->assertNull($secondStudent->user->nik);
+    }
+
+    public function test_admin_student_import_rejects_an_invalid_nik_when_provided(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $this->actingAs($admin)
+            ->post(route('admin.siswa.import'), [
+                'file' => $this->xlsxUpload(
+                    [
+                        'nisn', 'nis', 'nama_lengkap', 'email', 'nama_kelas', 'jenis_kelamin',
+                        'tempat_lahir', 'tanggal_lahir', 'agama', 'alamat_murid', 'nama_ayah',
+                        'nama_ibu', 'no_wa_wali', 'tipe_program', 'ukuran_seragam', 'nik',
+                    ],
+                    [[
+                        '', '', 'NIK Tidak Valid', '', '', '', '', '', '', '', '', '', '', '',
+                        '', '123456789012345',
+                    ]],
+                ),
+            ])
+            ->assertSessionHasErrors([
+                'file' => 'Baris 2: The nik field must be 16 digits.',
+            ]);
+
+        $this->assertDatabaseCount('siswas', 0);
+        $this->assertDatabaseMissing('users', ['nik' => '123456789012345']);
     }
 
     public function test_admin_import_updates_students_by_identifiers_and_preserves_blank_cells(): void
