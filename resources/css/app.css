@@ -259,7 +259,7 @@
 
 @page {
     size: A4 portrait;
-    margin: 12mm 14mm;
+    margin: 12mm 15mm;
 }
 
 @page spmb-report {
@@ -311,10 +311,6 @@
         width: 100%;
     }
 
-    .identity-print-document {
-        min-height: 281mm;
-    }
-
     .report-print-page {
         min-height: 281mm;
         box-sizing: border-box;
@@ -358,14 +354,14 @@
     .identity-fields {
         display: grid;
         grid-template-columns: minmax(0, 1fr);
-        row-gap: 1.5mm;
+        row-gap: 0.75mm;
     }
 
     .identity-line {
         display: grid;
         grid-template-columns: 8mm 68mm 4mm minmax(0, 1fr);
-        min-height: 6mm;
-        line-height: 1.12;
+        padding: 2px 0;
+        line-height: 1.25;
     }
 
     .identity-number {
@@ -381,8 +377,9 @@
         align-items: flex-end;
         justify-content: flex-end;
         gap: 14mm;
-        margin-top: auto;
-        padding-top: 10mm;
+        margin-top: 16px;
+        break-inside: avoid;
+        page-break-inside: avoid;
     }
 
     .identity-photo {
@@ -394,6 +391,8 @@
         overflow: hidden;
         border: 0.3mm solid #000;
         text-align: center;
+        break-inside: avoid;
+        page-break-inside: avoid;
     }
 
     .identity-photo img {
@@ -405,10 +404,12 @@
     .identity-signature {
         width: 86mm;
         line-height: 1.2;
+        break-inside: avoid;
+        page-break-inside: avoid;
     }
 
     .identity-signature-space {
-        height: 27mm;
+        height: 58px;
     }
 
     .identity-signature-name {
