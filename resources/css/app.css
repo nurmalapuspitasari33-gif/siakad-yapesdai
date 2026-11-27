@@ -436,7 +436,7 @@
     .identity-footer-batch {
         position: absolute;
         right: 0;
-        bottom: 0;
+        bottom: 16mm;
         left: 0;
         margin: 0;
     }
