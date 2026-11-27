@@ -6,7 +6,7 @@ import {
 } from '@/Components/AdminResourceModal';
 import InputError from '@/Components/InputError';
 import DashboardLayout from '@/Layouts/DashboardLayout';
-import { Head, router, useForm } from '@inertiajs/react';
+import { Head, Link, router, useForm } from '@inertiajs/react';
 import { useEffect, useRef, useState } from 'react';
 
 const subjectGroups = {
@@ -29,6 +29,8 @@ export default function MataPelajaranIndex({
     filters,
     ekstrakurikulers = [],
     templateKokurikuler,
+    konsentrasiKeahlians = [],
+    mapelOptions = [],
     activeTab: initialTab = 'mapel',
 }) {
     const [activeTab, setActiveTab] = useState(initialTab);
@@ -49,6 +51,17 @@ export default function MataPelajaranIndex({
     const kokurikulerForm = useForm({
         template_kokurikuler: templateKokurikuler ?? '',
     });
+    const [selectedKonsentrasiId, setSelectedKonsentrasiId] = useState(
+        String(konsentrasiKeahlians[0]?.id ?? ''),
+    );
+    const [mapelToAdd, setMapelToAdd] = useState({
+        umum: '',
+        kejuruan: '',
+        muatan_lokal: '',
+    });
+    const urutanRaporForm = useForm({
+        mapel_ids: konsentrasiKeahlians[0]?.mata_pelajaran_ids ?? [],
+    });
     const searchForm = useForm({
         search: filters.search ?? '',
     });
@@ -57,6 +70,14 @@ export default function MataPelajaranIndex({
     useEffect(() => {
         setActiveTab(initialTab);
     }, [initialTab]);
+
+    const selectedKonsentrasi = konsentrasiKeahlians.find(
+        (konsentrasi) => String(konsentrasi.id) === selectedKonsentrasiId,
+    );
+    const mapelById = new Map(mapelOptions.map((mapel) => [Number(mapel.id), mapel]));
+    const mapelIdsError = urutanRaporForm.errors.mapel_ids
+        ?? Object.entries(urutanRaporForm.errors)
+            .find(([key]) => key.startsWith('mapel_ids.'))?.[1];
 
     const closeForm = () => {
         setIsFormOpen(false);
@@ -171,10 +192,82 @@ export default function MataPelajaranIndex({
         });
     };
 
+    const submitUrutanRapor = (event) => {
+        event.preventDefault();
+
+        if (!selectedKonsentrasi) {
+            return;
+        }
+
+        urutanRaporForm.put(
+            route('admin.mapel.urutan-rapor.update', selectedKonsentrasi.id),
+            { preserveScroll: true },
+        );
+    };
+
+    const changeSelectedKonsentrasi = (concentrationId) => {
+        const concentration = konsentrasiKeahlians.find(
+            (item) => String(item.id) === concentrationId,
+        );
+
+        setSelectedKonsentrasiId(concentrationId);
+        urutanRaporForm.setData('mapel_ids', concentration?.mata_pelajaran_ids ?? []);
+        urutanRaporForm.clearErrors();
+        setMapelToAdd({ umum: '', kejuruan: '', muatan_lokal: '' });
+    };
+
+    const addMapelToRapor = (kelompok) => {
+        const mapelId = Number(mapelToAdd[kelompok]);
+
+        if (
+            !mapelId
+            || urutanRaporForm.data.mapel_ids.some((id) => Number(id) === mapelId)
+        ) {
+            return;
+        }
+
+        urutanRaporForm.setData('mapel_ids', [
+            ...urutanRaporForm.data.mapel_ids.map(Number),
+            mapelId,
+        ]);
+        setMapelToAdd((current) => ({ ...current, [kelompok]: '' }));
+    };
+
+    const removeMapelFromRapor = (mapelId) => {
+        urutanRaporForm.setData(
+            'mapel_ids',
+            urutanRaporForm.data.mapel_ids.filter((id) => Number(id) !== mapelId),
+        );
+    };
+
+    const moveMapelInRapor = (kelompok, index, direction) => {
+        const mapelIds = urutanRaporForm.data.mapel_ids.map(Number);
+        const groupIds = mapelIds.filter(
+            (id) => mapelById.get(id)?.kelompok_mapel === kelompok,
+        );
+        const targetIndex = index + direction;
+
+        if (targetIndex < 0 || targetIndex >= groupIds.length) {
+            return;
+        }
+
+        [groupIds[index], groupIds[targetIndex]] = [groupIds[targetIndex], groupIds[index]];
+
+        let groupIndex = 0;
+        urutanRaporForm.setData(
+            'mapel_ids',
+            mapelIds.map((id) => (
+                mapelById.get(id)?.kelompok_mapel === kelompok
+                    ? groupIds[groupIndex++]
+                    : id
+            )),
+        );
+    };
+
     return (
         <DashboardLayout
             title="Manajemen Mata Pelajaran"
-            subtitle="Kelola mata pelajaran, master ekstrakurikuler, dan templat deskripsi kokurikuler."
+            subtitle="Kelola mata pelajaran, urutan mapel rapor per konsentrasi, dan master kegiatan."
             roleLabel="Administrator"
             navigation={AdminNavigationItems('mata-pelajaran')}
         >
@@ -223,6 +316,19 @@ export default function MataPelajaranIndex({
                     }`}
                 >
                     Templat Kokurikuler
+                </button>
+                <button
+                    type="button"
+                    role="tab"
+                    aria-selected={activeTab === 'urutan-rapor'}
+                    onClick={() => setActiveTab('urutan-rapor')}
+                    className={`rounded-t-xl px-4 py-2.5 text-sm font-semibold transition ${
+                        activeTab === 'urutan-rapor'
+                            ? 'border-b-2 border-indigo-600 bg-white text-indigo-700'
+                            : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'
+                    }`}
+                >
+                    Urutan Mapel Rapor
                 </button>
             </div>
 
@@ -424,7 +530,7 @@ export default function MataPelajaranIndex({
                     <AdminDeleteModal
                         show={Boolean(deletingMapel)}
                         title="Hapus mata pelajaran?"
-                        description="Mata pelajaran yang masih digunakan oleh jadwal atau ujian tidak dapat dihapus."
+                        description="Mata pelajaran yang masih digunakan oleh jadwal, ujian, nilai, atau pengaturan urutan rapor tidak dapat dihapus."
                         processing={deleteForm.processing}
                         onClose={() => setDeletingMapel(null)}
                         onConfirm={deleteMapel}
@@ -593,6 +699,190 @@ export default function MataPelajaranIndex({
                             </button>
                         </div>
                     </form>
+                </section>
+            )}
+
+            {activeTab === 'urutan-rapor' && (
+                <section
+                    role="tabpanel"
+                    className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
+                >
+                    <div className="border-b border-slate-100 px-5 py-5 sm:px-7">
+                        <h2 className="font-bold text-slate-900">Urutan Mata Pelajaran Rapor</h2>
+                        <p className="mt-1 text-sm text-slate-500">
+                            Pilih mata pelajaran dan atur urutannya secara terpisah untuk setiap konsentrasi keahlian.
+                        </p>
+                    </div>
+
+                    {konsentrasiKeahlians.length === 0 ? (
+                        <div className="px-5 py-10 text-center sm:px-7">
+                            <p className="font-semibold text-slate-800">
+                                Belum ada konsentrasi keahlian.
+                            </p>
+                            <p className="mt-2 text-sm text-slate-500">
+                                Tambahkan konsentrasi keahlian terlebih dahulu melalui menu Data Kelas.
+                            </p>
+                            <Link
+                                href={route('admin.kelas.index')}
+                                className="mt-4 inline-flex rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700"
+                            >
+                                Buka Data Kelas
+                            </Link>
+                        </div>
+                    ) : (
+                        <>
+                            <div className="grid gap-4 border-b border-slate-100 px-5 py-5 sm:px-7 md:grid-cols-[minmax(0,1fr)_20rem] md:items-end">
+                                <div>
+                                    <label
+                                        htmlFor="konsentrasi-urutan-rapor"
+                                        className="mb-2 block text-sm font-semibold text-slate-700"
+                                    >
+                                        Konsentrasi Keahlian
+                                    </label>
+                                    <select
+                                        id="konsentrasi-urutan-rapor"
+                                        value={selectedKonsentrasiId}
+                                        onChange={(event) => changeSelectedKonsentrasi(event.target.value)}
+                                        className="block w-full rounded-xl border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                    >
+                                        {konsentrasiKeahlians.map((konsentrasi) => (
+                                            <option key={konsentrasi.id} value={konsentrasi.id}>
+                                                {konsentrasi.nama_konsentrasi}
+                                                {konsentrasi.program_keahlian
+                                                    ? ` - ${konsentrasi.program_keahlian}`
+                                                    : ''}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <p className="text-sm text-slate-500">
+                                    Mata pelajaran yang dipilih akan tampil di rapor siswa pada konsentrasi ini.
+                                </p>
+                            </div>
+
+                            <form onSubmit={submitUrutanRapor} className="space-y-5 px-5 py-5 sm:px-7">
+                                {Object.entries(subjectGroups).map(([kelompok, group]) => {
+                                    const groupMapels = urutanRaporForm.data.mapel_ids
+                                        .map((id) => mapelById.get(Number(id)))
+                                        .filter((mapel) => mapel?.kelompok_mapel === kelompok);
+                                    const availableMapels = mapelOptions.filter(
+                                        (mapel) => mapel.kelompok_mapel === kelompok
+                                            && !urutanRaporForm.data.mapel_ids
+                                                .map(Number)
+                                                .includes(Number(mapel.id)),
+                                    );
+
+                                    return (
+                                        <div
+                                            key={kelompok}
+                                            className="rounded-2xl border border-slate-200"
+                                        >
+                                            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-4 py-3">
+                                                <h3 className="text-sm font-bold text-slate-800">
+                                                    {group.label}
+                                                </h3>
+                                                <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${group.className}`}>
+                                                    {groupMapels.length} mapel
+                                                </span>
+                                            </div>
+
+                                            <ol className="divide-y divide-slate-100">
+                                                {groupMapels.length === 0 ? (
+                                                    <li className="px-4 py-4 text-sm text-slate-500">
+                                                        Belum ada mata pelajaran di kelompok ini.
+                                                    </li>
+                                                ) : groupMapels.map((mapel, index) => (
+                                                    <li
+                                                        key={mapel.id}
+                                                        className="flex flex-wrap items-center justify-between gap-3 px-4 py-3"
+                                                    >
+                                                        <div className="flex min-w-0 items-center gap-3">
+                                                            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-bold text-slate-600">
+                                                                {index + 1}
+                                                            </span>
+                                                            <div className="min-w-0">
+                                                                <p className="truncate text-sm font-semibold text-slate-800">
+                                                                    {mapel.nama_mapel}
+                                                                </p>
+                                                                <p className="text-xs text-slate-500">
+                                                                    {mapel.kode_mapel}
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex items-center gap-1">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => moveMapelInRapor(kelompok, index, -1)}
+                                                                disabled={index === 0}
+                                                                className="rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
+                                                                aria-label={`Naikkan ${mapel.nama_mapel}`}
+                                                            >
+                                                                Naik
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => moveMapelInRapor(kelompok, index, 1)}
+                                                                disabled={index === groupMapels.length - 1}
+                                                                className="rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
+                                                                aria-label={`Turunkan ${mapel.nama_mapel}`}
+                                                            >
+                                                                Turun
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => removeMapelFromRapor(Number(mapel.id))}
+                                                                className="rounded-lg px-2.5 py-1.5 text-xs font-semibold text-rose-700 transition hover:bg-rose-50"
+                                                            >
+                                                                Hapus
+                                                            </button>
+                                                        </div>
+                                                    </li>
+                                                ))}
+                                            </ol>
+
+                                            <div className="flex flex-col gap-2 border-t border-slate-100 px-4 py-4 sm:flex-row">
+                                                <select
+                                                    aria-label={`Pilih mapel kelompok ${group.label}`}
+                                                    value={mapelToAdd[kelompok]}
+                                                    onChange={(event) => setMapelToAdd((current) => ({
+                                                        ...current,
+                                                        [kelompok]: event.target.value,
+                                                    }))}
+                                                    className="block w-full rounded-xl border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                                >
+                                                    <option value="">Pilih mata pelajaran untuk ditambahkan</option>
+                                                    {availableMapels.map((mapel) => (
+                                                        <option key={mapel.id} value={mapel.id}>
+                                                            {mapel.nama_mapel} ({mapel.kode_mapel})
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => addMapelToRapor(kelompok)}
+                                                    disabled={!mapelToAdd[kelompok]}
+                                                    className="shrink-0 rounded-xl border border-indigo-200 px-4 py-2.5 text-sm font-semibold text-indigo-700 transition hover:bg-indigo-50 disabled:cursor-not-allowed disabled:opacity-50"
+                                                >
+                                                    Tambah Mapel
+                                                </button>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+
+                                <InputError message={mapelIdsError} />
+                                <div className="flex flex-col-reverse gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:justify-end">
+                                    <button
+                                        type="submit"
+                                        disabled={urutanRaporForm.processing || urutanRaporForm.data.mapel_ids.length === 0}
+                                        className="rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
+                                    >
+                                        {urutanRaporForm.processing ? 'Menyimpan...' : 'Simpan Urutan Rapor'}
+                                    </button>
+                                </div>
+                            </form>
+                        </>
+                    )}
                 </section>
             )}
         </DashboardLayout>

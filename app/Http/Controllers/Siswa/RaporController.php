@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Siswa;
 
 use App\Http\Controllers\Controller;
 use App\Models\CatatanRapor;
+use App\Models\MataPelajaran;
 use App\Models\Nilai;
 use App\Models\NilaiGuru;
 use App\Models\PengaturanSekolah;
@@ -22,10 +23,13 @@ class RaporController extends Controller
         abort_unless($siswa, 404);
         $siswa->loadMissing([
             'kelas.waliKelas',
+            'kelas.konsentrasiKeahlian.mataPelajarans',
             'kategoriBeasiswa',
             'programKeahlian',
-            'konsentrasiKeahlian',
+            'konsentrasiKeahlian.mataPelajarans',
         ]);
+        $konsentrasi = $siswa->konsentrasiKeahlian ?? $siswa->kelas?->konsentrasiKeahlian;
+        $mapelRapor = $konsentrasi?->mataPelajarans ?? collect();
 
         $settings = PengaturanSekolah::query()->find(1);
         $statusRilisRapor = $settings?->status_rilis_rapor ?? 'otomatis';
@@ -117,16 +121,37 @@ class RaporController extends Controller
                 $nilaiByYear,
                 $tahunAjarans,
                 $nilaiGurusByYearAndSubject,
+                $mapelRapor,
             ): array {
                 $tahunAjaranId = (int) $tahunAjaranId;
                 $tahunAjaran = $tahunAjarans->get($tahunAjaranId);
                 $catatan = $catatanRapors->get($tahunAjaranId);
+                $nilaiBySubject = $nilaiByYear->get($tahunAjaranId, collect())->keyBy('mapel_id');
 
-                return [
-                    'tahun_ajaran_id' => $tahunAjaranId,
-                    'tahun_ajaran' => $tahunAjaran?->nama_tahun,
-                    'semester' => $tahunAjaran?->semester,
-                    'mata_pelajaran' => ($nilaiByYear->get($tahunAjaranId, collect()))
+                if ($mapelRapor->isNotEmpty()) {
+                    $mataPelajaran = $mapelRapor->map(
+                        function (MataPelajaran $mapel) use (
+                            $nilaiBySubject,
+                            $tahunAjaranId,
+                            $nilaiGurusByYearAndSubject,
+                        ): array {
+                            $nilai = $nilaiBySubject->get($mapel->id);
+                            $contributions = $nilaiGurusByYearAndSubject
+                                ->get("{$tahunAjaranId}:{$mapel->id}", collect());
+
+                            return [
+                                'kode_mapel' => $mapel->kode_mapel,
+                                'nama_mapel' => $mapel->nama_mapel,
+                                'kelompok_mapel' => $mapel->kelompok_mapel,
+                                'nilai_akhir' => $nilai?->nilai_akhir,
+                                'capaian_kompetensi' => $contributions->isNotEmpty()
+                                    ? NilaiGuru::combineCompetencyDescriptions($contributions)
+                                    : $nilai?->capaian_kompetensi,
+                            ];
+                        },
+                    );
+                } else {
+                    $mataPelajaran = $nilaiBySubject
                         ->map(function (Nilai $nilai) use ($tahunAjaranId, $nilaiGurusByYearAndSubject): array {
                             $contributions = $nilaiGurusByYearAndSubject
                                 ->get("{$tahunAjaranId}:{$nilai->mapel_id}", collect());
@@ -141,8 +166,14 @@ class RaporController extends Controller
                                     : $nilai->capaian_kompetensi,
                             ];
                         })
-                        ->sortBy('nama_mapel')
-                        ->values(),
+                        ->sortBy('nama_mapel');
+                }
+
+                return [
+                    'tahun_ajaran_id' => $tahunAjaranId,
+                    'tahun_ajaran' => $tahunAjaran?->nama_tahun,
+                    'semester' => $tahunAjaran?->semester,
+                    'mata_pelajaran' => $mataPelajaran->values(),
                     'catatan_rapor' => [
                         'kokurikuler_predikat' => $catatan?->kokurikuler_predikat,
                         'kokurikuler_deskripsi' => $catatan?->kokurikuler_deskripsi,

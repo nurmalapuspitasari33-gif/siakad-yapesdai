@@ -11,8 +11,8 @@ use App\Http\Controllers\Admin\MataPelajaranController;
 use App\Http\Controllers\Admin\PengaturanSekolahController;
 use App\Http\Controllers\Admin\ProgramKeahlianController;
 use App\Http\Controllers\Admin\SiswaController as AdminSiswaController;
-use App\Http\Controllers\Admin\SpmbController as AdminSpmbController;
 use App\Http\Controllers\Admin\SpmbCmsController;
+use App\Http\Controllers\Admin\SpmbController as AdminSpmbController;
 use App\Http\Controllers\Admin\TagihanController as AdminTagihanController;
 use App\Http\Controllers\Admin\TahunAjaranController;
 use App\Http\Controllers\Admin\UjianController as AdminUjianController;
@@ -25,12 +25,12 @@ use App\Http\Controllers\Guru\NilaiController as GuruNilaiController;
 use App\Http\Controllers\Guru\RaporWaliController;
 use App\Http\Controllers\Guru\UjianController as GuruUjianController;
 use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\SpmbPortalController;
 use App\Http\Controllers\Siswa\JadwalController as SiswaJadwalController;
 use App\Http\Controllers\Siswa\RaporController as SiswaRaporController;
 use App\Http\Controllers\Siswa\SpmbController as SiswaSpmbController;
 use App\Http\Controllers\Siswa\TagihanController as SiswaTagihanController;
 use App\Http\Controllers\Siswa\UjianController as SiswaUjianController;
+use App\Http\Controllers\SpmbPortalController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -86,6 +86,10 @@ Route::middleware(['auth', 'force-password-change', 'verified', 'role:admin'])
 
         Route::put('mapel/template-kokurikuler', [MataPelajaranController::class, 'updateKokurikulerTemplate'])
             ->name('mapel.template-kokurikuler.update');
+        Route::put(
+            'mapel/konsentrasi/{konsentrasiKeahlian}/urutan-rapor',
+            [MataPelajaranController::class, 'updateConcentrationReportSubjects'],
+        )->name('mapel.urutan-rapor.update');
         Route::resource('mapel', MataPelajaranController::class)
             ->except(['create', 'edit', 'show']);
 

@@ -7,6 +7,7 @@ use App\Models\Jadwal;
 use App\Models\Kelas;
 use App\Models\MataPelajaran;
 use App\Models\PengaturanSekolah;
+use App\Models\ProgramKeahlian;
 use App\Models\TahunAjaran;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -148,6 +149,149 @@ class MataPelajaranControllerTest extends TestCase
                 ->where('templateKokurikuler', $template));
     }
 
+    public function test_admin_can_save_and_view_subject_selection_and_order_per_concentration(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $program = ProgramKeahlian::create([
+            'kode_jurusan' => 'RPL',
+            'nama_jurusan' => 'Rekayasa Perangkat Lunak',
+        ]);
+        $concentration = $program->konsentrasiKeahlians()->create([
+            'kode_konsentrasi' => 'PPLG',
+            'nama_konsentrasi' => 'Pengembangan Perangkat Lunak dan Gim',
+        ]);
+        $otherConcentration = $program->konsentrasiKeahlians()->create([
+            'kode_konsentrasi' => 'TKJ',
+            'nama_konsentrasi' => 'Teknik Komputer dan Jaringan',
+        ]);
+        $firstSubject = MataPelajaran::create([
+            'kode_mapel' => 'MAT-001',
+            'nama_mapel' => 'Matematika',
+            'kelompok_mapel' => 'umum',
+        ]);
+        $secondSubject = MataPelajaran::create([
+            'kode_mapel' => 'BIN-001',
+            'nama_mapel' => 'Bahasa Indonesia',
+            'kelompok_mapel' => 'umum',
+        ]);
+        $otherConcentration->mataPelajarans()->attach($firstSubject->id, ['urutan' => 1]);
+
+        $this->actingAs($admin)
+            ->put(route('admin.mapel.urutan-rapor.update', $concentration), [
+                'mapel_ids' => [$secondSubject->id, $firstSubject->id],
+            ])
+            ->assertRedirectToRoute('admin.mapel.index', ['tab' => 'urutan-rapor'])
+            ->assertSessionHas('success', 'Mata pelajaran rapor berhasil disimpan untuk konsentrasi keahlian.');
+
+        $this->assertDatabaseHas('konsentrasi_keahlian_mata_pelajaran', [
+            'konsentrasi_keahlian_id' => $concentration->id,
+            'mata_pelajaran_id' => $secondSubject->id,
+            'urutan' => 1,
+        ]);
+        $this->assertDatabaseHas('konsentrasi_keahlian_mata_pelajaran', [
+            'konsentrasi_keahlian_id' => $concentration->id,
+            'mata_pelajaran_id' => $firstSubject->id,
+            'urutan' => 2,
+        ]);
+
+        $this->get(route('admin.mapel.index', ['tab' => 'urutan-rapor']))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Admin/Mapel/Index')
+                ->where('activeTab', 'urutan-rapor')
+                ->where('konsentrasiKeahlians.0.mata_pelajaran_ids', [
+                    $secondSubject->id,
+                    $firstSubject->id,
+                ])
+                ->where('konsentrasiKeahlians.1.mata_pelajaran_ids', [$firstSubject->id]));
+    }
+
+    public function test_admin_cannot_save_duplicate_subjects_in_a_concentration_report_order(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $program = ProgramKeahlian::create([
+            'kode_jurusan' => 'RPL',
+            'nama_jurusan' => 'Rekayasa Perangkat Lunak',
+        ]);
+        $concentration = $program->konsentrasiKeahlians()->create([
+            'kode_konsentrasi' => 'PPLG',
+            'nama_konsentrasi' => 'Pengembangan Perangkat Lunak dan Gim',
+        ]);
+        $subject = MataPelajaran::create([
+            'kode_mapel' => 'MAT-001',
+            'nama_mapel' => 'Matematika',
+            'kelompok_mapel' => 'umum',
+        ]);
+
+        $this->actingAs($admin)
+            ->put(route('admin.mapel.urutan-rapor.update', $concentration), [
+                'mapel_ids' => [$subject->id, $subject->id],
+            ])
+            ->assertSessionHasErrors([
+                'mapel_ids.1' => 'Mata pelajaran tidak boleh dipilih lebih dari satu kali.',
+            ]);
+
+        $this->assertDatabaseCount('konsentrasi_keahlian_mata_pelajaran', 0);
+    }
+
+    public function test_guests_and_non_admins_cannot_update_concentration_report_subjects(): void
+    {
+        $program = ProgramKeahlian::create([
+            'kode_jurusan' => 'RPL',
+            'nama_jurusan' => 'Rekayasa Perangkat Lunak',
+        ]);
+        $concentration = $program->konsentrasiKeahlians()->create([
+            'kode_konsentrasi' => 'PPLG',
+            'nama_konsentrasi' => 'Pengembangan Perangkat Lunak dan Gim',
+        ]);
+        $subject = MataPelajaran::create([
+            'kode_mapel' => 'MAT-001',
+            'nama_mapel' => 'Matematika',
+            'kelompok_mapel' => 'umum',
+        ]);
+        $payload = ['mapel_ids' => [$subject->id]];
+        $url = route('admin.mapel.urutan-rapor.update', $concentration);
+
+        $this->put($url, $payload)
+            ->assertRedirectToRoute('login');
+
+        $this->actingAs(User::factory()->create(['role' => 'siswa']))
+            ->put($url, $payload)
+            ->assertForbidden();
+
+        $this->assertDatabaseCount('konsentrasi_keahlian_mata_pelajaran', 0);
+    }
+
+    public function test_subject_cannot_be_deleted_while_used_by_a_concentration_report_order(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $program = ProgramKeahlian::create([
+            'kode_jurusan' => 'RPL',
+            'nama_jurusan' => 'Rekayasa Perangkat Lunak',
+        ]);
+        $concentration = $program->konsentrasiKeahlians()->create([
+            'kode_konsentrasi' => 'PPLG',
+            'nama_konsentrasi' => 'Pengembangan Perangkat Lunak dan Gim',
+        ]);
+        $subject = MataPelajaran::create([
+            'kode_mapel' => 'MAT-001',
+            'nama_mapel' => 'Matematika',
+            'kelompok_mapel' => 'umum',
+        ]);
+        $concentration->mataPelajarans()->attach($subject->id, ['urutan' => 1]);
+
+        $this->actingAs($admin)
+            ->from(route('admin.mapel.index'))
+            ->delete(route('admin.mapel.destroy', $subject))
+            ->assertRedirectToRoute('admin.mapel.index')
+            ->assertSessionHas(
+                'error',
+                'Mata pelajaran tidak dapat dihapus karena masih digunakan oleh jadwal, ujian, nilai, atau pengaturan urutan rapor.',
+            );
+
+        $this->assertModelExists($subject);
+    }
+
     public function test_kokurikuler_template_rejects_values_longer_than_5000_characters(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
@@ -216,7 +360,10 @@ class MataPelajaranControllerTest extends TestCase
             ->from(route('admin.mapel.index'))
             ->delete(route('admin.mapel.destroy', $subject))
             ->assertRedirectToRoute('admin.mapel.index')
-            ->assertSessionHas('error', 'Mata pelajaran tidak dapat dihapus karena masih digunakan oleh jadwal, ujian, atau nilai.');
+            ->assertSessionHas(
+                'error',
+                'Mata pelajaran tidak dapat dihapus karena masih digunakan oleh jadwal, ujian, nilai, atau pengaturan urutan rapor.',
+            );
 
         $this->assertModelExists($subject);
     }

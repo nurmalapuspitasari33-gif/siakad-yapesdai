@@ -12,6 +12,7 @@ use App\Models\Nilai;
 use App\Models\NilaiGuru;
 use App\Models\PengaturanSekolah;
 use App\Models\PresensiKelas;
+use App\Models\ProgramKeahlian;
 use App\Models\Siswa;
 use App\Models\TahunAjaran;
 use App\Models\User;
@@ -192,6 +193,57 @@ class RaporWaliControllerTest extends TestCase
                 ->has('ekstrakurikulers', 1)
                 ->where('ekstrakurikulers.0.id', $activeEkstra->id)
                 ->where('ekstrakurikulers.0.nama_ekstra', 'Pramuka'));
+    }
+
+    public function test_wali_report_uses_concentration_subject_selection_and_order(): void
+    {
+        [$waliUser, $wali, $tahunAjaran, $kelas, , $scheduledMapel] = $this->createWaliClass();
+        $program = ProgramKeahlian::create([
+            'kode_jurusan' => 'RPL',
+            'nama_jurusan' => 'Rekayasa Perangkat Lunak',
+        ]);
+        $concentration = $program->konsentrasiKeahlians()->create([
+            'kode_konsentrasi' => 'PPLG',
+            'nama_konsentrasi' => 'Pengembangan Perangkat Lunak dan Gim',
+        ]);
+        $kelas->update(['konsentrasi_keahlian_id' => $concentration->id]);
+        $scheduledMapel->update(['kelompok_mapel' => 'umum']);
+        $firstInReport = MataPelajaran::create([
+            'kode_mapel' => 'ZOO-001',
+            'nama_mapel' => 'Zoologi',
+            'kelompok_mapel' => 'umum',
+        ]);
+        $notSelected = MataPelajaran::create([
+            'kode_mapel' => 'FIS-001',
+            'nama_mapel' => 'Fisika',
+            'kelompok_mapel' => 'umum',
+        ]);
+
+        foreach ([$firstInReport, $notSelected] as $index => $mapel) {
+            Jadwal::create([
+                'tahun_ajaran_id' => $tahunAjaran->id,
+                'kelas_id' => $kelas->id,
+                'mapel_id' => $mapel->id,
+                'guru_id' => $wali->id,
+                'hari' => $index === 0 ? 'selasa' : 'rabu',
+                'jam_mulai' => '09:00',
+                'jam_selesai' => '10:00',
+            ]);
+        }
+        $concentration->mataPelajarans()->attach([
+            $firstInReport->id => ['urutan' => 1],
+            $scheduledMapel->id => ['urutan' => 2],
+        ]);
+
+        $this->actingAs($waliUser)
+            ->get(route('guru.rapor-wali.index'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->has('mataPelajarans', 2)
+                ->where('mataPelajarans.0.id', $firstInReport->id)
+                ->where('mataPelajarans.1.id', $scheduledMapel->id)
+                ->where('monitoringNilai.0.nama_mapel', 'Zoologi')
+                ->where('monitoringNilai.1.nama_mapel', 'Matematika'));
     }
 
     public function test_regular_teacher_cannot_view_wali_class_report(): void

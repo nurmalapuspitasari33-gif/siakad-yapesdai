@@ -170,6 +170,82 @@ class RaporControllerTest extends TestCase
                 ->where('rapor.0.catatan_rapor.sakit', 1));
     }
 
+    public function test_student_report_uses_selected_subjects_and_concentration_order(): void
+    {
+        PengaturanSekolah::query()->findOrFail(1)->update([
+            'status_rilis_rapor' => 'buka',
+        ]);
+        $tahunAjaran = TahunAjaran::create([
+            'nama_tahun' => '2026/2027',
+            'semester' => 'ganjil',
+            'is_aktif' => true,
+        ]);
+        $program = ProgramKeahlian::create([
+            'kode_jurusan' => 'RPL',
+            'nama_jurusan' => 'Rekayasa Perangkat Lunak',
+        ]);
+        $concentration = $program->konsentrasiKeahlians()->create([
+            'kode_konsentrasi' => 'PPLG',
+            'nama_konsentrasi' => 'Pengembangan Perangkat Lunak dan Gim',
+        ]);
+        $kelas = Kelas::create([
+            'tahun_ajaran_id' => $tahunAjaran->id,
+            'konsentrasi_keahlian_id' => $concentration->id,
+            'nama_kelas' => 'X PPLG 1',
+            'tingkat' => 10,
+        ]);
+        $studentUser = User::factory()->create(['role' => 'siswa']);
+        $student = Siswa::create([
+            'user_id' => $studentUser->id,
+            'kelas_id' => $kelas->id,
+            'program_keahlian_id' => $program->id,
+            'konsentrasi_keahlian_id' => $concentration->id,
+            'nisn' => '0000000101',
+            'nama_lengkap' => 'Siswa Uji',
+            'status_siswa' => 'aktif',
+        ]);
+        $laterAlphabetically = MataPelajaran::create([
+            'kode_mapel' => 'ZOO-001',
+            'nama_mapel' => 'Zoologi',
+            'kelompok_mapel' => 'umum',
+        ]);
+        $earlierAlphabetically = MataPelajaran::create([
+            'kode_mapel' => 'BIO-001',
+            'nama_mapel' => 'Biologi',
+            'kelompok_mapel' => 'umum',
+        ]);
+        $notSelected = MataPelajaran::create([
+            'kode_mapel' => 'FIS-001',
+            'nama_mapel' => 'Fisika',
+            'kelompok_mapel' => 'umum',
+        ]);
+        $concentration->mataPelajarans()->attach([
+            $laterAlphabetically->id => ['urutan' => 1],
+            $earlierAlphabetically->id => ['urutan' => 2],
+        ]);
+
+        foreach ([$laterAlphabetically, $notSelected] as $index => $mapel) {
+            Nilai::create([
+                'tahun_ajaran_id' => $tahunAjaran->id,
+                'siswa_id' => $student->id,
+                'mapel_id' => $mapel->id,
+                'nilai_tugas' => 70,
+                'nilai_uts' => 80,
+                'nilai_uas' => 90,
+                'nilai_akhir' => 80 + $index,
+            ]);
+        }
+
+        $this->actingAs($studentUser)
+            ->get(route('siswa.rapor.index'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->has('rapor.0.mata_pelajaran', 2)
+                ->where('rapor.0.mata_pelajaran.0.nama_mapel', 'Zoologi')
+                ->where('rapor.0.mata_pelajaran.1.nama_mapel', 'Biologi')
+                ->where('rapor.0.mata_pelajaran.1.nilai_akhir', null));
+    }
+
     public function test_student_can_filter_their_report_by_academic_year_and_semester(): void
     {
         PengaturanSekolah::query()->findOrFail(1)->update([
