@@ -19,11 +19,25 @@ const days = [
     { value: 'minggu', label: 'Minggu' },
 ];
 
+function calculateEndTime(startTime, jumlahJp) {
+    if (!startTime || !jumlahJp) {
+        return '';
+    }
+
+    const [hours, minutes] = startTime.split(':').map(Number);
+    const endMinutes = (hours * 60) + minutes + (Number(jumlahJp) * 40);
+
+    if (endMinutes >= 24 * 60) {
+        return '';
+    }
+
+    return `${String(Math.floor(endMinutes / 60)).padStart(2, '0')}:${String(endMinutes % 60).padStart(2, '0')}`;
+}
+
 export default function JadwalIndex({
     jadwals,
     kelasOptions,
-    mapelOptions,
-    guruOptions,
+    tugasMengajarOptions,
     tahunAjaranAktif,
     filters,
 }) {
@@ -31,22 +45,29 @@ export default function JadwalIndex({
     const [editingJadwal, setEditingJadwal] = useState(null);
     const [deletingJadwal, setDeletingJadwal] = useState(null);
     const form = useForm({
-        kelas_id: '',
-        mapel_id: '',
-        guru_id: '',
+        tugas_mengajar_id: '',
+        jumlah_jp: '1',
         ruang: '',
         hari: 'senin',
         jam_mulai: '',
-        jam_selesai: '',
     });
     const filterForm = useForm({
         kelas_id: filters.kelas_id ?? '',
         hari: filters.hari ?? '',
     });
     const deleteForm = useForm({});
-    const canCreate = Boolean(
-        tahunAjaranAktif && kelasOptions.length && mapelOptions.length && guruOptions.length,
+    const canCreate = Boolean(tahunAjaranAktif && tugasMengajarOptions.length);
+    const selectedTugasMengajar = tugasMengajarOptions.find(
+        (tugasMengajar) => String(tugasMengajar.id) === form.data.tugas_mengajar_id,
     );
+    const jamSelesai = calculateEndTime(form.data.jam_mulai, form.data.jumlah_jp);
+    const tersediaJp = selectedTugasMengajar
+        ? selectedTugasMengajar.jp_per_minggu
+            - selectedTugasMengajar.jp_terjadwal
+            + (editingJadwal?.tugas_mengajar_id === selectedTugasMengajar.id
+                ? Number(editingJadwal.jumlah_jp ?? 0)
+                : 0)
+        : 0;
 
     const closeForm = () => {
         setIsFormOpen(false);
@@ -58,13 +79,11 @@ export default function JadwalIndex({
     const openCreateForm = () => {
         setEditingJadwal(null);
         form.setData({
-            kelas_id: '',
-            mapel_id: '',
-            guru_id: '',
+            tugas_mengajar_id: '',
+            jumlah_jp: '1',
             ruang: '',
             hari: 'senin',
             jam_mulai: '',
-            jam_selesai: '',
         });
         form.clearErrors();
         setIsFormOpen(true);
@@ -73,13 +92,13 @@ export default function JadwalIndex({
     const openEditForm = (jadwal) => {
         setEditingJadwal(jadwal);
         form.setData({
-            kelas_id: String(jadwal.kelas_id),
-            mapel_id: String(jadwal.mapel_id),
-            guru_id: String(jadwal.guru_id),
+            tugas_mengajar_id: jadwal.tugas_mengajar_id ? String(jadwal.tugas_mengajar_id) : '',
+            jumlah_jp: jadwal.jumlah_jp === null || jadwal.jumlah_jp === undefined
+                ? ''
+                : String(jadwal.jumlah_jp),
             ruang: jadwal.ruang ?? '',
             hari: jadwal.hari,
             jam_mulai: jadwal.jam_mulai.slice(0, 5),
-            jam_selesai: jadwal.jam_selesai.slice(0, 5),
         });
         form.clearErrors();
         setIsFormOpen(true);
@@ -132,7 +151,7 @@ export default function JadwalIndex({
     return (
         <DashboardLayout
             title="Manajemen Jadwal Pelajaran"
-            subtitle="Atur jadwal untuk tahun ajaran aktif dan hindari waktu yang bertabrakan di kelas."
+            subtitle="Susun jadwal dari pembagian tugas mengajar dan cegah bentrok kelas maupun guru."
             roleLabel="Administrator"
             navigation={AdminNavigationItems('jadwal')}
         >
@@ -231,8 +250,10 @@ export default function JadwalIndex({
                         <tbody className="divide-y divide-slate-100">
                             {jadwals.data.length === 0 ? (
                                 <tr>
-                                    <td colSpan="5" className="px-5 py-12 text-center text-sm text-slate-500">
-                                        Belum ada jadwal yang cocok dengan filter.
+                                    <td colSpan="6" className="px-5 py-12 text-center text-sm text-slate-500">
+                                        {tugasMengajarOptions.length
+                                            ? 'Belum ada jadwal yang cocok dengan filter.'
+                                            : 'Tambahkan pembagian tugas mengajar terlebih dahulu agar dapat menyusun jadwal.'}
                                     </td>
                                 </tr>
                             ) : jadwals.data.map((jadwal) => (
@@ -240,6 +261,9 @@ export default function JadwalIndex({
                                     <td className="whitespace-nowrap px-5 py-4 sm:px-7">
                                         <p className="text-sm font-semibold capitalize text-slate-800">{jadwal.hari}</p>
                                         <p className="mt-1 text-xs text-indigo-700">{jadwal.jam_mulai.slice(0, 5)} – {jadwal.jam_selesai.slice(0, 5)}</p>
+                                        <p className="mt-1 text-xs text-slate-500">
+                                            {jadwal.jumlah_jp ? `${jadwal.jumlah_jp} JP` : 'Jadwal lama'}
+                                        </p>
                                     </td>
                                     <td className="whitespace-nowrap px-5 py-4 text-sm text-slate-700">{jadwal.kelas?.nama_kelas}</td>
                                     <td className="whitespace-nowrap px-5 py-4 text-sm text-slate-700">{jadwal.mata_pelajaran?.nama_mapel}</td>
@@ -276,7 +300,7 @@ export default function JadwalIndex({
             <AdminResourceModal
                 show={isFormOpen}
                 title={editingJadwal ? 'Edit Jadwal' : 'Tambah Jadwal'}
-                description="Jadwal hanya dibuat untuk tahun ajaran aktif. Jam yang beririsan pada kelas dan hari yang sama akan ditolak."
+                description="Pilih penugasan yang sudah dibuat. Satu JP berdurasi 40 menit; jam selesai dihitung otomatis. Buat sesi terpisah jika ada jeda."
                 processing={form.processing}
                 submitLabel={editingJadwal ? 'Simpan Perubahan' : 'Tambah Jadwal'}
                 onClose={closeForm}
@@ -289,44 +313,56 @@ export default function JadwalIndex({
                         : 'belum ditetapkan'}
                 </div>
                 <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-                    <div>
-                        <label htmlFor="jadwal-kelas" className="mb-2 block text-sm font-semibold text-slate-700">Kelas</label>
+                    <div className="sm:col-span-2">
+                        <label htmlFor="jadwal-tugas-mengajar" className="mb-2 block text-sm font-semibold text-slate-700">
+                            Penugasan Mengajar
+                        </label>
                         <select
-                            id="jadwal-kelas"
-                            value={form.data.kelas_id}
-                            onChange={(event) => form.setData('kelas_id', event.target.value)}
+                            id="jadwal-tugas-mengajar"
+                            value={form.data.tugas_mengajar_id}
+                            onChange={(event) => form.setData('tugas_mengajar_id', event.target.value)}
                             className="block w-full rounded-xl border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                         >
-                            <option value="">Pilih kelas</option>
-                            {kelasOptions.map((kelas) => <option key={kelas.id} value={kelas.id}>{kelas.nama_kelas}</option>)}
+                            <option value="">Pilih guru, kelas, dan mata pelajaran</option>
+                            {tugasMengajarOptions.map((tugasMengajar) => (
+                                <option
+                                    key={tugasMengajar.id}
+                                    value={tugasMengajar.id}
+                                    disabled={tugasMengajar.jp_terjadwal >= tugasMengajar.jp_per_minggu
+                                        && editingJadwal?.tugas_mengajar_id !== tugasMengajar.id}
+                                >
+                                    {tugasMengajar.guru.nama_lengkap} · {tugasMengajar.kelas.nama_kelas} · {tugasMengajar.mata_pelajaran.nama_mapel} ({tugasMengajar.jp_terjadwal}/{tugasMengajar.jp_per_minggu} JP)
+                                </option>
+                            ))}
                         </select>
-                        <InputError message={form.errors.kelas_id} className="mt-2" />
+                        <InputError message={form.errors.tugas_mengajar_id} className="mt-2" />
+                        {editingJadwal && !editingJadwal.tugas_mengajar_id && (
+                            <p className="mt-2 text-xs text-amber-700">
+                                Jadwal lama saat ini {editingJadwal.jam_mulai.slice(0, 5)}–{editingJadwal.jam_selesai.slice(0, 5)} dan belum terhubung ke penugasan. Pilih penugasan serta JP yang sesuai; waktu selesai akan dihitung ulang.
+                            </p>
+                        )}
                     </div>
                     <div>
-                        <label htmlFor="jadwal-mapel" className="mb-2 block text-sm font-semibold text-slate-700">Mata Pelajaran</label>
-                        <select
-                            id="jadwal-mapel"
-                            value={form.data.mapel_id}
-                            onChange={(event) => form.setData('mapel_id', event.target.value)}
+                        <label htmlFor="jadwal-jumlah-jp" className="mb-2 block text-sm font-semibold text-slate-700">
+                            Jumlah JP pada sesi
+                        </label>
+                        <input
+                            id="jadwal-jumlah-jp"
+                            type="number"
+                            min="1"
+                            max={selectedTugasMengajar ? Math.max(tersediaJp, 1) : 255}
+                            step="1"
+                            value={form.data.jumlah_jp}
+                            onChange={(event) => form.setData('jumlah_jp', event.target.value)}
                             className="block w-full rounded-xl border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                        >
-                            <option value="">Pilih mata pelajaran</option>
-                            {mapelOptions.map((mapel) => <option key={mapel.id} value={mapel.id}>{mapel.kode_mapel} · {mapel.nama_mapel}</option>)}
-                        </select>
-                        <InputError message={form.errors.mapel_id} className="mt-2" />
-                    </div>
-                    <div>
-                        <label htmlFor="jadwal-guru" className="mb-2 block text-sm font-semibold text-slate-700">Guru Pengampu</label>
-                        <select
-                            id="jadwal-guru"
-                            value={form.data.guru_id}
-                            onChange={(event) => form.setData('guru_id', event.target.value)}
-                            className="block w-full rounded-xl border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                        >
-                            <option value="">Pilih guru</option>
-                            {guruOptions.map((guru) => <option key={guru.id} value={guru.id}>{guru.nama_lengkap}</option>)}
-                        </select>
-                        <InputError message={form.errors.guru_id} className="mt-2" />
+                        />
+                        <p className="mt-1 text-xs text-slate-500">
+                            {selectedTugasMengajar
+                                ? `Sisa target penugasan: ${Math.max(tersediaJp, 0)} JP.`
+                                : 'Pilih penugasan untuk melihat sisa target JP.'}{' '}
+                            Satu JP = 40 menit.
+                        </p>
+                        <InputError message={form.errors.jumlah_jp} className="mt-2" />
                     </div>
                     <div>
                         <label htmlFor="jadwal-hari" className="mb-2 block text-sm font-semibold text-slate-700">Hari</label>
@@ -364,15 +400,10 @@ export default function JadwalIndex({
                         <InputError message={form.errors.jam_mulai} className="mt-2" />
                     </div>
                     <div>
-                        <label htmlFor="jam-selesai" className="mb-2 block text-sm font-semibold text-slate-700">Jam Selesai</label>
-                        <input
-                            id="jam-selesai"
-                            type="time"
-                            value={form.data.jam_selesai}
-                            onChange={(event) => form.setData('jam_selesai', event.target.value)}
-                            className="block w-full rounded-xl border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                        />
-                        <InputError message={form.errors.jam_selesai} className="mt-2" />
+                        <span className="mb-2 block text-sm font-semibold text-slate-700">Jam Selesai</span>
+                        <p className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+                            {jamSelesai || 'Akan dihitung dari jam mulai dan jumlah JP'}
+                        </p>
                     </div>
                 </div>
             </AdminResourceModal>

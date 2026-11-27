@@ -57,6 +57,15 @@ class KelasController extends Controller
     {
         $validated = $request->validate($this->rules($request));
 
+        if (
+            (int) $validated['tahun_ajaran_id'] !== (int) $kelas->tahun_ajaran_id
+            && ($kelas->jadwals()->exists() || $kelas->tugasMengajars()->exists())
+        ) {
+            return back()->withErrors([
+                'tahun_ajaran_id' => 'Tahun ajaran kelas tidak dapat diubah karena kelas sudah digunakan pada jadwal atau tugas mengajar.',
+            ]);
+        }
+
         $kelas->update($validated);
 
         return to_route('admin.kelas.index')
@@ -68,9 +77,10 @@ class KelasController extends Controller
         if (
             $kelas->siswas()->exists()
             || $kelas->jadwals()->exists()
+            || $kelas->tugasMengajars()->exists()
             || $kelas->ujians()->exists()
         ) {
-            return back()->with('error', 'Kelas tidak dapat dihapus karena masih memiliki siswa, jadwal, atau ujian.');
+            return back()->with('error', 'Kelas tidak dapat dihapus karena masih memiliki siswa, jadwal, penugasan mengajar, atau ujian.');
         }
 
         $kelas->delete();

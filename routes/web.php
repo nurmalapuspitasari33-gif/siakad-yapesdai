@@ -15,6 +15,7 @@ use App\Http\Controllers\Admin\SpmbCmsController;
 use App\Http\Controllers\Admin\SpmbController as AdminSpmbController;
 use App\Http\Controllers\Admin\TagihanController as AdminTagihanController;
 use App\Http\Controllers\Admin\TahunAjaranController;
+use App\Http\Controllers\Admin\TugasMengajarController as AdminTugasMengajarController;
 use App\Http\Controllers\Admin\UjianController as AdminUjianController;
 use App\Http\Controllers\Dashboard\AdminDashboardController;
 use App\Http\Controllers\Dashboard\GuruDashboardController;
@@ -104,6 +105,10 @@ Route::middleware(['auth', 'force-password-change', 'verified', 'role:admin'])
         Route::resource('guru', AdminGuruController::class)
             ->except(['create', 'edit', 'show'])
             ->parameters(['guru' => 'guru']);
+
+        Route::resource('tugas-mengajar', AdminTugasMengajarController::class)
+            ->except(['create', 'edit', 'show'])
+            ->parameters(['tugas-mengajar' => 'tugasMengajar']);
 
         Route::patch('siswa/batch-kelas', [AdminSiswaController::class, 'batchUpdateKelas'])
             ->name('siswa.batch-update-kelas');

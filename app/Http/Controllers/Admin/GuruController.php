@@ -284,8 +284,13 @@ class GuruController extends Controller
 
     public function destroy(Guru $guru): RedirectResponse
     {
-        if ($guru->jadwals()->exists() || $guru->ujians()->exists() || $guru->kelasWalian()->exists()) {
-            return back()->with('error', 'Guru tidak dapat dihapus karena masih memiliki jadwal, ujian, atau kelas wali.');
+        if (
+            $guru->jadwals()->exists()
+            || $guru->tugasMengajars()->exists()
+            || $guru->ujians()->exists()
+            || $guru->kelasWalian()->exists()
+        ) {
+            return back()->with('error', 'Guru tidak dapat dihapus karena masih memiliki jadwal, penugasan mengajar, ujian, atau kelas wali.');
         }
 
         $guru->user()->delete();

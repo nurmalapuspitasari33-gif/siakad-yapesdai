@@ -82,9 +82,10 @@ class TahunAjaranController extends Controller
         if (
             $tahunAjaran->kelas()->exists()
             || $tahunAjaran->jadwals()->exists()
+            || $tahunAjaran->tugasMengajars()->exists()
             || $tahunAjaran->nilais()->exists()
         ) {
-            return back()->with('error', 'Tahun ajaran tidak dapat dihapus karena masih digunakan oleh kelas, jadwal, atau nilai.');
+            return back()->with('error', 'Tahun ajaran tidak dapat dihapus karena masih digunakan oleh kelas, jadwal, penugasan mengajar, atau nilai.');
         }
 
         $tahunAjaran->delete();

@@ -7,6 +7,7 @@ use App\Models\Jadwal;
 use App\Models\Kelas;
 use App\Models\MataPelajaran;
 use App\Models\TahunAjaran;
+use App\Models\TugasMengajar;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -16,11 +17,12 @@ class JadwalControllerTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_admin_can_create_non_overlapping_periods_and_overlaps_are_rejected(): void
+    public function test_admin_schedules_from_a_teaching_assignment_and_conflicts_or_weekly_overages_are_rejected(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
         [$tahunAjaran, $kelas, $guru, $mapel] = $this->createScheduleData();
         $this->createJadwal($tahunAjaran, $kelas, $guru, $mapel, '08:00', '09:00');
+        $tugasMengajar = $this->createTugasMengajar($tahunAjaran, $kelas, $guru, $mapel, 4);
 
         $this->actingAs($admin)
             ->get(route('admin.jadwal.index'))
@@ -28,12 +30,11 @@ class JadwalControllerTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Admin/Jadwal/Index')
                 ->has('jadwals.data', 1)
-                ->has('mapelOptions', 1));
+                ->has('tugasMengajarOptions', 1));
 
         $baseInput = [
-            'kelas_id' => $kelas->id,
-            'mapel_id' => $mapel->id,
-            'guru_id' => $guru->id,
+            'tugas_mengajar_id' => $tugasMengajar->id,
+            'jumlah_jp' => 1,
             'hari' => 'senin',
         ];
 
@@ -41,7 +42,6 @@ class JadwalControllerTest extends TestCase
             ->post(route('admin.jadwal.store'), [
                 ...$baseInput,
                 'jam_mulai' => '09:00',
-                'jam_selesai' => '10:00',
             ])
             ->assertRedirect(route('admin.jadwal.index', absolute: false));
 
@@ -49,11 +49,68 @@ class JadwalControllerTest extends TestCase
             ->post(route('admin.jadwal.store'), [
                 ...$baseInput,
                 'jam_mulai' => '08:30',
-                'jam_selesai' => '09:30',
             ])
             ->assertSessionHasErrors('jam_mulai');
 
-        $this->assertDatabaseCount('jadwals', 2);
+        $this->assertDatabaseHas('jadwals', [
+            'tugas_mengajar_id' => $tugasMengajar->id,
+            'jumlah_jp' => 1,
+            'jam_mulai' => '09:00',
+            'jam_selesai' => '09:40',
+        ]);
+
+        $kelasLain = Kelas::create([
+            'tahun_ajaran_id' => $tahunAjaran->id,
+            'nama_kelas' => 'X IPA 2',
+            'tingkat' => 10,
+        ]);
+        $tugasKelasLain = $this->createTugasMengajar($tahunAjaran, $kelasLain, $guru, $mapel, 4);
+
+        $this->actingAs($admin)
+            ->post(route('admin.jadwal.store'), [
+                ...$baseInput,
+                'tugas_mengajar_id' => $tugasKelasLain->id,
+                'jam_mulai' => '08:30',
+            ])
+            ->assertSessionHasErrors('jam_mulai');
+
+        $this->actingAs($admin)
+            ->post(route('admin.jadwal.store'), [
+                ...$baseInput,
+                'jumlah_jp' => 3,
+                'jam_mulai' => '10:00',
+            ])
+            ->assertRedirect(route('admin.jadwal.index', absolute: false));
+
+        $this->actingAs($admin)
+            ->post(route('admin.jadwal.store'), [
+                ...$baseInput,
+                'hari' => 'selasa',
+                'jam_mulai' => '08:00',
+            ])
+            ->assertSessionHasErrors('jumlah_jp');
+
+        $this->assertDatabaseCount('jadwals', 3);
+    }
+
+    public function test_schedule_session_cannot_extend_past_midnight(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        [$tahunAjaran, $kelas, $guru, $mapel] = $this->createScheduleData();
+        $tugasMengajar = $this->createTugasMengajar($tahunAjaran, $kelas, $guru, $mapel, 4);
+
+        $this->actingAs($admin)
+            ->post(route('admin.jadwal.store'), [
+                'tugas_mengajar_id' => $tugasMengajar->id,
+                'jumlah_jp' => 1,
+                'hari' => 'senin',
+                'jam_mulai' => '23:40',
+            ])
+            ->assertSessionHasErrors([
+                'jumlah_jp' => 'Durasi jadwal tidak boleh melewati pukul 24.00.',
+            ]);
+
+        $this->assertDatabaseCount('jadwals', 0);
     }
 
     private function createScheduleData(): array
@@ -98,6 +155,22 @@ class JadwalControllerTest extends TestCase
             'hari' => 'senin',
             'jam_mulai' => $jamMulai,
             'jam_selesai' => $jamSelesai,
+        ]);
+    }
+
+    private function createTugasMengajar(
+        TahunAjaran $tahunAjaran,
+        Kelas $kelas,
+        Guru $guru,
+        MataPelajaran $mapel,
+        int $jpPerMinggu,
+    ): TugasMengajar {
+        return TugasMengajar::create([
+            'tahun_ajaran_id' => $tahunAjaran->id,
+            'kelas_id' => $kelas->id,
+            'guru_id' => $guru->id,
+            'mapel_id' => $mapel->id,
+            'jp_per_minggu' => $jpPerMinggu,
         ]);
     }
 }

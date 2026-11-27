@@ -56,6 +56,11 @@ class Guru extends Model
         return $this->hasMany(Jadwal::class);
     }
 
+    public function tugasMengajars(): HasMany
+    {
+        return $this->hasMany(TugasMengajar::class);
+    }
+
     public function nilaiGurus(): HasMany
     {
         return $this->hasMany(NilaiGuru::class);

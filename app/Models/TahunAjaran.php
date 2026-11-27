@@ -26,6 +26,11 @@ class TahunAjaran extends Model
         return $this->hasMany(Jadwal::class);
     }
 
+    public function tugasMengajars(): HasMany
+    {
+        return $this->hasMany(TugasMengajar::class);
+    }
+
     public function nilais(): HasMany
     {
         return $this->hasMany(Nilai::class);

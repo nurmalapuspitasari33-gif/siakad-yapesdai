@@ -35,6 +35,11 @@ class MataPelajaran extends Model
         return $this->hasMany(Jadwal::class, 'mapel_id');
     }
 
+    public function tugasMengajars(): HasMany
+    {
+        return $this->hasMany(TugasMengajar::class, 'mapel_id');
+    }
+
     public function ujians(): HasMany
     {
         return $this->hasMany(Ujian::class, 'mapel_id');

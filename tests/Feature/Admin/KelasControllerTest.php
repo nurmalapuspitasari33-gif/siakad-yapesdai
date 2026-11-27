@@ -4,9 +4,11 @@ namespace Tests\Feature\Admin;
 
 use App\Models\Guru;
 use App\Models\Kelas;
+use App\Models\MataPelajaran;
 use App\Models\ProgramKeahlian;
 use App\Models\Siswa;
 use App\Models\TahunAjaran;
+use App\Models\TugasMengajar;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -145,9 +147,61 @@ class KelasControllerTest extends TestCase
             ->from(route('admin.kelas.index'))
             ->delete(route('admin.kelas.destroy', $kelas))
             ->assertRedirectToRoute('admin.kelas.index')
-            ->assertSessionHas('error', 'Kelas tidak dapat dihapus karena masih memiliki siswa, jadwal, atau ujian.');
+            ->assertSessionHas('error', 'Kelas tidak dapat dihapus karena masih memiliki siswa, jadwal, penugasan mengajar, atau ujian.');
 
         $this->assertModelExists($kelas);
+    }
+
+    public function test_class_year_cannot_change_while_a_teaching_assignment_uses_it(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $tahunAjaran = TahunAjaran::create([
+            'nama_tahun' => '2026/2027',
+            'semester' => 'ganjil',
+            'is_aktif' => true,
+        ]);
+        $tahunAjaranLain = TahunAjaran::create([
+            'nama_tahun' => '2027/2028',
+            'semester' => 'ganjil',
+            'is_aktif' => false,
+        ]);
+        $kelas = Kelas::create([
+            'tahun_ajaran_id' => $tahunAjaran->id,
+            'nama_kelas' => 'X IPA 1',
+            'tingkat' => 10,
+        ]);
+        $guruUser = User::factory()->create(['role' => 'guru']);
+        $guru = Guru::create([
+            'user_id' => $guruUser->id,
+            'nip' => 'GURU-004',
+            'nama_lengkap' => 'Guru Pengampu',
+        ]);
+        $mapel = MataPelajaran::create([
+            'kode_mapel' => 'MAT-001',
+            'nama_mapel' => 'Matematika',
+        ]);
+        TugasMengajar::create([
+            'tahun_ajaran_id' => $tahunAjaran->id,
+            'guru_id' => $guru->id,
+            'kelas_id' => $kelas->id,
+            'mapel_id' => $mapel->id,
+            'jp_per_minggu' => 4,
+        ]);
+
+        $this->actingAs($admin)
+            ->put(route('admin.kelas.update', $kelas), [
+                'tahun_ajaran_id' => $tahunAjaranLain->id,
+                'nama_kelas' => 'X IPA 1',
+                'tingkat' => 10,
+            ])
+            ->assertSessionHasErrors([
+                'tahun_ajaran_id' => 'Tahun ajaran kelas tidak dapat diubah karena kelas sudah digunakan pada jadwal atau tugas mengajar.',
+            ]);
+
+        $this->assertDatabaseHas('kelas', [
+            'id' => $kelas->id,
+            'tahun_ajaran_id' => $tahunAjaran->id,
+        ]);
     }
 
     public function test_class_program_and_concentration_must_belong_to_the_same_program(): void

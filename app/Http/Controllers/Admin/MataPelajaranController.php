@@ -193,12 +193,13 @@ class MataPelajaranController extends Controller
     {
         if (
             $mapel->jadwals()->exists()
+            || $mapel->tugasMengajars()->exists()
             || $mapel->ujians()->exists()
             || $mapel->nilais()->exists()
             || $mapel->konsentrasiKeahlians()->exists()
             || $mapel->programKeahliansKelasX()->exists()
         ) {
-            return back()->with('error', 'Mata pelajaran tidak dapat dihapus karena masih digunakan oleh jadwal, ujian, nilai, atau pengaturan urutan rapor.');
+            return back()->with('error', 'Mata pelajaran tidak dapat dihapus karena masih digunakan oleh jadwal, penugasan mengajar, ujian, nilai, atau pengaturan urutan rapor.');
         }
 
         $mapel->delete();

@@ -355,7 +355,7 @@ class MataPelajaranControllerTest extends TestCase
             ->assertRedirectToRoute('admin.mapel.index')
             ->assertSessionHas(
                 'error',
-                'Mata pelajaran tidak dapat dihapus karena masih digunakan oleh jadwal, ujian, nilai, atau pengaturan urutan rapor.',
+                'Mata pelajaran tidak dapat dihapus karena masih digunakan oleh jadwal, penugasan mengajar, ujian, nilai, atau pengaturan urutan rapor.',
             );
 
         $this->assertModelExists($subject);
@@ -381,7 +381,7 @@ class MataPelajaranControllerTest extends TestCase
             ->assertRedirectToRoute('admin.mapel.index')
             ->assertSessionHas(
                 'error',
-                'Mata pelajaran tidak dapat dihapus karena masih digunakan oleh jadwal, ujian, nilai, atau pengaturan urutan rapor.',
+                'Mata pelajaran tidak dapat dihapus karena masih digunakan oleh jadwal, penugasan mengajar, ujian, nilai, atau pengaturan urutan rapor.',
             );
 
         $this->assertModelExists($subject);
@@ -457,7 +457,7 @@ class MataPelajaranControllerTest extends TestCase
             ->assertRedirectToRoute('admin.mapel.index')
             ->assertSessionHas(
                 'error',
-                'Mata pelajaran tidak dapat dihapus karena masih digunakan oleh jadwal, ujian, nilai, atau pengaturan urutan rapor.',
+                'Mata pelajaran tidak dapat dihapus karena masih digunakan oleh jadwal, penugasan mengajar, ujian, nilai, atau pengaturan urutan rapor.',
             );
 
         $this->assertModelExists($subject);

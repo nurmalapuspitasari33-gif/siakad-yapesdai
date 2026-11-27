@@ -6,8 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Guru;
 use App\Models\Jadwal;
 use App\Models\Kelas;
-use App\Models\MataPelajaran;
 use App\Models\TahunAjaran;
+use App\Models\TugasMengajar;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -37,6 +37,7 @@ class JadwalController extends Controller
                 'kelas:id,nama_kelas',
                 'mataPelajaran:id,nama_mapel',
                 'guru:id,nama_lengkap',
+                'tugasMengajar:id,jp_per_minggu',
             ])
             ->orderByRaw("CASE hari WHEN 'senin' THEN 1 WHEN 'selasa' THEN 2 WHEN 'rabu' THEN 3 WHEN 'kamis' THEN 4 WHEN 'jumat' THEN 5 WHEN 'sabtu' THEN 6 ELSE 7 END")
             ->orderBy('jam_mulai')
@@ -48,8 +49,27 @@ class JadwalController extends Controller
             'kelasOptions' => $tahunAjaranAktif
                 ? $tahunAjaranAktif->kelas()->orderBy('nama_kelas')->get(['id', 'nama_kelas'])
                 : [],
-            'mapelOptions' => MataPelajaran::query()->orderBy('nama_mapel')->get(['id', 'kode_mapel', 'nama_mapel']),
-            'guruOptions' => Guru::query()->orderBy('nama_lengkap')->get(['id', 'nama_lengkap']),
+            'tugasMengajarOptions' => $tahunAjaranAktif
+                ? TugasMengajar::query()
+                    ->where('tahun_ajaran_id', $tahunAjaranAktif->id)
+                    ->with([
+                        'kelas:id,nama_kelas',
+                        'mataPelajaran:id,kode_mapel,nama_mapel',
+                        'guru:id,nama_lengkap',
+                    ])
+                    ->withSum('jadwals', 'jumlah_jp')
+                    ->orderBy('kelas_id')
+                    ->orderBy('mapel_id')
+                    ->get()
+                    ->map(fn (TugasMengajar $tugasMengajar): array => [
+                        'id' => $tugasMengajar->id,
+                        'kelas' => $tugasMengajar->kelas,
+                        'mata_pelajaran' => $tugasMengajar->mataPelajaran,
+                        'guru' => $tugasMengajar->guru,
+                        'jp_per_minggu' => $tugasMengajar->jp_per_minggu,
+                        'jp_terjadwal' => (int) ($tugasMengajar->jadwals_sum_jumlah_jp ?? 0),
+                    ])
+                : [],
             'tahunAjaranAktif' => $tahunAjaranAktif
                 ? [
                     'id' => $tahunAjaranAktif->id,
@@ -75,7 +95,11 @@ class JadwalController extends Controller
         $validated = $this->validatedSchedule($request, $tahunAjaranAktif);
 
         DB::transaction(function () use ($validated, $tahunAjaranAktif): void {
-            Kelas::query()->whereKey($validated['kelas_id'])->lockForUpdate()->firstOrFail();
+            $tugasMengajar = $this->lockTugasMengajar($validated, $tahunAjaranAktif);
+            Kelas::query()->whereKey($tugasMengajar->kelas_id)->lockForUpdate()->firstOrFail();
+            Guru::query()->whereKey($tugasMengajar->guru_id)->lockForUpdate()->firstOrFail();
+            $validated = $this->applyTugasMengajar($validated, $tugasMengajar);
+            $this->ensureWithinWeeklyTarget($validated, $tugasMengajar);
             $this->ensureNoConflict($validated, $tahunAjaranAktif->id);
 
             Jadwal::create([
@@ -98,7 +122,11 @@ class JadwalController extends Controller
         $validated = $this->validatedSchedule($request, $tahunAjaranAktif);
 
         DB::transaction(function () use ($validated, $tahunAjaranAktif, $jadwal): void {
-            Kelas::query()->whereKey($validated['kelas_id'])->lockForUpdate()->firstOrFail();
+            $tugasMengajar = $this->lockTugasMengajar($validated, $tahunAjaranAktif);
+            Kelas::query()->whereKey($tugasMengajar->kelas_id)->lockForUpdate()->firstOrFail();
+            Guru::query()->whereKey($tugasMengajar->guru_id)->lockForUpdate()->firstOrFail();
+            $validated = $this->applyTugasMengajar($validated, $tugasMengajar);
+            $this->ensureWithinWeeklyTarget($validated, $tugasMengajar, $jadwal);
             $this->ensureNoConflict($validated, $tahunAjaranAktif->id, $jadwal);
 
             $jadwal->update($validated);
@@ -124,25 +152,93 @@ class JadwalController extends Controller
      */
     private function validatedSchedule(Request $request, TahunAjaran $tahunAjaran): array
     {
-        return $request->validate([
-            'kelas_id' => [
+        $validated = $request->validate([
+            'tugas_mengajar_id' => [
                 'required',
                 'integer',
-                Rule::exists('kelas', 'id')->where('tahun_ajaran_id', $tahunAjaran->id),
+                Rule::exists('tugas_mengajars', 'id')->where('tahun_ajaran_id', $tahunAjaran->id),
             ],
-            'mapel_id' => ['required', 'integer', Rule::exists('mata_pelajarans', 'id')],
-            'guru_id' => ['required', 'integer', Rule::exists('gurus', 'id')],
+            'jumlah_jp' => ['required', 'integer', 'min:1', 'max:255'],
             'ruang' => ['nullable', 'string', 'max:100'],
             'hari' => ['required', Rule::in(self::HARI)],
             'jam_mulai' => ['required', 'date_format:H:i'],
-            'jam_selesai' => ['required', 'date_format:H:i', 'after:jam_mulai'],
         ], [
-            'kelas_id.exists' => 'Pilih kelas pada tahun ajaran aktif.',
+            'tugas_mengajar_id.exists' => 'Pilih penugasan pada tahun ajaran aktif.',
+            'jumlah_jp.required' => 'Jumlah JP pada jadwal wajib diisi.',
+            'jumlah_jp.integer' => 'Jumlah JP harus berupa bilangan bulat.',
+            'jumlah_jp.min' => 'Jumlah JP minimal satu.',
+            'jumlah_jp.max' => 'Jumlah JP maksimal 255.',
             'hari.in' => 'Hari yang dipilih tidak valid.',
             'jam_mulai.date_format' => 'Format jam mulai tidak valid.',
-            'jam_selesai.date_format' => 'Format jam selesai tidak valid.',
-            'jam_selesai.after' => 'Jam selesai harus setelah jam mulai.',
         ]);
+
+        $validated['tugas_mengajar_id'] = (int) $validated['tugas_mengajar_id'];
+        $validated['jumlah_jp'] = (int) $validated['jumlah_jp'];
+
+        return $validated;
+    }
+
+    /**
+     * @param  array<string, mixed>  $validated
+     */
+    private function lockTugasMengajar(array $validated, TahunAjaran $tahunAjaran): TugasMengajar
+    {
+        return TugasMengajar::query()
+            ->whereKey($validated['tugas_mengajar_id'])
+            ->where('tahun_ajaran_id', $tahunAjaran->id)
+            ->lockForUpdate()
+            ->firstOrFail();
+    }
+
+    /**
+     * @param  array<string, mixed>  $validated
+     * @return array<string, mixed>
+     */
+    private function applyTugasMengajar(array $validated, TugasMengajar $tugasMengajar): array
+    {
+        $validated['kelas_id'] = $tugasMengajar->kelas_id;
+        $validated['mapel_id'] = $tugasMengajar->mapel_id;
+        $validated['guru_id'] = $tugasMengajar->guru_id;
+        $validated['jam_selesai'] = $this->calculateEndTime(
+            $validated['jam_mulai'],
+            (int) $validated['jumlah_jp'],
+        );
+
+        return $validated;
+    }
+
+    private function calculateEndTime(string $jamMulai, int $jumlahJp): string
+    {
+        [$hours, $minutes] = array_map('intval', explode(':', $jamMulai));
+        $endMinutes = ($hours * 60) + $minutes + ($jumlahJp * 40);
+
+        if ($endMinutes >= 24 * 60) {
+            throw ValidationException::withMessages([
+                'jumlah_jp' => 'Durasi jadwal tidak boleh melewati pukul 24.00.',
+            ]);
+        }
+
+        return sprintf('%02d:%02d', intdiv($endMinutes, 60), $endMinutes % 60);
+    }
+
+    /**
+     * @param  array<string, mixed>  $validated
+     */
+    private function ensureWithinWeeklyTarget(
+        array $validated,
+        TugasMengajar $tugasMengajar,
+        ?Jadwal $jadwal = null,
+    ): void {
+        $scheduledJp = Jadwal::query()
+            ->where('tugas_mengajar_id', $tugasMengajar->id)
+            ->when($jadwal, fn ($query) => $query->where('id', '!=', $jadwal->id))
+            ->sum('jumlah_jp');
+
+        if ($scheduledJp + $validated['jumlah_jp'] > $tugasMengajar->jp_per_minggu) {
+            throw ValidationException::withMessages([
+                'jumlah_jp' => 'Jumlah JP pada jadwal melebihi target JP mingguan penugasan.',
+            ]);
+        }
     }
 
     /**
@@ -152,16 +248,18 @@ class JadwalController extends Controller
     {
         $hasConflict = Jadwal::query()
             ->where('tahun_ajaran_id', $tahunAjaranId)
-            ->where('kelas_id', $validated['kelas_id'])
             ->where('hari', $validated['hari'])
             ->where('jam_mulai', '<', $validated['jam_selesai'])
             ->where('jam_selesai', '>', $validated['jam_mulai'])
+            ->where(fn ($query) => $query
+                ->where('kelas_id', $validated['kelas_id'])
+                ->orWhere('guru_id', $validated['guru_id']))
             ->when($jadwal, fn ($query) => $query->where('id', '!=', $jadwal->id))
             ->exists();
 
         if ($hasConflict) {
             throw ValidationException::withMessages([
-                'jam_mulai' => 'Jadwal bertabrakan dengan jadwal lain di kelas dan hari yang sama.',
+                'jam_mulai' => 'Jadwal bertabrakan dengan jadwal kelas atau guru pada hari yang sama.',
             ]);
         }
     }

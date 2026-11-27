@@ -163,7 +163,7 @@ class TahunAjaranControllerTest extends TestCase
 
         $this->delete(route('admin.tahun-ajaran.destroy', $referencedYear))
             ->assertRedirectToRoute('admin.tahun-ajaran.index')
-            ->assertSessionHas('error', 'Tahun ajaran tidak dapat dihapus karena masih digunakan oleh kelas, jadwal, atau nilai.');
+            ->assertSessionHas('error', 'Tahun ajaran tidak dapat dihapus karena masih digunakan oleh kelas, jadwal, penugasan mengajar, atau nilai.');
 
         $this->assertModelExists($activeYear);
         $this->assertModelExists($referencedYear);

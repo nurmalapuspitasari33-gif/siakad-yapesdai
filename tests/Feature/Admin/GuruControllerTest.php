@@ -3,6 +3,10 @@
 namespace Tests\Feature\Admin;
 
 use App\Models\Guru;
+use App\Models\Kelas;
+use App\Models\MataPelajaran;
+use App\Models\TahunAjaran;
+use App\Models\TugasMengajar;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
@@ -90,6 +94,51 @@ class GuruControllerTest extends TestCase
             ->assertForbidden();
 
         $this->assertFalse(Hash::check('password', $guru->refresh()->password));
+    }
+
+    public function test_admin_cannot_delete_a_teacher_with_teaching_assignments(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $teacherUser = User::factory()->create(['role' => 'guru']);
+        $guru = Guru::create([
+            'user_id' => $teacherUser->id,
+            'nip' => '19870006',
+            'nama_lengkap' => 'Guru dengan Penugasan',
+            'is_wali_kelas' => false,
+        ]);
+        $tahunAjaran = TahunAjaran::create([
+            'nama_tahun' => '2026/2027',
+            'semester' => 'ganjil',
+            'is_aktif' => true,
+        ]);
+        $kelas = Kelas::create([
+            'tahun_ajaran_id' => $tahunAjaran->id,
+            'nama_kelas' => 'X IPA 1',
+            'tingkat' => 10,
+        ]);
+        $mapel = MataPelajaran::create([
+            'kode_mapel' => 'MAT-001',
+            'nama_mapel' => 'Matematika',
+        ]);
+        TugasMengajar::create([
+            'tahun_ajaran_id' => $tahunAjaran->id,
+            'guru_id' => $guru->id,
+            'kelas_id' => $kelas->id,
+            'mapel_id' => $mapel->id,
+            'jp_per_minggu' => 4,
+        ]);
+
+        $this->actingAs($admin)
+            ->from(route('admin.guru.index'))
+            ->delete(route('admin.guru.destroy', $guru))
+            ->assertRedirect(route('admin.guru.index', absolute: false))
+            ->assertSessionHas(
+                'error',
+                'Guru tidak dapat dihapus karena masih memiliki jadwal, penugasan mengajar, ujian, atau kelas wali.',
+            );
+
+        $this->assertDatabaseHas('gurus', ['id' => $guru->id]);
+        $this->assertDatabaseHas('users', ['id' => $teacherUser->id]);
     }
 
     public function test_admin_can_reset_teacher_password(): void
