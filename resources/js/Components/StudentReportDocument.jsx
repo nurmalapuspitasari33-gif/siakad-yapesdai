@@ -176,9 +176,9 @@ function StudentHeader({ student, settings, semester }) {
                 <col className="report-header-label-column" />
                 <col className="report-header-colon-column" />
                 <col className="report-header-value-column" />
-                <col className="report-header-label-column" />
+                <col className="report-header-right-label-column" />
                 <col className="report-header-colon-column" />
-                <col className="report-header-value-column" />
+                <col className="report-header-right-value-column" />
             </colgroup>
             <tbody>
                 {leftFields.map((leftField, index) => (

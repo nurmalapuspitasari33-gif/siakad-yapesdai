@@ -43,6 +43,82 @@ function subjectGroups(mataPelajarans) {
     }));
 }
 
+function LedgerTable({ groups, students, columnCount, startingIndex = 0, showEmpty = false }) {
+    return (
+        <table className="ledger-print-table">
+            <thead>
+                <tr>
+                    <th rowSpan="2">No</th>
+                    <th rowSpan="2">Nama Murid</th>
+                    <th rowSpan="2">NISN</th>
+                    {groups.map((group) => (
+                        <th
+                            key={group.key}
+                            colSpan={Math.max(group.subjects.length, 1)}
+                            className={`ledger-group-heading ledger-group-${group.key} whitespace-normal break-words leading-tight px-2 py-1.5 uppercase`}
+                        >
+                            {group.subjects.length <= 1 ? group.compactTitle : group.title}
+                        </th>
+                    ))}
+                    <th rowSpan="2">Jumlah Nilai</th>
+                    <th rowSpan="2">Rata-rata</th>
+                    <th rowSpan="2">Ranking</th>
+                </tr>
+                <tr>
+                    {groups.flatMap((group) => group.subjects.length > 0
+                        ? group.subjects.map((mapel) => (
+                            <th
+                                key={`${group.key}-${mapel.id}`}
+                                className={`ledger-group-${group.key}`}
+                                title={mapel.nama_mapel}
+                            >
+                                {printValue(mapel.kode_mapel || mapel.nama_mapel)}
+                            </th>
+                        ))
+                        : [(
+                            <th key={`${group.key}-empty`} className={`ledger-group-${group.key}`}>—</th>
+                        )])}
+                </tr>
+            </thead>
+            <tbody>
+                {students.map((siswa, index) => (
+                    <tr key={siswa.id}>
+                        <td className="ledger-center">{startingIndex + index + 1}</td>
+                        <td>{printValue(siswa.nama_lengkap)}</td>
+                        <td className="ledger-center">{printValue(siswa.nisn)}</td>
+                        {groups.flatMap((group) => group.subjects.length > 0
+                            ? group.subjects.map((mapel) => (
+                                <td
+                                    key={`${group.key}-${mapel.id}`}
+                                    className="ledger-center"
+                                >
+                                    {formatScore(siswa.nilai?.[mapel.id]?.nilai_akhir)}
+                                </td>
+                            ))
+                            : [(
+                                <td key={`${group.key}-empty`} className="ledger-center">—</td>
+                            )])}
+                        <td className="ledger-center">{siswa.has_nilai ? printValue(siswa.jumlah_nilai) : '—'}</td>
+                        <td className="ledger-center">
+                            {siswa.rata_rata === null || siswa.rata_rata === undefined
+                                ? '—'
+                                : formatScore(siswa.rata_rata)}
+                        </td>
+                        <td className="ledger-center">{printValue(siswa.ranking)}</td>
+                    </tr>
+                ))}
+                {showEmpty && (
+                    <tr>
+                        <td colSpan={columnCount} className="ledger-empty">
+                            Belum ada siswa aktif di kelas ini.
+                        </td>
+                    </tr>
+                )}
+            </tbody>
+        </table>
+    );
+}
+
 export default function ClassLedgerPrintDocument({
     settings = {},
     orientation = 'landscape',
@@ -64,6 +140,11 @@ export default function ClassLedgerPrintDocument({
         (total, group) => total + Math.max(group.subjects.length, 1),
         0,
     );
+    const splitAt = orientation === 'landscape' && siswas.length > 20
+        ? Math.ceil(siswas.length / 2)
+        : siswas.length;
+    const firstPageStudents = siswas.slice(0, splitAt);
+    const continuationStudents = siswas.slice(splitAt);
 
     return (
         <section
@@ -76,7 +157,16 @@ export default function ClassLedgerPrintDocument({
                     <tbody>
                         <tr>
                             <td className="ledger-school-logo-cell">
-                                <img src={assetUrls.logoSekolah || '/logo.png'} alt="Logo sekolah" />
+                                <img
+                                    src={assetUrls.logoSekolah || '/logo.png'}
+                                    alt="Logo sekolah"
+                                    onError={(event) => {
+                                        if (event.currentTarget.dataset.fallbackAttempted !== 'true') {
+                                            event.currentTarget.dataset.fallbackAttempted = 'true';
+                                            event.currentTarget.src = assetUrls.logoYapesdai || '/yapesdai.png';
+                                        }
+                                    }}
+                                />
                             </td>
                             <td className="ledger-school-info">
                                 <h1>{printValue(settings.nama_sekolah)}</h1>
@@ -95,77 +185,23 @@ export default function ClassLedgerPrintDocument({
                 {' · '}Semester: {printValue(tahunAjaran?.semester)}
             </p>
 
-            <table className="ledger-print-table">
-                <thead>
-                    <tr>
-                        <th rowSpan="2">No</th>
-                        <th rowSpan="2">Nama Murid</th>
-                        <th rowSpan="2">NISN</th>
-                        {groups.map((group) => (
-                            <th
-                                key={group.key}
-                                colSpan={Math.max(group.subjects.length, 1)}
-                                className={`ledger-group-heading ledger-group-${group.key} whitespace-normal break-words leading-tight px-2 py-1.5 uppercase`}
-                            >
-                                {group.subjects.length <= 1 ? group.compactTitle : group.title}
-                            </th>
-                        ))}
-                        <th rowSpan="2">Jumlah Nilai</th>
-                        <th rowSpan="2">Rata-rata</th>
-                        <th rowSpan="2">Ranking</th>
-                    </tr>
-                    <tr>
-                        {groups.flatMap((group) => group.subjects.length > 0
-                            ? group.subjects.map((mapel) => (
-                                <th
-                                    key={`${group.key}-${mapel.id}`}
-                                    className={`ledger-group-${group.key}`}
-                                    title={mapel.nama_mapel}
-                                >
-                                    {printValue(mapel.kode_mapel || mapel.nama_mapel)}
-                                </th>
-                            ))
-                            : [(
-                                <th key={`${group.key}-empty`} className={`ledger-group-${group.key}`}>—</th>
-                            )])}
-                    </tr>
-                </thead>
-                <tbody>
-                    {siswas.map((siswa, index) => (
-                        <tr key={siswa.id}>
-                            <td className="ledger-center">{index + 1}</td>
-                            <td>{printValue(siswa.nama_lengkap)}</td>
-                            <td className="ledger-center">{printValue(siswa.nisn)}</td>
-                            {groups.flatMap((group) => group.subjects.length > 0
-                                ? group.subjects.map((mapel) => (
-                                    <td
-                                        key={`${group.key}-${mapel.id}`}
-                                        className="ledger-center"
-                                    >
-                                        {formatScore(siswa.nilai?.[mapel.id]?.nilai_akhir)}
-                                    </td>
-                                ))
-                                : [(
-                                    <td key={`${group.key}-empty`} className="ledger-center">—</td>
-                                )])}
-                            <td className="ledger-center">{siswa.has_nilai ? printValue(siswa.jumlah_nilai) : '—'}</td>
-                            <td className="ledger-center">
-                                {siswa.rata_rata === null || siswa.rata_rata === undefined
-                                    ? '—'
-                                    : formatScore(siswa.rata_rata)}
-                            </td>
-                            <td className="ledger-center">{printValue(siswa.ranking)}</td>
-                        </tr>
-                    ))}
-                    {siswas.length === 0 && (
-                        <tr>
-                            <td colSpan={columnCount} className="ledger-empty">
-                                Belum ada siswa aktif di kelas ini.
-                            </td>
-                        </tr>
-                    )}
-                </tbody>
-            </table>
+            <LedgerTable
+                groups={groups}
+                students={firstPageStudents}
+                columnCount={columnCount}
+                showEmpty={siswas.length === 0}
+            />
+            {continuationStudents.length > 0 && (
+                <>
+                    <div className="ledger-page-break" style={{ pageBreakBefore: 'always' }} />
+                    <LedgerTable
+                        groups={groups}
+                        students={continuationStudents}
+                        columnCount={columnCount}
+                        startingIndex={firstPageStudents.length}
+                    />
+                </>
+            )}
 
             <footer>
                 <table className="report-table ledger-signatures">

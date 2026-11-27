@@ -381,6 +381,7 @@
     }
 
     .identity-line td {
+        height: 6.5mm;
         padding: 2px 0 !important;
         font-size: 11.5pt !important;
         line-height: 1.25;
@@ -436,8 +437,10 @@
 
     .identity-photo {
         display: table;
-        width: 30mm;
-        height: 40mm;
+        width: 30mm !important;
+        min-width: 30mm;
+        max-width: 30mm;
+        height: 40mm !important;
         margin: 0;
         border-collapse: collapse;
         table-layout: fixed;
@@ -446,6 +449,8 @@
     }
 
     .identity-photo td {
+        width: 30mm;
+        height: 40mm;
         padding: 0 !important;
         border: 0.3mm solid #000 !important;
         text-align: center;
@@ -453,14 +458,15 @@
     }
 
     .identity-photo img {
-        width: 100%;
-        height: 100%;
+        display: block;
+        width: 30mm;
+        height: 40mm;
     }
 
     .identity-signature {
         width: 50%;
         line-height: 1.2;
-        text-align: right;
+        text-align: left;
         break-inside: avoid;
         page-break-inside: avoid;
     }
@@ -501,7 +507,15 @@
     }
 
     .report-header-value-column {
-        width: 34%;
+        width: 40%;
+    }
+
+    .report-header-right-label-column {
+        width: 12%;
+    }
+
+    .report-header-right-value-column {
+        width: 30%;
     }
 
     .report-header-value {
@@ -703,7 +717,7 @@
     .report-signatures {
         display: table;
         width: 100%;
-        margin: 12px 0 0;
+        margin: 20px 0 0;
         border-collapse: collapse;
         table-layout: fixed;
         text-align: center;
@@ -881,7 +895,12 @@
     .ledger-print-document {
         display: block !important;
         width: 100%;
-        height: auto;
+        height: 22px;
+    }
+
+    .attendance-table tbody td {
+        padding-top: 2px !important;
+        padding-bottom: 2px !important;
         margin: 0;
         padding: 0;
         box-sizing: border-box;
@@ -954,6 +973,14 @@
         margin: 0 0 6px;
         font-size: 8pt !important;
         text-align: center;
+    }
+
+    .ledger-page-break {
+        height: 0;
+        margin: 0;
+        padding: 0;
+        page-break-before: always;
+        break-before: page;
     }
 
     .ledger-print-table {
