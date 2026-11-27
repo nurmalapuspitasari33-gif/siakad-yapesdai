@@ -430,9 +430,29 @@
         vertical-align: bottom;
     }
 
+    .identity-footer-spacer-column {
+        width: 34%;
+    }
+
+    .identity-footer-photo-column {
+        width: 30mm;
+    }
+
+    .identity-footer-gap-column {
+        width: 18px;
+    }
+
+    .identity-footer-spacer {
+        width: 34%;
+    }
+
     .identity-photo-cell {
-        width: 50%;
+        width: 30mm;
         text-align: left;
+    }
+
+    .identity-footer-gap {
+        width: 18px;
     }
 
     .identity-photo {
@@ -464,7 +484,6 @@
     }
 
     .identity-signature {
-        width: 50%;
         line-height: 1.2;
         text-align: left;
         break-inside: avoid;
@@ -472,7 +491,7 @@
     }
 
     .identity-signature-space {
-        height: 42px;
+        height: 70px;
     }
 
     .identity-signature-name {
@@ -499,7 +518,7 @@
     }
 
     .report-header-label-column {
-        width: 14%;
+        width: 15%;
     }
 
     .report-header-colon-column {
@@ -507,20 +526,24 @@
     }
 
     .report-header-value-column {
-        width: 40%;
+        width: 46%;
     }
 
     .report-header-right-label-column {
-        width: 12%;
+        width: 14%;
     }
 
     .report-header-right-value-column {
-        width: 30%;
+        width: 21%;
     }
 
     .report-header-value {
         word-wrap: break-word;
         white-space: pre-line;
+    }
+
+    .report-header-nowrap {
+        white-space: nowrap;
     }
 
     .report-table {

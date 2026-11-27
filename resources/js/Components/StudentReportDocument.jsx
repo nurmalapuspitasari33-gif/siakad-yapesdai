@@ -113,8 +113,15 @@ function IdentityDocument({ student, settings, isBatch = false, isLast = true })
                 </tbody>
             </table>
             <table className="report-table identity-footer">
+                <colgroup>
+                    <col className="identity-footer-spacer-column" />
+                    <col className="identity-footer-photo-column" />
+                    <col className="identity-footer-gap-column" />
+                    <col className="identity-footer-signature-column" />
+                </colgroup>
                 <tbody>
                     <tr>
+                        <td className="identity-footer-spacer" />
                         <td className="identity-photo-cell">
                             <table className="report-table identity-photo">
                                 <tbody>
@@ -130,6 +137,7 @@ function IdentityDocument({ student, settings, isBatch = false, isLast = true })
                                 </tbody>
                             </table>
                         </td>
+                        <td className="identity-footer-gap" />
                         <td className="identity-signature">
                             <p>{reportPlaceAndDate(settings)}</p>
                             <p>Kepala {printValue(settings.nama_sekolah) || 'Sekolah'}</p>
@@ -147,11 +155,15 @@ function IdentityDocument({ student, settings, isBatch = false, isLast = true })
 }
 
 function ReportHeaderLine({ label, value }) {
+    const shouldKeepOnOneLine = label === 'Tahun Ajaran';
+
     return (
         <>
-            <td className="report-header-label">{label}</td>
+            <td className={`report-header-label${shouldKeepOnOneLine ? ' report-header-nowrap' : ''}`}>{label}</td>
             <td className="report-header-colon">:</td>
-            <td className="report-header-value">{printValue(value) || '—'}</td>
+            <td className={`report-header-value${shouldKeepOnOneLine ? ' report-header-nowrap' : ''}`}>
+                {printValue(value) || '—'}
+            </td>
         </>
     );
 }
@@ -166,7 +178,12 @@ function StudentHeader({ student, settings, semester }) {
     const rightFields = [
         { label: 'Kelas', value: student.kelas },
         { label: 'Fase', value: student.fase ? `Fase ${student.fase}` : '' },
-        { label: 'Semester', value: semester.semester },
+        {
+            label: 'Semester',
+            value: semester.semester
+                ? `${semester.semester.charAt(0).toUpperCase()}${semester.semester.slice(1)}`
+                : '',
+        },
         { label: 'Tahun Ajaran', value: semester.tahun_ajaran },
     ];
 
