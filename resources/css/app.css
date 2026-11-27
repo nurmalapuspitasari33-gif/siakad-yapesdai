@@ -366,6 +366,12 @@
         box-sizing: border-box;
     }
 
+    .identity-print-document-batch {
+        position: relative;
+        min-height: 276mm;
+        padding-bottom: 50mm;
+    }
+
     .identity-title {
         margin: 5mm 0;
         text-align: center;
@@ -428,8 +434,11 @@
     }
 
     .identity-footer-batch {
-        position: static;
-        margin-top: 16px;
+        position: absolute;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        margin: 0;
     }
 
     .identity-footer td {

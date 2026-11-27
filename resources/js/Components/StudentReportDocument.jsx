@@ -100,7 +100,7 @@ function IdentityDocument({ student, settings, isBatch = false, isLast = true })
     return (
         <article
             className={isBatch
-                ? 'identity-print-document'
+                ? 'identity-print-document identity-print-document-batch'
                 : 'print-document identity-print-document hidden bg-white text-black print:block'}
             style={isBatch && !isLast ? { breakAfter: 'page', pageBreakAfter: 'always' } : undefined}
         >
