@@ -15,9 +15,11 @@ export default function GuruIndex({ gurus }) {
     const [editingGuru, setEditingGuru] = useState(null);
     const [deletingGuru, setDeletingGuru] = useState(null);
     const [resettingGuru, setResettingGuru] = useState(null);
+    const [credentialsPdfError, setCredentialsPdfError] = useState('');
     const form = useForm({
         nip: '',
         nama_lengkap: '',
+        username: '',
         email: '',
         no_wa: '',
         password: '',
@@ -38,6 +40,7 @@ export default function GuruIndex({ gurus }) {
         form.setData({
             nip: '',
             nama_lengkap: '',
+            username: '',
             email: '',
             no_wa: '',
             password: '',
@@ -52,6 +55,7 @@ export default function GuruIndex({ gurus }) {
         form.setData({
             nip: guru.nip,
             nama_lengkap: guru.nama_lengkap,
+            username: guru.user.username ?? '',
             email: guru.user.email ?? '',
             no_wa: guru.user.no_wa ?? '',
             password: '',
@@ -106,6 +110,27 @@ export default function GuruIndex({ gurus }) {
         });
     };
 
+    const submitCredentialsPdf = (event) => {
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+        const csrfInput = event.currentTarget.querySelector('input[name="_token"]');
+
+        if (!csrfToken || !csrfInput) {
+            event.preventDefault();
+            setCredentialsPdfError('Token keamanan tidak ditemukan. Muat ulang halaman lalu coba lagi.');
+
+            return;
+        }
+
+        if (!window.confirm('Password semua akun guru akan direset menjadi password sementara unik. Lanjutkan dan buat PDF kredensial?')) {
+            event.preventDefault();
+
+            return;
+        }
+
+        csrfInput.value = csrfToken;
+        setCredentialsPdfError('');
+    };
+
     return (
         <DashboardLayout
             title="Manajemen Guru"
@@ -121,15 +146,40 @@ export default function GuruIndex({ gurus }) {
                         <h2 className="font-bold text-slate-900">Daftar guru</h2>
                         <p className="mt-1 text-sm text-slate-500">{gurus.total} guru terdaftar</p>
                     </div>
-                    <button
-                        type="button"
-                        onClick={openCreateForm}
-                        className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-                    >
-                        <span className="text-lg leading-none" aria-hidden="true">+</span>
-                        Tambah Guru
-                    </button>
+                    <div className="flex flex-col gap-3 sm:flex-row">
+                        <form
+                            method="POST"
+                            action={route('admin.guru.credentials-pdf')}
+                            target="_blank"
+                            onSubmit={submitCredentialsPdf}
+                        >
+                            <input type="hidden" name="_token" value="" readOnly />
+                            <button
+                                type="submit"
+                                className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-indigo-200 bg-white px-4 py-2.5 text-sm font-semibold text-indigo-700 transition hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 sm:w-auto"
+                            >
+                                Simpan Semua Kredensial ke PDF
+                            </button>
+                        </form>
+                        <button
+                            type="button"
+                            onClick={openCreateForm}
+                            className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                        >
+                            <span className="text-lg leading-none" aria-hidden="true">+</span>
+                            Tambah Guru
+                        </button>
+                    </div>
                 </div>
+
+                {credentialsPdfError && (
+                    <p className="mx-5 mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 sm:mx-7" role="alert">
+                        {credentialsPdfError}
+                    </p>
+                )}
+                <p className="px-5 pt-4 text-xs leading-5 text-amber-800 sm:px-7">
+                    Membuat PDF akan mereset password seluruh akun guru. Setiap guru mendapat password sementara unik dan wajib menggantinya saat login.
+                </p>
 
                 <div className="px-5 py-4 sm:px-7">
                     <ExcelImportPanel
@@ -225,8 +275,8 @@ export default function GuruIndex({ gurus }) {
                 show={isFormOpen}
                 title={editingGuru ? 'Edit Data Guru' : 'Tambah Guru'}
                 description={editingGuru
-                    ? 'Username akun tidak berubah saat nama profil diperbarui.'
-                    : 'Username dibuat otomatis dari nama guru. Kata sandi awal adalah password dan harus diganti saat login pertama.'}
+                    ? 'Username dapat diubah. Isi kata sandi baru hanya jika ingin menggantinya; guru wajib mengganti password saat login berikutnya.'
+                    : 'Tentukan username dan kata sandi akun guru. Kata sandi akan tersimpan dalam bentuk hash dan wajib diganti saat login pertama.'}
                 processing={form.processing}
                 submitLabel={editingGuru ? 'Simpan Perubahan' : 'Tambah Guru'}
                 onClose={closeForm}
@@ -254,6 +304,21 @@ export default function GuruIndex({ gurus }) {
                         <InputError message={form.errors.nama_lengkap} className="mt-2" />
                     </div>
                     <div>
+                        <label htmlFor="username-guru" className="mb-2 block text-sm font-semibold text-slate-700">Username</label>
+                        <input
+                            id="username-guru"
+                            type="text"
+                            autoComplete="username"
+                            required
+                            maxLength={255}
+                            value={form.data.username}
+                            onChange={(event) => form.setData('username', event.target.value)}
+                            className="block w-full rounded-xl border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                        />
+                        <p className="mt-1 text-xs text-slate-500">Gunakan huruf kecil, angka, titik, garis bawah, atau tanda hubung.</p>
+                        <InputError message={form.errors.username} className="mt-2" />
+                    </div>
+                    <div>
                         <label htmlFor="email-guru" className="mb-2 block text-sm font-semibold text-slate-700">
                             Email Akun <span className="font-normal text-slate-400">(opsional)</span>
                         </label>
@@ -278,22 +343,24 @@ export default function GuruIndex({ gurus }) {
                         />
                         <InputError message={form.errors.no_wa} className="mt-2" />
                     </div>
-                    {editingGuru && (
-                        <div className="sm:col-span-2">
-                            <label htmlFor="password-guru" className="mb-2 block text-sm font-semibold text-slate-700">
-                                Kata Sandi Baru <span className="font-normal text-slate-400">(kosongkan jika tidak diubah)</span>
-                            </label>
-                            <input
-                                id="password-guru"
-                                type="password"
-                                autoComplete="new-password"
-                                value={form.data.password}
-                                onChange={(event) => form.setData('password', event.target.value)}
-                                className="block w-full rounded-xl border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                            />
-                            <InputError message={form.errors.password} className="mt-2" />
-                        </div>
-                    )}
+                    <div className="sm:col-span-2">
+                        <label htmlFor="password-guru" className="mb-2 block text-sm font-semibold text-slate-700">
+                            {editingGuru ? 'Kata Sandi Baru' : 'Kata Sandi'}
+                            {editingGuru && <span className="font-normal text-slate-400"> (kosongkan jika tidak diubah)</span>}
+                        </label>
+                        <input
+                            id="password-guru"
+                            type="password"
+                            autoComplete="new-password"
+                            required={!editingGuru}
+                            minLength={8}
+                            value={form.data.password}
+                            onChange={(event) => form.setData('password', event.target.value)}
+                            className="block w-full rounded-xl border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                        />
+                        <p className="mt-1 text-xs text-slate-500">Minimal 8 karakter. Sistem tidak dapat menampilkan kembali password yang sudah disimpan.</p>
+                        <InputError message={form.errors.password} className="mt-2" />
+                    </div>
                     <label className="flex items-start gap-3 rounded-xl border border-slate-200 p-4 sm:col-span-2">
                         <input
                             type="checkbox"

@@ -98,6 +98,8 @@ Route::middleware(['auth', 'force-password-change', 'verified', 'role:admin'])
         Route::resource('mapel', MataPelajaranController::class)
             ->except(['create', 'edit', 'show']);
 
+        Route::post('guru/credentials-pdf', [AdminGuruController::class, 'credentialsPdf'])
+            ->name('guru.credentials-pdf');
         Route::patch('guru/{guru}/reset-password', [AdminGuruController::class, 'resetPassword'])
             ->name('guru.reset-password');
         Route::get('guru/template', [AdminGuruController::class, 'template'])->name('guru.template');

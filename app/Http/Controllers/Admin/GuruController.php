@@ -11,9 +11,11 @@ use App\Support\SpreadsheetFile;
 use App\Support\TeacherUsername;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -44,6 +46,51 @@ class GuruController extends Controller
                 ->paginate(10)
                 ->withQueryString(),
         ]);
+    }
+
+    public function credentialsPdf(): HttpResponse
+    {
+        $credentials = DB::transaction(function (): array {
+            $teachers = Guru::query()
+                ->with([
+                    'user' => fn ($query) => $query
+                        ->select(['id', 'username'])
+                        ->lockForUpdate(),
+                ])
+                ->whereHas('user', fn ($query) => $query->where('role', 'guru'))
+                ->orderBy('nama_lengkap')
+                ->get(['id', 'user_id', 'nip', 'nama_lengkap']);
+            $issuedPasswords = [];
+            $credentials = [];
+
+            foreach ($teachers as $teacher) {
+                do {
+                    $temporaryPassword = Str::password(16);
+                } while (isset($issuedPasswords[$temporaryPassword]));
+
+                $issuedPasswords[$temporaryPassword] = true;
+                $teacher->user->forceFill([
+                    'password' => $temporaryPassword,
+                    'must_change_password' => true,
+                ])->save();
+
+                $credentials[] = [
+                    'nip' => $teacher->nip,
+                    'name' => $teacher->nama_lengkap,
+                    'username' => $teacher->user->username,
+                    'password' => $temporaryPassword,
+                ];
+            }
+
+            return $credentials;
+        });
+
+        return response()
+            ->view('admin.guru.credentials-pdf', ['credentials' => $credentials])
+            ->header('Cache-Control', 'no-store, private, max-age=0')
+            ->header('Pragma', 'no-cache')
+            ->header('X-Robots-Tag', 'noindex, nofollow')
+            ->header('Referrer-Policy', 'no-referrer');
     }
 
     public function template(): StreamedResponse
@@ -213,25 +260,42 @@ class GuruController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
+        $this->normalizeUsernameInput($request);
+
         $validated = $request->validate([
             'nip' => ['required', 'string', 'max:255', Rule::unique('gurus', 'nip')],
             'nama_lengkap' => ['required', 'string', 'max:255'],
+            'username' => [
+                'required',
+                'string',
+                'max:255',
+                'regex:/\A[a-z0-9._-]+\z/',
+                'not_regex:/\A\d{16}\z/',
+                Rule::unique('users', 'username'),
+            ],
             'email' => ['nullable', 'email', 'max:255', Rule::unique('users', 'email')],
             'no_wa' => ['nullable', 'string', 'max:30'],
+            'password' => ['required', 'string', 'min:8'],
             'is_wali_kelas' => ['required', 'boolean'],
         ], [
             'nip.required' => 'NIKY wajib diisi.',
             'nip.unique' => 'NIKY sudah digunakan.',
+            'username.required' => 'Username wajib diisi.',
+            'username.unique' => 'Username sudah digunakan.',
+            'username.regex' => 'Username hanya boleh berisi huruf, angka, titik, garis bawah, dan tanda hubung.',
+            'username.not_regex' => 'Username tidak boleh berupa 16 digit angka karena akan dianggap sebagai NIK.',
             'email.unique' => 'Email sudah digunakan.',
+            'password.required' => 'Kata sandi wajib diisi.',
+            'password.min' => 'Kata sandi minimal 8 karakter.',
         ], ['nip' => 'NIKY']);
 
         $username = DB::transaction(function () use ($validated): string {
             $user = User::create([
                 'name' => $validated['nama_lengkap'],
-                'username' => $this->generateUsername($validated['nama_lengkap']),
+                'username' => $validated['username'],
                 'email' => $validated['email'] ?? null,
                 'no_wa' => $validated['no_wa'] ?? null,
-                'password' => 'password',
+                'password' => $validated['password'],
                 'role' => 'guru',
             ]);
             $user->forceFill([
@@ -251,17 +315,26 @@ class GuruController extends Controller
 
         return to_route('admin.guru.index')->with(
             'success',
-            "Data guru berhasil ditambahkan. Username: {$username}. Kata sandi awal: password dan wajib diganti saat login pertama.",
+            "Data guru berhasil ditambahkan. Username: {$username}. Guru wajib mengganti kata sandi saat login pertama.",
         );
     }
 
     public function update(Request $request, Guru $guru): RedirectResponse
     {
         $guru->load('user');
+        $this->normalizeUsernameInput($request);
 
         $validated = $request->validate([
             'nip' => ['required', 'string', 'max:255', Rule::unique('gurus', 'nip')->ignore($guru)],
             'nama_lengkap' => ['required', 'string', 'max:255'],
+            'username' => [
+                'required',
+                'string',
+                'max:255',
+                'regex:/\A[a-z0-9._-]+\z/',
+                'not_regex:/\A\d{16}\z/',
+                Rule::unique('users', 'username')->ignore($guru->user),
+            ],
             'email' => ['nullable', 'email', 'max:255', Rule::unique('users', 'email')->ignore($guru->user)],
             'no_wa' => ['nullable', 'string', 'max:30'],
             'password' => ['nullable', 'string', 'min:8'],
@@ -269,6 +342,10 @@ class GuruController extends Controller
         ], [
             'nip.required' => 'NIKY wajib diisi.',
             'nip.unique' => 'NIKY sudah digunakan.',
+            'username.required' => 'Username wajib diisi.',
+            'username.unique' => 'Username sudah digunakan.',
+            'username.regex' => 'Username hanya boleh berisi huruf, angka, titik, garis bawah, dan tanda hubung.',
+            'username.not_regex' => 'Username tidak boleh berupa 16 digit angka karena akan dianggap sebagai NIK.',
             'email.unique' => 'Email sudah digunakan.',
             'password.min' => 'Kata sandi minimal 8 karakter.',
         ], ['nip' => 'NIKY']);
@@ -276,6 +353,7 @@ class GuruController extends Controller
         DB::transaction(function () use ($guru, $validated): void {
             $userData = [
                 'name' => $validated['nama_lengkap'],
+                'username' => $validated['username'],
                 'email' => $validated['email'] ?? null,
                 'no_wa' => $validated['no_wa'] ?? null,
             ];
@@ -343,6 +421,15 @@ class GuruController extends Controller
         }
 
         return $username;
+    }
+
+    private function normalizeUsernameInput(Request $request): void
+    {
+        $username = $request->input('username');
+
+        if (is_string($username)) {
+            $request->merge(['username' => Str::lower(trim($username))]);
+        }
     }
 
     /**
