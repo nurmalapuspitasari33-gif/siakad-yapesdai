@@ -53,6 +53,41 @@ class JadwalControllerTest extends TestCase
                 ->where('isWaliKelas', false));
     }
 
+    public function test_schedule_periods_and_weekly_load_use_saved_period_counts_and_school_breaks(): void
+    {
+        $tahunAjaran = TahunAjaran::create([
+            'nama_tahun' => '2026/2027',
+            'semester' => 'ganjil',
+            'is_aktif' => true,
+        ]);
+        $kelas = Kelas::create([
+            'tahun_ajaran_id' => $tahunAjaran->id,
+            'nama_kelas' => 'X IPA 1',
+            'tingkat' => 10,
+        ]);
+        $mapel = MataPelajaran::create([
+            'kode_mapel' => 'MAT-002',
+            'nama_mapel' => 'Matematika',
+        ]);
+        $guru = $this->createGuru('19870005', 'Guru Jadwal');
+        $this->createJadwal($tahunAjaran, $kelas, $guru, $mapel, 'senin', '09:00', '10:40', null);
+        $this->createJadwal($tahunAjaran, $kelas, $guru, $mapel, 'selasa', '12:30', '13:50', 2);
+        $this->createJadwal($tahunAjaran, $kelas, $guru, $mapel, 'rabu', '08:20', '10:40', 3);
+
+        $this->actingAs($guru->user)
+            ->get(route('guru.jadwal.index'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->has('jadwals', 3)
+                ->where('jadwals.0.jam_ke', '4-5')
+                ->where('jadwals.0.jp', 2)
+                ->where('jadwals.1.jam_ke', '8-9')
+                ->where('jadwals.1.jp', 2)
+                ->where('jadwals.2.jam_ke', '3-5')
+                ->where('jadwals.2.jp', 3)
+                ->where('printIdentity.total_jp', 7));
+    }
+
     public function test_wali_kelas_receives_navigation_state_on_their_schedule_page(): void
     {
         $guru = $this->createGuru('19870003', 'Wali Kelas', true);
@@ -107,18 +142,19 @@ class JadwalControllerTest extends TestCase
         Guru $guru,
         MataPelajaran $mapel,
         string $hari = 'senin',
+        string $jamMulai = '07:00',
+        string $jamSelesai = '07:40',
+        ?int $jumlahJp = 1,
     ): Jadwal {
-        static $counter = 0;
-        $start = 8 + $counter++;
-
         return Jadwal::create([
             'tahun_ajaran_id' => $tahunAjaran->id,
             'kelas_id' => $kelas->id,
             'mapel_id' => $mapel->id,
             'guru_id' => $guru->id,
             'hari' => $hari,
-            'jam_mulai' => sprintf('%02d:00', $start),
-            'jam_selesai' => sprintf('%02d:00', $start + 1),
+            'jam_mulai' => $jamMulai,
+            'jam_selesai' => $jamSelesai,
+            'jumlah_jp' => $jumlahJp,
         ]);
     }
 }

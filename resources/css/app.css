@@ -287,6 +287,11 @@
     margin: 12mm;
 }
 
+@page teacher-schedule {
+    size: A4 portrait;
+    margin: 10mm;
+}
+
 @media print {
     html,
     body,
@@ -1313,5 +1318,75 @@
     .executive-report-table tr {
         break-inside: avoid;
         page-break-inside: avoid;
+    }
+}
+
+@media print {
+    .schedule-print-document {
+        page: teacher-schedule;
+    }
+
+    .schedule-print-document header {
+        padding-bottom: 2mm !important;
+    }
+
+    .schedule-print-document header h1 {
+        font-size: 14pt !important;
+        line-height: 1.1 !important;
+    }
+
+    .schedule-print-document header h2 {
+        margin-top: 2mm !important;
+        font-size: 11pt !important;
+    }
+
+    .schedule-print-info,
+    .schedule-print-info * {
+        font-size: 9.5pt !important;
+        line-height: 1.2 !important;
+    }
+
+    .schedule-print-table {
+        table-layout: fixed;
+    }
+
+    .schedule-print-table th,
+    .schedule-print-table td {
+        padding: 1.4mm 1.2mm !important;
+        overflow-wrap: anywhere;
+    }
+
+    .schedule-print-table th,
+    .schedule-print-table td,
+    .schedule-print-table th *,
+    .schedule-print-table td * {
+        font-size: 9pt !important;
+        line-height: 1.15 !important;
+    }
+
+    .schedule-print-table th {
+        background: #e2e8f0 !important;
+        text-align: center;
+    }
+
+    .schedule-print-table tr {
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+
+    .schedule-print-total,
+    .schedule-print-signatures,
+    .schedule-print-signatures * {
+        font-size: 9.5pt !important;
+        line-height: 1.2 !important;
+    }
+
+    .schedule-print-signatures {
+        margin-top: 8mm !important;
+        gap: 8mm;
+    }
+
+    .schedule-print-signature-space {
+        height: 16mm !important;
     }
 }
