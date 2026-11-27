@@ -60,12 +60,27 @@ class GuruController extends Controller
             self::IMPORT_HEADERS,
             self::IMPORT_HEADER_ALIASES,
         );
+        $nikyCandidates = collect($rows)
+            ->map(fn (array $item): string => mb_strtolower(trim((string) ($item['data']['niky'] ?? ''))))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+        $emailCandidates = collect($rows)
+            ->map(fn (array $item): string => mb_strtolower(trim((string) ($item['data']['email'] ?? ''))))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+        $existingNiky = $this->existingNormalizedValues('gurus', 'nip', $nikyCandidates);
+        $existingEmails = $this->existingTeacherEmails($emailCandidates);
         $activeYearId = TahunAjaran::query()->where('is_aktif', true)->value('id');
         $classes = $activeYearId
             ? Kelas::query()->where('tahun_ajaran_id', $activeYearId)->get(['id', 'nama_kelas', 'wali_kelas_id'])
             : collect();
         $classesByName = $classes->groupBy(fn (Kelas $kelas): string => mb_strtolower($kelas->nama_kelas));
         $errors = [];
+        $skippedRows = [];
         $seenNiky = [];
         $seenEmails = [];
         $seenClassIds = [];
@@ -74,6 +89,15 @@ class GuruController extends Controller
         foreach ($rows as $item) {
             $rowNumber = $item['row'];
             $data = $item['data'];
+            $nikyKey = mb_strtolower(trim((string) ($data['niky'] ?? '')));
+            $emailKey = mb_strtolower(trim((string) ($data['email'] ?? '')));
+
+            if (isset($existingNiky[$nikyKey]) || isset($existingEmails[$emailKey])) {
+                $skippedRows[] = $rowNumber;
+
+                continue;
+            }
+
             $isHomeroomTeacher = trim((string) ($data['is_wali_kelas'] ?? ''));
             $data['is_wali_kelas'] = $isHomeroomTeacher === '' ? 'tidak' : mb_strtolower($isHomeroomTeacher);
             $validator = Validator::make($data, [
@@ -164,10 +188,17 @@ class GuruController extends Controller
             }
         });
 
-        return to_route('admin.guru.index')->with(
-            'success',
-            count($teachers).' guru berhasil diimpor. Kata sandi awal akun adalah password.',
-        );
+        $message = count($teachers).' guru baru berhasil diimpor.';
+
+        if ($skippedRows !== []) {
+            $message .= ' '.count($skippedRows).' baris dilewati karena NIKY atau email sudah terdaftar.';
+        }
+
+        if ($teachers !== []) {
+            $message .= ' Kata sandi awal akun adalah password.';
+        }
+
+        return to_route('admin.guru.index')->with('success', $message);
     }
 
     public function store(Request $request): RedirectResponse
@@ -270,5 +301,48 @@ class GuruController extends Controller
 
         return to_route('admin.guru.index')
             ->with('success', 'Kata sandi akun guru berhasil direset menjadi password.');
+    }
+
+    /**
+     * @param  array<int, string>  $values
+     * @return array<string, true>
+     */
+    private function existingNormalizedValues(string $table, string $column, array $values): array
+    {
+        $existingValues = [];
+
+        foreach (array_chunk($values, 500) as $valueChunk) {
+            $matches = DB::table($table)
+                ->whereIn(DB::raw("LOWER({$column})"), $valueChunk)
+                ->pluck($column);
+
+            foreach ($matches as $value) {
+                $existingValues[mb_strtolower(trim((string) $value))] = true;
+            }
+        }
+
+        return $existingValues;
+    }
+
+    /**
+     * @param  array<int, string>  $emails
+     * @return array<string, true>
+     */
+    private function existingTeacherEmails(array $emails): array
+    {
+        $existingEmails = [];
+
+        foreach (array_chunk($emails, 500) as $emailChunk) {
+            $matches = DB::table('users')
+                ->join('gurus', 'gurus.user_id', '=', 'users.id')
+                ->whereIn(DB::raw('LOWER(users.email)'), $emailChunk)
+                ->pluck('users.email');
+
+            foreach ($matches as $email) {
+                $existingEmails[mb_strtolower(trim((string) $email))] = true;
+            }
+        }
+
+        return $existingEmails;
     }
 }

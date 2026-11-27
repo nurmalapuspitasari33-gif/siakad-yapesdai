@@ -83,6 +83,70 @@ class SpreadsheetImportTest extends TestCase
         $this->assertTrue(Hash::check('password', $guru->user->password));
     }
 
+    public function test_admin_import_skips_existing_teachers_and_imports_new_teachers(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $existingUser = User::factory()->create([
+            'role' => 'guru',
+            'email' => 'guru.lama@sekolah.sch.id',
+        ]);
+        $existingGuru = Guru::create([
+            'user_id' => $existingUser->id,
+            'nip' => '19870010',
+            'nama_lengkap' => 'Guru Lama',
+            'is_wali_kelas' => false,
+        ]);
+
+        $this->actingAs($admin)
+            ->post(route('admin.guru.import'), [
+                'file' => $this->xlsxUpload(
+                    ['niky', 'nama_lengkap', 'email', 'no_wa', 'is_wali_kelas', 'nama_kelas_wali'],
+                    [
+                        ['19870010', 'Nama Berubah', 'email.baru@sekolah.sch.id', '', 'tidak', ''],
+                        ['19870011', 'Email Terpakai', 'guru.lama@sekolah.sch.id', '', 'tidak', ''],
+                        ['19870012', 'Guru Baru', 'guru.baru@sekolah.sch.id', '', 'tidak', ''],
+                    ],
+                ),
+            ])
+            ->assertRedirect(route('admin.guru.index', absolute: false))
+            ->assertSessionHas(
+                'success',
+                '1 guru baru berhasil diimpor. 2 baris dilewati karena NIKY atau email sudah terdaftar. Kata sandi awal akun adalah password.',
+            );
+
+        $this->assertDatabaseCount('gurus', 2);
+        $this->assertDatabaseCount('users', 3);
+        $this->assertDatabaseHas('gurus', [
+            'nip' => '19870012',
+            'nama_lengkap' => 'Guru Baru',
+        ]);
+        $this->assertDatabaseMissing('gurus', ['nip' => '19870011']);
+        $this->assertDatabaseMissing('users', ['email' => 'email.baru@sekolah.sch.id']);
+        $this->assertSame('Guru Lama', $existingGuru->fresh()->nama_lengkap);
+    }
+
+    public function test_admin_import_reports_email_conflicts_with_non_teacher_accounts(): void
+    {
+        $admin = User::factory()->create([
+            'role' => 'admin',
+            'email' => 'admin@sekolah.sch.id',
+        ]);
+
+        $this->actingAs($admin)
+            ->post(route('admin.guru.import'), [
+                'file' => $this->xlsxUpload(
+                    ['niky', 'nama_lengkap', 'email', 'no_wa', 'is_wali_kelas', 'nama_kelas_wali'],
+                    [['19870013', 'Guru Baru', 'admin@sekolah.sch.id', '', 'tidak', '']],
+                ),
+            ])
+            ->assertSessionHasErrors([
+                'file' => 'Baris 2: The email has already been taken.',
+            ]);
+
+        $this->assertDatabaseCount('gurus', 0);
+        $this->assertDatabaseCount('users', 1);
+    }
+
     public function test_admin_can_import_a_teacher_with_blank_homeroom_fields(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
