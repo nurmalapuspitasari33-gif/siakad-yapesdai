@@ -426,6 +426,8 @@ class SpreadsheetImportTest extends TestCase
         $this->assertNull($secondStudent->nisn);
         $this->assertNull($secondStudent->user->email);
         $this->assertNull($secondStudent->user->nik);
+        $this->assertSame($student->user->password, $secondStudent->user->password);
+        $this->assertTrue(Hash::check('password', $student->user->password));
     }
 
     public function test_admin_student_import_rejects_an_invalid_nik_when_provided(): void

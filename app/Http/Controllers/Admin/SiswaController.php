@@ -150,6 +150,8 @@ class SiswaController extends Controller
 
     public function import(Request $request): RedirectResponse
     {
+        set_time_limit(300);
+
         $validated = $request->validate([
             'file' => ['required', 'file', 'mimes:xlsx', 'extensions:xlsx', 'max:5120'],
         ]);
@@ -557,7 +559,11 @@ class SiswaController extends Controller
             throw ValidationException::withMessages(['file' => implode("\n", $errors)]);
         }
 
-        DB::transaction(function () use ($students): void {
+        $newStudentPasswordHash = collect($students)->contains(
+            static fn (array $student): bool => ! ($student['existing'] instanceof Siswa),
+        ) ? Hash::make('password') : null;
+
+        DB::transaction(function () use ($students, $newStudentPasswordHash): void {
             foreach ($students as $student) {
                 $data = $student['data'];
                 $studentAttributes = [
@@ -620,7 +626,7 @@ class SiswaController extends Controller
                     'name' => $data['nama_lengkap'],
                     'email' => $data['email'] ?? null,
                     'nik' => $data['nik'],
-                    'password' => 'password',
+                    'password' => $newStudentPasswordHash,
                     'role' => 'siswa',
                 ]);
 
