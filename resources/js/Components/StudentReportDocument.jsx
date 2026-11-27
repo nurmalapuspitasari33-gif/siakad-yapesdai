@@ -112,7 +112,7 @@ function IdentityDocument({ student, settings, isBatch = false, isLast = true })
                     ))}
                 </tbody>
             </table>
-            <table className="report-table identity-footer">
+            <table className={`report-table identity-footer${isBatch ? ' identity-footer-batch' : ''}`}>
                 <colgroup>
                     <col className="identity-footer-spacer-column" />
                     <col className="identity-footer-photo-column" />
@@ -154,14 +154,15 @@ function IdentityDocument({ student, settings, isBatch = false, isLast = true })
     );
 }
 
-function ReportHeaderLine({ label, value }) {
-    const shouldKeepOnOneLine = label === 'Tahun Ajaran';
-
+function ReportHeaderLine({ label, value, rightAligned = false }) {
     return (
         <>
-            <td className={`report-header-label${shouldKeepOnOneLine ? ' report-header-nowrap' : ''}`}>{label}</td>
+            <td className={`report-header-label${rightAligned ? ' report-header-nowrap' : ''}`}>{label}</td>
             <td className="report-header-colon">:</td>
-            <td className={`report-header-value${shouldKeepOnOneLine ? ' report-header-nowrap' : ''}`}>
+            <td className={`report-header-value${rightAligned
+                ? ' report-header-nowrap'
+                : ' report-header-left-value'}`}
+            >
                 {printValue(value) || '—'}
             </td>
         </>
@@ -201,7 +202,7 @@ function StudentHeader({ student, settings, semester }) {
                 {leftFields.map((leftField, index) => (
                     <tr key={leftField.label}>
                         <ReportHeaderLine {...leftField} />
-                        <ReportHeaderLine {...rightFields[index]} />
+                        <ReportHeaderLine {...rightFields[index]} rightAligned />
                     </tr>
                 ))}
             </tbody>
@@ -368,6 +369,7 @@ function AttendanceAndNotes({ notes }) {
                             </tbody>
                         </table>
                     </td>
+                    <td className="report-attendance-separator" />
                     <td className="report-teacher-notes-cell">
                         <table className="report-table report-data-table teacher-notes-table">
                             <thead>
@@ -447,7 +449,9 @@ function ReportSignatures({ student, settings }) {
                         <p className="report-signature-name">{printValue(student.wali_kelas_nama) || '—'}</p>
                         <p>NIKY. {printValue(student.wali_niky) || '—'}</p>
                     </td>
-                    <td className="report-signature-principal">
+                </tr>
+                <tr>
+                    <td colSpan="2" className="report-signature-principal">
                         <p>Mengetahui,</p>
                         <p>Kepala Sekolah</p>
                         <div className="report-signature-space" />

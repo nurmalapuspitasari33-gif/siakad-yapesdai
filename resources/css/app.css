@@ -259,7 +259,7 @@
 
 @page {
     size: A4 portrait;
-    margin: 12mm 15mm;
+    margin: 10mm 15mm;
 }
 
 @page student-report {
@@ -415,13 +415,21 @@
     }
 
     .identity-footer {
-        display: table;
+        position: fixed;
+        right: 0;
+        bottom: 2mm;
+        left: 0;
         width: 100%;
-        margin: 16px 0 0;
+        margin: 0;
         border-collapse: collapse;
         table-layout: fixed;
         break-inside: avoid;
         page-break-inside: avoid;
+    }
+
+    .identity-footer-batch {
+        position: static;
+        margin-top: 16px;
     }
 
     .identity-footer td {
@@ -491,7 +499,7 @@
     }
 
     .identity-signature-space {
-        height: 70px;
+        height: 68px;
     }
 
     .identity-signature-name {
@@ -502,23 +510,23 @@
     .report-student-header {
         display: table;
         width: 100%;
-        margin: 6mm 1mm 8mm;
+        margin: 6mm 0 8mm;
         border-collapse: collapse;
         table-layout: fixed;
     }
 
     .report-print-page-continuation .report-student-header {
-        margin: 0 1mm 6px;
+        margin: 0 0 6px;
     }
 
     .report-student-header td {
-        padding: 1px 2px !important;
+        padding: 1px 0 !important;
         text-align: left;
         vertical-align: top;
     }
 
     .report-header-label-column {
-        width: 15%;
+        width: 14%;
     }
 
     .report-header-colon-column {
@@ -526,15 +534,15 @@
     }
 
     .report-header-value-column {
-        width: 46%;
+        width: 53%;
     }
 
     .report-header-right-label-column {
-        width: 14%;
+        width: 15%;
     }
 
     .report-header-right-value-column {
-        width: 21%;
+        width: 14%;
     }
 
     .report-header-value {
@@ -683,7 +691,7 @@
     }
 
     .report-attendance-notes > tbody > tr > td {
-        padding: 0 3px 0 0 !important;
+        padding: 0 !important;
         border: 0 !important;
         vertical-align: top;
     }
@@ -693,8 +701,11 @@
     }
 
     .report-teacher-notes-cell {
-        width: 58%;
-        padding: 0 0 0 3px !important;
+        width: 56%;
+    }
+
+    .report-attendance-separator {
+        width: 2%;
     }
 
     .attendance-table thead tr,
@@ -707,8 +718,8 @@
     }
 
     .teacher-notes-table tbody td {
-        min-height: 12mm;
-        padding: 1.5mm !important;
+        height: 64px;
+        padding: 6px !important;
         vertical-align: top;
         white-space: pre-line;
     }
@@ -740,7 +751,7 @@
     .report-signatures {
         display: table;
         width: 100%;
-        margin: 20px 0 0;
+        margin: 14px 0 0;
         border-collapse: collapse;
         table-layout: fixed;
         text-align: center;
@@ -749,7 +760,7 @@
     }
 
     .report-signatures td {
-        width: 33.333%;
+        width: 50%;
         padding: 0 2px !important;
         border: 0 !important;
         vertical-align: top;
@@ -760,11 +771,11 @@
     }
 
     .report-signature-space {
-        height: 42px;
+        height: 55px;
     }
 
     .report-signature-rule {
-        width: 50mm;
+        width: 160px;
         margin: 0 auto;
         border-top: 0.3mm solid #000;
     }
@@ -774,7 +785,8 @@
     }
 
     .report-signature-principal {
-        width: 33.333%;
+        width: 100%;
+        padding-top: 8px !important;
     }
 
     .spmb-print-document {
