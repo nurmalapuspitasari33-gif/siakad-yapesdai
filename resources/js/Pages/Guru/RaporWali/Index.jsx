@@ -172,10 +172,35 @@ export default function GuruRaporWaliIndex({
             setIsLedgerPrinting(false);
             setLedgerPrintSiswas([]);
         };
+        let cancelled = false;
+        const printWhenReady = async () => {
+            if (isLedgerPrinting) {
+                const logo = document.querySelector('.ledger-print-document .ledger-school-heading img');
+
+                if (logo instanceof HTMLImageElement) {
+                    while (!logo.complete && !cancelled) {
+                        await new Promise((resolve) => {
+                            logo.addEventListener('load', resolve, { once: true });
+                            logo.addEventListener('error', resolve, { once: true });
+                        });
+                    }
+
+                    if (logo.complete && logo.naturalWidth === 0) {
+                        console.error('Logo sekolah gagal dimuat untuk cetak leger.');
+                    }
+                }
+            }
+
+            if (!cancelled) {
+                window.print();
+            }
+        };
+
         window.addEventListener('afterprint', handleAfterPrint);
-        window.print();
+        void printWhenReady();
 
         return () => {
+            cancelled = true;
             window.removeEventListener('afterprint', handleAfterPrint);
             ledgerPageStyle?.remove();
         };

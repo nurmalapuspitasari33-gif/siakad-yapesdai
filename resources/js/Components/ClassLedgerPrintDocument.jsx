@@ -193,7 +193,7 @@ export default function ClassLedgerPrintDocument({
             />
             {continuationStudents.length > 0 && (
                 <>
-                    <div className="ledger-page-break" style={{ pageBreakBefore: 'always' }} />
+                    <div className="ledger-page-break" />
                     <LedgerTable
                         groups={groups}
                         students={continuationStudents}
