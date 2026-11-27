@@ -63,7 +63,7 @@ function subjectGroups(mataPelajarans) {
     return [
         { key: 'umum', title: 'A. Mata Pelajaran Umum', compactTitle: ['A.', 'UMUM'] },
         { key: 'kejuruan', title: 'B. Mata Pelajaran Kejuruan', compactTitle: ['B.', 'KEJURUAN'] },
-        { key: 'muatan_lokal', title: 'C. Muatan Lokal', compactTitle: ['C.', 'MULOK'] },
+        { key: 'muatan_lokal', title: 'C. MLK', compactTitle: ['C.', 'MLK'] },
     ].map((group) => ({
         ...group,
         subjects: mataPelajarans.filter((mapel) => mapel.kelompok_mapel === group.key),
@@ -118,9 +118,13 @@ function LedgerTable({ groups, students, columnCount, startingIndex = 0, showEmp
                             ) : group.title}
                         </th>
                     ))}
-                    <th rowSpan="2">Jumlah Nilai</th>
-                    <th rowSpan="2">Rata-rata</th>
-                    <th rowSpan="2">Ranking</th>
+                    <th rowSpan="2">JML</th>
+                    <th rowSpan="2">
+                        Rata-
+                        <br />
+                        rata
+                    </th>
+                    <th rowSpan="2">Rank</th>
                 </tr>
                 <tr>
                     {groups.flatMap((group) => group.subjects.length > 0
